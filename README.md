@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="https://capsule-render.vercel.app/api?type=venom&color=0:A8C3A0,70:D9C8A9,100:F2B99B&height=200&section=header&text=Locus&fontSize=85&fontColor=ffffff&animation=twinkling" />
+<img src="https://capsule-render.vercel.app/api?type=venom&color=0:A8C3A0,70:D9C8A9,100:F2B99B&height=200&section=header&text=Locus&fontSize=85&fontColor=5A4A3F&animation=twinkling" />
 
 </div>
 
