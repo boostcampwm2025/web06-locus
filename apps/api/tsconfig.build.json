@@ -1,0 +1,11 @@
+{
+  "extends": "./tsconfig.json",
+  "exclude": ["node_modules", "test", "dist", "**/*spec.ts"],
+  "compilerOptions": {
+    "paths": {
+      "@/*": ["src/*"],
+      "@locus/shared": ["../../packages/shared/dist"],
+      "@locus/shared/*": ["../../packages/shared/dist/*"]
+    }
+  }
+}
