@@ -1,0 +1,22 @@
+{
+  "name": "locus",
+  "version": "0.0.0",
+  "private": true,
+  "description": "공간 기반 기록 서비스",
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "test": "turbo run test",
+    "lint": "turbo run lint",
+    "type-check": "turbo run type-check",
+    "clean": "turbo run clean"
+  },
+  "devDependencies": {
+    "turbo": "^2.0.0"
+  },
+  "packageManager": "pnpm@9.0.0",
+  "engines": {
+    "node": "22.x",
+    "pnpm": "9.x"
+  }
+}
