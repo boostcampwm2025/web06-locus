@@ -10,7 +10,6 @@ export default defineConfig(
     {
         ignores: ['**/eslint.config.mjs'],
     },
-
     // JS 기본 추천 규칙
     eslint.configs.recommended,
 
