@@ -1,0 +1,8 @@
+packages:
+    - fe
+    - be
+
+onlyBuiltDependencies:
+    - '@nestjs/core'
+    - esbuild
+    - unrs-resolver

@@ -11,7 +11,6 @@
 
 </div>
 
-
 ## 📍 What is Locus?
 
 Locus는 생각을 텍스트나 데이터로만 저장하지 않습니다.  
@@ -63,7 +62,7 @@ Locus를 이해하는 가장 빠른 방법입니다.
 - 👉 [**문제 · 유저 · 가치**](https://github.com/boostcampwm2025/web06-locus/wiki/%EB%AC%B8%EC%A0%9C%C2%B7%EC%9C%A0%EC%A0%80%C2%B7%EA%B0%80%EC%B9%98)  
   → 왜 이 서비스가 필요한지, 누구를 위한 것인지
 
-- 👉 [**판단 기준 / 설계 원칙**](https://github.com/boostcampwm2025/web06-locus/wiki/%ED%8C%90%EB%8B%A8-%EA%B8%B0%EC%A4%80-(lucus-Principles))  
+- 👉 [**판단 기준 / 설계 원칙**](<https://github.com/boostcampwm2025/web06-locus/wiki/%ED%8C%90%EB%8B%A8-%EA%B8%B0%EC%A4%80-(lucus-Principles)>)  
   → 모든 UX·기능·기술 선택의 기준이 되는 전제
 
 - 👉 [**기능 설계**](https://github.com/boostcampwm2025/web06-locus/wiki/%EA%B8%B0%EB%8A%A5-%EC%84%A4%EA%B3%84)  
@@ -133,7 +132,6 @@ Locus를 이해하는 가장 빠른 방법입니다.
     </tr>
   </tbody>
 </table>
-
 
 Made with 🐥 by **Team Haping**
 
