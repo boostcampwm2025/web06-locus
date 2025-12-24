@@ -1,6 +1,7 @@
 {
   "name": "@locus/api",
   "version": "0.0.1",
+  "type": "module",
   "description": "Locus API 서버 - 공간 기반 기록 서비스 백엔드",
   "author": "Team Haping",
   "private": true,
