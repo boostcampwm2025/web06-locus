@@ -1,0 +1,5 @@
+# Presentation Layer
+# UI 컴포넌트와 화면 단위의 상태를 담당
+# - Page: 라우트 단위의 화면 컴포넌트
+# - Form: 사용자 입력을 담당하는 UI 컴포넌트
+# - Store: Zustand 기반 UI 상태 및 usecase 연결

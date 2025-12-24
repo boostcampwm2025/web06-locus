@@ -1,0 +1,5 @@
+# Domain Layer
+# UI / API / 상태관리와 분리된 서비스 핵심 규칙
+# - entity.ts: 도메인 모델과 규칙
+# - usecases.ts: 사용자 행동 단위의 비즈니스 흐름
+# - repository.ts: 데이터 접근에 대한 추상 규약

@@ -1,0 +1,4 @@
+# Composition Layer
+# 애플리케이션 레벨의 조립 및 설정
+# - router.tsx: 라우팅 설정
+# - providers.tsx: React Context Provider 조립 (TanStack Query, Zustand 등)
