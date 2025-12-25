@@ -1,17 +1,8 @@
 {
-  "compilerOptions": {
-    "target": "ES2022",
-    "module": "nodenext",
-    "moduleResolution": "nodenext",
-    "allowJs": true,
-    "checkJs": true,
-    "skipLibCheck": true,
-    "esModuleInterop": true,
-    "allowSyntheticDefaultImports": true,
-    "strict": false,
-    "noEmit": true,
-    "resolveJsonModule": true
-  },
-  "include": ["eslint.config.mjs"],
-  "exclude": ["node_modules", "apps", "packages"]
+  "files": [],
+  "references": [
+    { "path": "./packages/shared" },
+    { "path": "./apps/api" },
+    { "path": "./apps/web/tsconfig.typecheck.json" }
+  ]
 }
