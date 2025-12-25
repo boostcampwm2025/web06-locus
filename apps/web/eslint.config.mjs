@@ -24,5 +24,6 @@ export default defineConfig(
         },
     },
     // Storybook 파일에 대한 ESLint 설정
-    ...storybook.configs['recommended'],
+    globalIgnores(['!.storybook'], 'Include Storybook Directory'),
+    ...storybook.configs['flat/recommended'],
 );
