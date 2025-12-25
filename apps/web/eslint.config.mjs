@@ -2,13 +2,14 @@
 import storybook from 'eslint-plugin-storybook';
 
 import base from '../../eslint.config.mjs';
-import { defineConfig } from 'eslint/config';
+import { defineConfig, globalIgnores } from 'eslint/config';
 import globals from 'globals';
 import reactHooks from 'eslint-plugin-react-hooks';
 import reactRefresh from 'eslint-plugin-react-refresh';
 
 export default defineConfig(
     ...base,
+    globalIgnores(['dist/**', 'build/**']),
     {
         files: ['**/*.{ts,tsx,js,jsx}'],
         extends: [
