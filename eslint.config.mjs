@@ -6,10 +6,6 @@ import { defineConfig } from 'eslint/config';
 import prettierConfig from 'eslint-config-prettier/flat';
 
 export default defineConfig(
-    // 전역 무시 설정 (ESLint 설정 파일 제외)
-    {
-        ignores: ['**/eslint.config.mjs'],
-    },
     // JS 기본 추천 규칙
     eslint.configs.recommended,
 
@@ -30,7 +26,10 @@ export default defineConfig(
                 tsconfigRootDir: import.meta.dirname,
             },
         },
-        // 무시할 경로
+    },
+
+    // 무시할 경로
+    {
         ignores: ['dist/**', 'build/**', 'node_modules/**'],
     },
 
