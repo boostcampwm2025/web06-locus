@@ -2,12 +2,7 @@ name: Bug report
 description: 버그 수정 이슈
 title: '[Bug] '
 labels: []
-assignees:
-  - mindaaaa
-  - vaaast-lake
-  - peanut990
-  - qjatjr29
-  - ariimo
+assignees: []
 
 body:
   - type: markdown

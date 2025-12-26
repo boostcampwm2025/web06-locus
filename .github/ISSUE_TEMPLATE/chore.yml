@@ -2,12 +2,7 @@ name: Chore
 description: 설정, 정리, 유지보수 작업
 title: '[Chore] '
 labels: []
-assignees:
-  - mindaaaa
-  - vaaast-lake
-  - peanut990
-  - qjatjr29
-  - ariimo
+assignees: []
 
 body:
   - type: markdown
