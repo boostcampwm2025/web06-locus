@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: 💬 질문 및 문의
+    url: https://github.com/boostcampwm2025/web06-locus/discussions
+    about: 기능 제안이나 질문은 Discussions에서 자유롭게 논의해주세요.
