@@ -1,6 +1,6 @@
-name: Feature request
-description: 사용자에게 제공되는 기능 구현 이슈
-title: '[Feature] '
+name: Chore
+description: 설정, 정리, 유지보수 작업
+title: '[Chore] '
 labels: []
 assignees:
   - mindaaaa
@@ -13,33 +13,31 @@ body:
   - type: markdown
     attributes:
       value: |
-        ## 🚀 설명
-        구현하려는 기능과 배경을 간단히 설명해주세요.
+        ## 🧹 작업 설명
 
   - type: textarea
     id: description
     attributes:
-      label: 기능 설명
+      label: 작업 내용
       placeholder: |
-        * 어떤 기능인지
-        * 왜 필요한지
-        * 사용자 입장에서 어떤 변화가 있는지
+        * 어떤 설정/정리 작업인지
+        * 왜 지금 필요한지
     validations:
       required: true
 
   - type: markdown
     attributes:
       value: |
-        ## 💡 완료조건 (BDD)
+        ## 💡 완료조건
 
   - type: textarea
     id: completion-criteria
     attributes:
       label: 완료조건
       placeholder: |
-        - Given: [전제 조건]
-        - When: [사용자가 어떤 행동을 하면]
-        - Then: [어떤 결과가 발생한다]
+        - Given: [현재 상태에서]
+        - When: [정리/설정을 수행하면]
+        - Then: [개발/운영에 어떤 개선이 있다]
     validations:
       required: true
 
@@ -48,8 +46,7 @@ body:
     attributes:
       label: 참고 자료 (선택)
       placeholder: |
-        * 기획 문서
-        * 디자인 시안
-        * 레퍼런스 링크
+        * 관련 문서
+        * 참고 링크
     validations:
       required: false
