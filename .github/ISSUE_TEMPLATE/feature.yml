@@ -1,49 +1,50 @@
 name: Feature request
-description: Feature 이슈
-title: '[ ]'
-labels: ''
-assignees: hugo, minda, peanut, ari, gru
+description: 사용자에게 제공되는 기능 구현 이슈
+title: '[Feature] '
+labels: []
+assignees: []
 
 body:
   - type: markdown
     attributes:
       value: |
         ## 🚀 설명
+        구현하려는 기능과 배경을 간단히 설명해주세요.
 
   - type: textarea
     id: description
     attributes:
-      label: 설명
-      placeholder: 기능에 대한 설명을 작성해주세요.
+      label: 기능 설명
+      placeholder: |
+        * 어떤 기능인지
+        * 왜 필요한지
+        * 사용자 입장에서 어떤 변화가 있는지
     validations:
       required: true
 
   - type: markdown
     attributes:
       value: |
-        ## 💡 완료조건
+        ## 💡 완료조건 (BDD)
 
   - type: textarea
     id: completion-criteria
     attributes:
       label: 완료조건
       placeholder: |
-        BDD 형식으로 작성해주세요.
         - Given: [전제 조건]
-        - When: [행동]
-        - Then: [예상 결과]
+        - When: [사용자가 어떤 행동을 하면]
+        - Then: [어떤 결과가 발생한다]
     validations:
       required: true
-
-  - type: markdown
-    attributes:
-      value: |
-        ## 🙋🏻 참고 자료 → 선택
 
   - type: textarea
     id: references
     attributes:
-      label: 참고 자료
-      placeholder: 관련 자료나 링크를 작성해주세요.
+      label: 참고 자료 (선택)
+      placeholder: |
+        * 기획 문서
+        * 디자인 시안
+        * 레퍼런스 링크
     validations:
       required: false
