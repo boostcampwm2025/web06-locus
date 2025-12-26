@@ -1,7 +1,7 @@
 import type { FallbackProps } from 'react-error-boundary';
 import { ErrorIcon, RefreshIcon } from '../../icons';
 
-function ErrorFallback({ resetErrorBoundary }: FallbackProps) {
+function ErrorFallback({ error, resetErrorBoundary }: FallbackProps) {
     return (
         <div className="relative h-screen w-screen overflow-hidden">
             {/* 배경 블러 */}
@@ -28,6 +28,18 @@ function ErrorFallback({ resetErrorBoundary }: FallbackProps) {
                         <RefreshIcon className="w-5 h-5 text-white" />
                         다시 시도
                     </button>
+
+                    {/* 개발 환경에서만 에러 상세 정보 표시 */}
+                    {import.meta.env.DEV && error && (
+                        <details className="mt-4 text-left">
+                            <summary className="text-xs text-gray-500 cursor-pointer">
+                                에러 상세 정보
+                            </summary>
+                            <pre className="mt-2 text-xs text-red-600 overflow-auto max-h-32">
+                                {error.toString()}
+                            </pre>
+                        </details>
+                    )}
                 </div>
             </div>
         </div>
