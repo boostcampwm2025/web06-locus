@@ -18,16 +18,6 @@ export default defineConfig(
     // Formatter는 prettier로 적용
     prettierConfig,
 
-    {
-        files: ['**/*.ts', '**/*.tsx'],
-        languageOptions: {
-            parserOptions: {
-                projectService: true,
-                tsconfigRootDir: import.meta.dirname,
-            },
-        },
-    },
-
     // 무시할 경로
     {
         ignores: ['dist/**', 'build/**', 'node_modules/**'],
