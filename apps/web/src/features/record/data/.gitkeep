@@ -1,0 +1,6 @@
+# Data Layer
+# 데이터 접근과 변환 책임을 분리하기 위한 레이어
+# (Clean Architecture 개념을 FE에 맞게 단순화한 구조)
+# - dto.ts: API 데이터 타입
+# - mapper.ts: 데이터 변환 로직
+# - repository.impl.ts: 데이터 소스별 구현

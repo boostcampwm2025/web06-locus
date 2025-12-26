@@ -1,0 +1,4 @@
+# Infrastructure Layer
+# 외부 시스템과의 통신 및 인프라 관련 코드
+# - IndexedDB: 브라우저 로컬 저장소 구현
+# - API Client: HTTP 클라이언트 설정 및 인터셉터

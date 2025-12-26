@@ -1,33 +1,46 @@
 {
-    "name": "pjt",
-    "version": "1.0.0",
-    "description": "",
-    "main": "index.js",
-    "keywords": [],
-    "author": "",
-    "license": "ISC",
-    "packageManager": "pnpm@10.15.0",
+    "name": "locus",
+    "version": "0.0.0",
     "private": true,
+    "description": "공간 기반 기록 서비스",
+    "keywords": [
+      "location-based",
+      "note-taking",
+      "spatial-memory",
+      "monorepo",
+      "turbo"
+    ],
+    "author": "Team Haping",
     "scripts": {
-        "dev": "pnpm --parallel --filter fe --filter be dev",
-        "build": "pnpm --filter be build && pnpm --filter fe build",
-        "build:be": "pnpm --filter be build",
-        "build:fe": "pnpm --filter fe build",
-        "dev:fe": "pnpm --filter fe dev",
-        "dev:be": "pnpm --filter be start:dev",
-        "test:fe": "pnpm --filter fe test",
-        "test:be": "pnpm --filter be test",
-        "fmt": "prettier . --write"
+      "dev": "turbo run dev",
+      "build": "turbo run build",
+      "test": "turbo run test",
+      "lint": "turbo run lint",
+      "type-check": "turbo run type-check",
+      "clean": "turbo run clean",
+      "dev:web": "turbo run dev --filter=@locus/web",
+      "dev:api": "turbo run dev --filter=@locus/api",
+      "build:web": "turbo run build --filter=@locus/web",
+      "build:api": "turbo run build --filter=@locus/api",
+      "test:web": "turbo run test --filter=@locus/web",
+      "test:api": "turbo run test --filter=@locus/api",
+      "fmt": "prettier . --write"
     },
     "devDependencies": {
-        "@eslint/js": "^9.33.0",
-        "@types/node": "^24.6.0",
-        "eslint": "^9.33.0",
-        "eslint-config-prettier": "^10.0.1",
-        "globals": "^16.4.0",
-        "ts-node": "^10.9.2",
-        "typescript": "^5.9.3",
-        "typescript-eslint": "^8.39.1",
-        "prettier": "3.6.2"
+      "turbo": "^2.0.0",
+      "@eslint/js": "^9.39.2",
+      "@types/node": "^24.6.0",
+      "eslint": "^9.39.2",
+      "eslint-config-prettier": "^10.0.1",
+      "globals": "^16.4.0",
+      "ts-node": "^10.9.2",
+      "typescript": "^5.9.3",
+      "typescript-eslint": "^8.46.4",
+      "prettier": "3.6.2"
+    },
+    "packageManager": "pnpm@9.0.0",
+    "engines": {
+      "node": "22.x",
+      "pnpm": "9.x"
     }
-}
+  }

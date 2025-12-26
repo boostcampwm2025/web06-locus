@@ -3,9 +3,13 @@
 import eslint from '@eslint/js';
 import tseslint from 'typescript-eslint';
 import { defineConfig } from 'eslint/config';
-import prettierConfig from 'eslint-config-prettier';
+import prettierConfig from 'eslint-config-prettier/flat';
 
 export default defineConfig(
+    // 전역 무시 설정 (ESLint 설정 파일 제외)
+    {
+        ignores: ['**/eslint.config.mjs'],
+    },
     // JS 기본 추천 규칙
     eslint.configs.recommended,
 
@@ -31,5 +35,8 @@ export default defineConfig(
     },
 
     // JS 파일은 타입체킹 규칙 비활성화
-    { files: ['**/*.js'], extends: [tseslint.configs.disableTypeChecked] },
+    {
+        files: ['**/*.js', '**/*.mjs'],
+        extends: [tseslint.configs.disableTypeChecked],
+    },
 );

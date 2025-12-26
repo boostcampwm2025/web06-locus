@@ -1,0 +1,49 @@
+name: Feature request
+description: Feature 이슈
+title: '[ ]'
+labels: ''
+assignees: hugo, minda, peanut, ari, gru
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## 🚀 설명
+
+  - type: textarea
+    id: description
+    attributes:
+      label: 설명
+      placeholder: 기능에 대한 설명을 작성해주세요.
+    validations:
+      required: true
+
+  - type: markdown
+    attributes:
+      value: |
+        ## 💡 완료조건
+
+  - type: textarea
+    id: completion-criteria
+    attributes:
+      label: 완료조건
+      placeholder: |
+        BDD 형식으로 작성해주세요.
+        - Given: [전제 조건]
+        - When: [행동]
+        - Then: [예상 결과]
+    validations:
+      required: true
+
+  - type: markdown
+    attributes:
+      value: |
+        ## 🙋🏻 참고 자료 → 선택
+
+  - type: textarea
+    id: references
+    attributes:
+      label: 참고 자료
+      placeholder: 관련 자료나 링크를 작성해주세요.
+    validations:
+      required: false

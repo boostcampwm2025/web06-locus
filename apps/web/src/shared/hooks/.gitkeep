@@ -1,0 +1,3 @@
+# Shared Hooks
+# 여러 feature에서 공통으로 사용하는 커스텀 훅
+# 예: useDebounce, useLocalStorage, useMediaQuery 등

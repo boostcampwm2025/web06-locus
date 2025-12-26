@@ -1,1 +1,88 @@
-node_modules
+# =====================
+# Dependencies
+# =====================
+node_modules/
+
+# =====================
+# Build / Production
+# =====================
+dist/
+build/
+.next/
+out/
+dist-ssr/
+
+# =====================
+# Testing / Coverage
+# =====================
+coverage/
+.nyc_output/
+*.lcov
+
+# =====================
+# Turbo
+# =====================
+.turbo/
+
+# =====================
+# Logs
+# =====================
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# =====================
+# Env files
+# =====================
+.env
+.env.*
+!.env.example
+
+# =====================
+# IDE / Editor
+# =====================
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+.idea/
+*.swp
+*.swo
+*~
+*.sublime-workspace
+
+# =====================
+# OS
+# =====================
+.DS_Store
+Thumbs.db
+
+# =====================
+# Temp / Runtime
+# =====================
+.temp
+.tmp
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# =====================
+# Diagnostic reports
+# =====================
+report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
+
+# =====================
+# Lock files (pnpm only)
+# =====================
+package-lock.json
+yarn.lock
+
+*storybook.log
+storybook-static
