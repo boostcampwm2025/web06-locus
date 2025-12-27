@@ -45,7 +45,7 @@
   },
   "lint-staged": {
     "apps/web/**/*.{js,jsx,ts,tsx}": [
-      "pnpm lint:web",
+      "cd apps/web && eslint --fix",
       "prettier --write"
     ],
     "apps/api/**/*.{js,ts}": [
