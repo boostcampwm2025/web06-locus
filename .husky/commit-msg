@@ -1,0 +1,38 @@
+#!/usr/bin/env sh
+
+# 커밋 메시지 읽기
+commit_msg=$(cat "$1")
+
+# Conventional Commits 패턴
+# 형식: type(scope): subject
+# 예시: feat: 로그인 기능 구현
+pattern="^(feat|fix|build|docs|style|refactor|test|ci|perf|chore)(\(.+\))?: .{1,}"
+
+if ! echo "$commit_msg" | grep -qE "$pattern"; then
+  echo ""
+  echo "❌ 커밋 메시지가 컨벤션에 맞지 않습니다!"
+  echo ""
+  echo "✅ 올바른 형식: <type>(<scope>): <subject>"
+  echo ""
+  echo "🧑🏻‍💻 사용 가능한 타입"
+  echo "  - feat:     새로운 기능"
+  echo "  - fix:      버그 수정"
+  echo "  - build:    빌드 관련 파일 수정"
+  echo "  - docs:     문서 수정"
+  echo "  - style:    코드 스타일 혹은 포맷 관련"
+  echo "  - refactor: 코드 리팩토링"
+  echo "  - test:     테스트 추가/수정"
+  echo "  - ci:       CI 설정 변경"
+  echo "  - perf:     성능 개선"
+  echo "  - chore:    그 외 작업"
+
+  echo ""
+  echo "👀 예시"
+  echo "  feat(auth): add login feature"
+  echo "  fix(api): resolve CORS issue"
+  echo "  docs: update README"
+  echo "  refactor(user): simplify validation logic"
+  echo ""
+  echo "현재 메시지: $commit_msg"
+  exit 1
+fi

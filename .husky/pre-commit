@@ -1,0 +1,6 @@
+#!/usr/bin/env sh
+
+# 변경된 파일만 format + lint
+pnpm lint-staged
+
+sh .husky/scripts/check-console.sh
