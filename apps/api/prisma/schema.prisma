@@ -1,0 +1,34 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id        Int   @id @default(autoincrement())
+  email     String   @unique
+  password  String?  // OAuth 사용자는 null
+  nickname  String?
+  profile_image_url String?
+  
+  // OAuth 관련 필드
+  provider      Provider @default(LOCAL)
+  providerId    String?  // OAuth 제공자의 고유 ID
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([email])
+  @@index([provider, providerId])
+  @@map("users")
+}
+
+enum Provider {
+  LOCAL   // 이메일/비밀번호
+  GOOGLE  
+  NAVER   
+  KAKAO   
+}
