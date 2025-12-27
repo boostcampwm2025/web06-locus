@@ -16,6 +16,8 @@
     "build": "turbo run build",
     "test": "turbo run test",
     "lint": "turbo run lint",
+    "lint:web": "turbo run lint --filter=@locus/web",
+    "lint:api": "turbo run lint --filter=@locus/api",
     "type-check": "turbo run type-check",
     "clean": "turbo run clean",
     "dev:web": "turbo run dev --filter=@locus/web",
@@ -43,11 +45,11 @@
   },
   "lint-staged": {
     "apps/web/**/*.{js,jsx,ts,tsx}": [
-      "eslint --fix",
+      "pnpm lint:web",
       "prettier --write"
     ],
     "apps/api/**/*.{js,ts}": [
-      "eslint --fix",
+      "cd apps/api && eslint --fix",
       "prettier --write"
     ],
     "*.{json,css,md,yaml,yml}": [
