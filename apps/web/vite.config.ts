@@ -23,8 +23,7 @@ export default defineConfig({
             includeAssets: ['favicon.ico', 'apple-touch-icon.png'],
             // 개발 환경에서도 PWA 테스트 가능하도록 설정
             devOptions: {
-                enabled: true,
-                type: 'module',
+                enabled: false,
             },
             manifest: {
                 name: 'Locus',
