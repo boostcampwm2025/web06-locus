@@ -11,6 +11,9 @@ build/
 .next/
 out/
 dist-ssr/
+dev-dist/
+**/dev-dist/
+# vite-plugin-pwa 개발 환경 빌드
 
 # =====================
 # Testing / Coverage
