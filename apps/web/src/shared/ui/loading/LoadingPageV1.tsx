@@ -1,4 +1,6 @@
 import logo from '../../../../public/loading-duck-1.png';
+import './animations.css';
+import './LoadingPageV1.css';
 
 export default function LoadingPageV1() {
     return (
@@ -50,23 +52,6 @@ export default function LoadingPageV1() {
                     </div>
                 </section>
             </main>
-
-            {/* 키프레임: V1에서만 쓰는 애니메이션 */}
-            <style>{`
-          @keyframes float {
-            0%, 100% { transform: translateY(0px); }
-            50% { transform: translateY(-10px); }
-          }
-          @keyframes dot {
-            0%, 100% { opacity: 0.35; transform: translateY(0px); }
-            50% { opacity: 1; transform: translateY(-4px); }
-          }
-          @keyframes progress {
-            0%   { transform: translateX(-120%); }
-            50%  { transform: translateX(40%); }
-            100% { transform: translateX(220%); }
-          }
-        `}</style>
         </div>
     );
 }

@@ -1,4 +1,6 @@
 import logo from '../../../../public/loading-duck-2.png';
+import './animations.css';
+import './LoadingPageV2.css';
 
 export default function LoadingPageV2() {
     return (
@@ -18,7 +20,7 @@ export default function LoadingPageV2() {
                         <img
                             src={logo}
                             alt="loading character"
-                            className="relative h-24 w-24 select-none animate-[walk_2.2s_ease-in-out_infinite,microRotate_2.8s_ease-in-out_infinite,pulse_2.4s_ease-in-out_infinite]"
+                            className="relative h-24 w-24 select-none animate-[walk_2.2s_ease-in-out_infinite,microRotate_2.8s_ease-in-out_infinite,breathe_2.4s_ease-in-out_infinite]"
                             draggable={false}
                         />
 
@@ -38,7 +40,7 @@ export default function LoadingPageV2() {
                 <section className="mt-10 flex flex-col items-center gap-4">
                     {/* Arc spinner: conic-gradient 버전 */}
                     <div className="relative h-14 w-14">
-                        <div className="absolute inset-0 rounded-full bg-[conic-gradient(from_210deg,rgba(250,204,21,1),rgba(251,146,60,1),rgba(0,0,0,0)_62%)] animate-spin" />
+                        <div className="absolute inset-0 rounded-full bg-[conic-gradient(from_210deg,rgba(250,204,21,1),rgba(251,146,60,1),rgba(0,0,0,0)_62%)] animate-[spin_1.2s_linear_infinite]" />
                         {/* 가운데 뚫기 */}
                         <div className="absolute inset-[5px] rounded-full bg-slate-900" />
                     </div>
@@ -46,37 +48,6 @@ export default function LoadingPageV2() {
                     <p className="text-xs text-slate-400/80">Loading...</p>
                 </section>
             </main>
-
-            {/* keyframes: 컴포넌트 단독으로 동작하게 */}
-            <style>{`
-        @keyframes spin {
-          to { transform: rotate(360deg); }
-        }
-        @keyframes walk {
-          0%, 100% { transform: translateY(0px) translateX(-4px); }
-          50% { transform: translateY(-12px) translateX(4px); }
-        }
-        @keyframes microRotate {
-          0%, 100% { rotate: -2deg; }
-          50% { rotate: 2deg; }
-        }
-        @keyframes pulse {
-          0%, 100% { scale: 1; }
-          50% { scale: 1.03; }
-        }
-        @keyframes shadow {
-          0%, 100% { transform: scaleX(1); opacity: 0.28; }
-          50% { transform: scaleX(0.78); opacity: 0.18; }
-        }
-
-        /* 모션 줄이기 선호하는 유저 대응 */
-        @media (prefers-reduced-motion: reduce) {
-          img[alt="loading character"],
-          .reduce-motion {
-            animation: none !important;
-          }
-        }
-      `}</style>
         </div>
     );
 }
