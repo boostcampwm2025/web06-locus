@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { Provider } from '@prisma/client';
 import { GoogleStrategy } from '../../../src/auth/strategies/google.strategy';
 import { UsersService } from '../../../src/users/users.service';
+import { UnauthorizedException } from '@nestjs/common';
 
 describe('GoogleStrategy 테스트', () => {
   let strategy: GoogleStrategy;
@@ -90,7 +91,7 @@ describe('GoogleStrategy 테스트', () => {
       expect(done).toHaveBeenCalledWith(null, mockUser);
     });
 
-    test('이메일 정보가 없는 경우 기본 값을 설정해야 한다', async () => {
+    test('이메일 정보가 없는 경우 UnauthorizedException을 던져야 한다', async () => {
       // given
       const done = jest.fn();
       const profileWithoutEmail = {
@@ -108,16 +109,11 @@ describe('GoogleStrategy 테스트', () => {
       );
 
       // then
-      expect(usersService.findOrCreateOAuthUser).toHaveBeenCalledWith(
-        '',
-        'beomsic',
-        'https://example.com/photo.jpg',
-        Provider.GOOGLE,
-        'google-user-id-123',
-      );
+      expect(usersService.findOrCreateOAuthUser).not.toHaveBeenCalled();
+      expect(done).toHaveBeenCalledWith(expect.any(UnauthorizedException));
     });
 
-    test('이메일이 undefined인 경우 기본 값을 넣어줘야 한다', async () => {
+    test('이메일이 undefined인 경우 UnauthorizedException을 던져야 한다', async () => {
       // given
       const done = jest.fn();
       const profileWithUndefinedEmails = {
@@ -135,13 +131,8 @@ describe('GoogleStrategy 테스트', () => {
       );
 
       // then
-      expect(usersService.findOrCreateOAuthUser).toHaveBeenCalledWith(
-        '',
-        'beomsic',
-        'https://example.com/photo.jpg',
-        Provider.GOOGLE,
-        'google-user-id-123',
-      );
+      expect(usersService.findOrCreateOAuthUser).not.toHaveBeenCalled();
+      expect(done).toHaveBeenCalledWith(expect.any(UnauthorizedException));
     });
 
     test('프로필 이미지가 없는 경우 null값을 넣어줘야 한다', async () => {

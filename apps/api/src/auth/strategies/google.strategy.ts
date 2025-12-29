@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ConfigService } from '@nestjs/config';
 import { Profile, Strategy, VerifyCallback } from 'passport-google-oauth20';
@@ -12,37 +12,47 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
     private readonly usersService: UsersService,
   ) {
     super({
-      clientID: configService.getOrThrow('GOOGLE_CLIENT_ID'),
-      clientSecret: configService.getOrThrow('GOOGLE_CLIENT_SECRET'),
-      callbackURL: configService.getOrThrow('GOOGLE_CALLBACK_URL'),
+      clientID: configService.getOrThrow<string>('GOOGLE_CLIENT_ID'),
+      clientSecret: configService.getOrThrow<string>('GOOGLE_CLIENT_SECRET'),
+      callbackURL: configService.getOrThrow<string>('GOOGLE_CALLBACK_URL'),
       scope: ['email', 'profile'],
     });
   }
 
   async validate(
-    accessToken: string,
-    refreshToken: string,
+    _accessToken: string,
+    _refreshToken: string,
     profile: Profile,
     done: VerifyCallback,
-  ): Promise<any> {
-    const { id, emails, displayName, photos } = profile;
-    const email = emails && emails.length > 0 ? emails[0].value : '';
-    const name = displayName;
-    const profileImageUrl =
-      photos && photos.length > 0 ? photos[0].value : null;
-
+  ): Promise<void> {
     try {
+      const userInfo = this.extractGoogleProfile(profile);
+
       const user = await this.usersService.findOrCreateOAuthUser(
-        email,
-        name,
-        profileImageUrl,
+        userInfo.email,
+        userInfo.name,
+        userInfo.profileImageUrl,
         Provider.GOOGLE,
-        id,
+        userInfo.id,
       );
 
       done(null, user);
     } catch (error) {
       done(error);
     }
+  }
+
+  private extractGoogleProfile(profile: Profile) {
+    const { id, emails, displayName, photos } = profile;
+
+    const email = emails?.[0]?.value;
+    const name = displayName;
+    const profileImageUrl = photos?.[0]?.value ?? null;
+
+    if (!email) {
+      throw new UnauthorizedException('구글 계정에 이메일 정보가 없습니다.');
+    }
+
+    return { id, email, name, profileImageUrl };
   }
 }
