@@ -13,8 +13,8 @@ module.exports = {
   extensionsToTreatAsEsm: ['.ts'],
   moduleNameMapper: {
     // .js 확장자를 제거하여 TypeScript 파일로 매핑
-    '^@/(.*)\\.js$': '<rootDir>/$1',
-    '^@/(.*)$': '<rootDir>/$1',
+    '^@/(.*)\\.js$': '<rootDir>/src/$1',
+    '^@/(.*)$': '<rootDir>/src/$1',
     // 상대 경로 .js 확장자 제거 (모든 경로에서)
     '^(\\.{1,2}/.*)\\.js$': '$1',
     '^@locus/shared$': path.resolve(__dirname, '../../packages/shared/src'),
