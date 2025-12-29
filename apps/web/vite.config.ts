@@ -37,6 +37,7 @@ const pwaOptions: Partial<VitePWAOptions> = {
   manifest: {
     name: 'Locus',
     short_name: 'Locus',
+    display: 'standalone',
     description:
       '생각이 태어난 장소를 기억하고, 그 생각으로 다시 돌아갈 수 있도록 돕는 공간 기반 기록 서비스',
     theme_color: '#A8C3A0',
