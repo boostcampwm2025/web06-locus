@@ -21,5 +21,13 @@ export default defineConfig(...base, {
         allowWithDecorator: true, // NestJS 데코레이터가 적용된 class
       },
     ],
+    '@typescript-eslint/no-unused-vars': [
+      'error',
+      {
+        argsIgnorePattern: '^_',
+        varsIgnorePattern: '^_',
+        caughtErrorsIgnorePattern: '^_',
+      },
+    ],
   },
 });
