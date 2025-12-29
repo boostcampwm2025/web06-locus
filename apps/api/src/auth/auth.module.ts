@@ -5,10 +5,11 @@ import { UsersModule } from '../users/users.module';
 import { GoogleStrategy } from './strategies/google.strategy';
 import { JwtModule } from '@nestjs/jwt';
 import { JwtProvider } from '@/jwt/jwt.provider';
+import { NaverStrategy } from './strategies/naver.strategy';
 
 @Module({
   imports: [JwtModule, UsersModule],
-  providers: [AuthService, GoogleStrategy, JwtProvider],
+  providers: [AuthService, GoogleStrategy, NaverStrategy, JwtProvider],
   controllers: [AuthController],
 })
 export class AuthModule {}

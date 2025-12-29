@@ -4,6 +4,7 @@ import { AuthService } from './auth.service';
 import { GoogleAuthGuard } from './guards/google-auth.guard';
 import { User } from '@prisma/client';
 import { ConfigService } from '@nestjs/config';
+import { NaverAuthGuard } from './guards/naver-auth.guard';
 
 @Controller('auth')
 export class AuthController {
@@ -18,19 +19,42 @@ export class AuthController {
     // Guard가 Google 로그인 페이지로 리다이렉트
   }
 
+  @Get('oauth2/naver')
+  @UseGuards(NaverAuthGuard)
+  async naverLogin() {
+    // Guard가 Naver 로그인 페이지로 리다이렉트
+  }
+
   @Get('oauth2/callback/google')
   @UseGuards(GoogleAuthGuard)
   async googleCallback(@Req() req: Request, @Res() res: Response) {
+    await this.handleOAuthCallback(req, res);
+  }
+
+  @Get('oauth2/callback/naver')
+  @UseGuards(NaverAuthGuard)
+  async naverCallback(@Req() req: Request, @Res() res: Response) {
+    await this.handleOAuthCallback(req, res);
+  }
+
+  // TODO: POST /auth/reissue
+
+  private async handleOAuthCallback(req: Request, res: Response) {
     const user = req.user as User;
+
     const tokens = await this.authService.generateTokens(user);
 
-    // 프론트엔드로 리다이렉트하면서 토큰 전달
-    const frontendUrl = this.configService.get<string>('FRONTEND_URL');
-    if (!frontendUrl) {
-      throw new Error('FRONTEND_URL 값이 환경변수로 지정되어 있지 않습니다.');
-    }
-    const redirectUrl = `${frontendUrl}/auth/callback?accessToken=${tokens.accessToken}&refreshToken=${tokens.refreshToken}`;
+    const redirectUrl = this.buildRedirectUrl(
+      tokens.accessToken,
+      tokens.refreshToken,
+    );
 
     res.redirect(redirectUrl);
+  }
+
+  private buildRedirectUrl(accessToken: string, refreshToken: string): string {
+    const frontendUrl = this.configService.getOrThrow<string>('FRONTEND_URL');
+
+    return `${frontendUrl}/auth/callback?accessToken=${accessToken}&refreshToken=${refreshToken}`;
   }
 }
