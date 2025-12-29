@@ -88,6 +88,9 @@ importers:
       passport-jwt:
         specifier: ^4.0.1
         version: 4.0.1
+      passport-oauth2:
+        specifier: ^1.8.0
+        version: 1.8.0
       pg:
         specifier: ^8.16.3
         version: 8.16.3
@@ -125,6 +128,9 @@ importers:
       '@types/passport-jwt':
         specifier: ^4.0.1
         version: 4.0.1
+      '@types/passport-oauth2':
+        specifier: ^1.8.0
+        version: 1.8.0
       '@types/supertest':
         specifier: ^6.0.2
         version: 6.0.3
