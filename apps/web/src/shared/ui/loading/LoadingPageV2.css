@@ -1,0 +1,10 @@
+/* 오리 움직임 */
+@keyframes walk {
+    0%,
+    100% {
+        transform: translateY(0px) translateX(-8px);
+    }
+    25% {
+        transform: translateY(-6px) translateX(-4px);
+    }
+}
