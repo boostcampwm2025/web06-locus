@@ -5,6 +5,7 @@ import { GoogleAuthGuard } from './guards/google-auth.guard';
 import { User } from '@prisma/client';
 import { ConfigService } from '@nestjs/config';
 import { NaverAuthGuard } from './guards/naver-auth.guard';
+import { KakaoAuthGuard } from './guards/kakao-auth.guard';
 
 @Controller('auth')
 export class AuthController {
@@ -25,6 +26,12 @@ export class AuthController {
     // Guard가 Naver 로그인 페이지로 리다이렉트
   }
 
+  @Get('oauth2/kakao')
+  @UseGuards(KakaoAuthGuard)
+  async kakaoLogin() {
+    // Guard가 Kakao 로그인 페이지로 리다이렉트
+  }
+
   @Get('oauth2/callback/google')
   @UseGuards(GoogleAuthGuard)
   async googleCallback(@Req() req: Request, @Res() res: Response) {
@@ -34,6 +41,12 @@ export class AuthController {
   @Get('oauth2/callback/naver')
   @UseGuards(NaverAuthGuard)
   async naverCallback(@Req() req: Request, @Res() res: Response) {
+    await this.handleOAuthCallback(req, res);
+  }
+
+  @Get('oauth2/callback/kakao')
+  @UseGuards(KakaoAuthGuard)
+  async kakaoCallback(@Req() req: Request, @Res() res: Response) {
     await this.handleOAuthCallback(req, res);
   }
 
