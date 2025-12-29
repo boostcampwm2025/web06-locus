@@ -207,7 +207,6 @@ describe('NaverStrategy 테스트', () => {
       // then
       expect(done).toHaveBeenCalledWith(
         expect.any(InternalServerErrorException),
-        null,
       );
       expect(done.mock.calls[0][0].message).toBe(
         '네이버 API 호출에 실패했습니다.',
@@ -231,10 +230,7 @@ describe('NaverStrategy 테스트', () => {
       await strategy.validate(accessToken, refreshToken, profile, done);
 
       // then
-      expect(done).toHaveBeenCalledWith(
-        expect.any(UnauthorizedException),
-        null,
-      );
+      expect(done).toHaveBeenCalledWith(expect.any(UnauthorizedException));
       expect(done.mock.calls[0][0].message).toBe('네이버 인증 실패: 인증 실패');
     });
 
@@ -259,10 +255,7 @@ describe('NaverStrategy 테스트', () => {
       await strategy.validate(accessToken, refreshToken, profile, done);
 
       // then
-      expect(done).toHaveBeenCalledWith(
-        expect.any(UnauthorizedException),
-        null,
-      );
+      expect(done).toHaveBeenCalledWith(expect.any(UnauthorizedException));
       expect(done.mock.calls[0][0].message).toBe(
         '네이버 계정에 이메일 정보가 없습니다.',
       );
@@ -281,7 +274,7 @@ describe('NaverStrategy 테스트', () => {
       await strategy.validate(accessToken, refreshToken, profile, done);
 
       // then
-      expect(done).toHaveBeenCalledWith(error, null);
+      expect(done).toHaveBeenCalledWith(error);
     });
   });
 });
