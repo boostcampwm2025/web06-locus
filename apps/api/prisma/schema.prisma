@@ -1,6 +1,5 @@
 generator client {
-  provider = "prisma-client"
-  output   = "../generated/prisma"
+  provider = "prisma-client-js"
 }
 
 datasource db {
@@ -12,16 +11,15 @@ model User {
   email     String   @unique
   password  String?  // OAuth 사용자는 null
   nickname  String?
-  profile_image_url String?
+  profileImageUrl   String?  @map("profile_image_url")
   
   // OAuth 관련 필드
   provider      Provider @default(LOCAL)
-  providerId    String?  // OAuth 제공자의 고유 ID
+  providerId    String?  @map("provider_id")  // OAuth 제공자의 고유 ID
   
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([email])
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  
   @@index([provider, providerId])
   @@map("users")
 }
