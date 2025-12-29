@@ -1,4 +1,4 @@
-import logo from '@public/loading-duck-3.png';
+import logo from '@/assets/images/loading-duck-3.png';
 import './animations.css';
 import './LoadingPageV3.css';
 
