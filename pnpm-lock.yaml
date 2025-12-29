@@ -88,6 +88,9 @@ importers:
       passport-jwt:
         specifier: ^4.0.1
         version: 4.0.1
+      passport-kakao:
+        specifier: ^1.0.1
+        version: 1.0.1
       passport-oauth2:
         specifier: ^1.8.0
         version: 1.8.0
@@ -128,6 +131,9 @@ importers:
       '@types/passport-jwt':
         specifier: ^4.0.1
         version: 4.0.1
+      '@types/passport-kakao':
+        specifier: ^1.0.3
+        version: 1.0.3
       '@types/passport-oauth2':
         specifier: ^1.8.0
         version: 1.8.0
@@ -3345,6 +3351,12 @@ packages:
     resolution:
       {
         integrity: sha512-Y0Ykz6nWP4jpxgEUYq8NoVZeCQPo1ZndJLfapI249g1jHChvRfZRO/LS3tqu26YgAS/laI1qx98sYGz0IalRXQ==,
+      }
+
+  '@types/passport-kakao@1.0.3':
+    resolution:
+      {
+        integrity: sha512-McK5kpeiOptvjIPkiA/QS3k82//z5JM7Y3yBLMDvEA0QMMhFMcWUHhyebL1Qy+0i0n8jS+Oe4U6xAvkU22SXXA==,
       }
 
   '@types/passport-oauth2@1.8.0':
@@ -7526,6 +7538,12 @@ packages:
         integrity: sha512-JtFnB+8nxDEXgNyniwz573xxbKSOu3R8D40xQKqcjwJ2CDkYqUDI53o6IuzDJBx60Z8VKCm271+t8iFjakrl8Q==,
       }
 
+  oauth@0.9.15:
+    resolution:
+      {
+        integrity: sha512-a5ERWK1kh38ExDEfoO6qUHJb32rd7aYmPHuyCu3Fta/cnICvYmgd2uhuKXvPD+PXB+gCEYYEaQdIRAjCOwAKNA==,
+      }
+
   object-assign@4.1.1:
     resolution:
       {
@@ -7701,6 +7719,19 @@ packages:
       {
         integrity: sha512-UCKMDYhNuGOBE9/9Ycuoyh7vP6jpeTp/+sfMJl7nLff/t6dps+iaeE0hhNkKN8/HZHcJ7lCdOyDxHdDoxoSvdQ==,
       }
+
+  passport-kakao@1.0.1:
+    resolution:
+      {
+        integrity: sha512-uItaYRVrTHL6iGPMnMZvPa/O1GrAdh/V6EMjOHcFlQcVroZ9wgG7BZ5PonMNJCxfHQ3L2QVNRnzhKWUzSsumbw==,
+      }
+
+  passport-oauth2@1.1.2:
+    resolution:
+      {
+        integrity: sha512-wpsGtJDHHQUjyc9WcV9FFB0bphFExpmKtzkQrxpH1vnSr6RcWa3ZEGHx/zGKAh2PN7Po9TKYB1fJeOiIBspNPA==,
+      }
+    engines: { node: '>= 0.4.0' }
 
   passport-oauth2@1.8.0:
     resolution:
@@ -7921,6 +7952,13 @@ packages:
       {
         integrity: sha512-SIqCzDRg0s9npO5XQ3tNZioRY1uK06lA41ynBC1YmFTmnY6FjUjVt6s4LoADmwoig1qqD0oK8h1p/8mlMx8Oig==,
       }
+
+  pkginfo@0.3.1:
+    resolution:
+      {
+        integrity: sha512-yO5feByMzAp96LtP58wvPKSbaKAi/1C4kV9XpTctr6EepnP6F33RBNOiVrdz9BrPA98U2BMFsTNHo44TWcbQ2A==,
+      }
+    engines: { node: '>= 0.4.0' }
 
   playwright-core@1.57.0:
     resolution:
@@ -12289,6 +12327,11 @@ snapshots:
       '@types/jsonwebtoken': 9.0.10
       '@types/passport-strategy': 0.2.38
 
+  '@types/passport-kakao@1.0.3':
+    dependencies:
+      '@types/express': 5.0.6
+      '@types/passport': 1.0.17
+
   '@types/passport-oauth2@1.8.0':
     dependencies:
       '@types/express': 5.0.6
@@ -15012,6 +15055,8 @@ snapshots:
 
   oauth@0.10.2: {}
 
+  oauth@0.9.15: {}
+
   object-assign@4.1.1: {}
 
   object-inspect@1.13.4: {}
@@ -15127,6 +15172,17 @@ snapshots:
       jsonwebtoken: 9.0.3
       passport-strategy: 1.0.0
 
+  passport-kakao@1.0.1:
+    dependencies:
+      passport-oauth2: 1.1.2
+      pkginfo: 0.3.1
+
+  passport-oauth2@1.1.2:
+    dependencies:
+      oauth: 0.9.15
+      passport-strategy: 1.0.0
+      uid2: 0.0.4
+
   passport-oauth2@1.8.0:
     dependencies:
       base64url: 3.0.1
@@ -15233,6 +15289,8 @@ snapshots:
       confbox: 0.2.2
       exsolve: 1.0.8
       pathe: 2.0.3
+
+  pkginfo@0.3.1: {}
 
   playwright-core@1.57.0: {}
 
