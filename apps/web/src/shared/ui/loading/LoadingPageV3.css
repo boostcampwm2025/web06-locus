@@ -1,0 +1,23 @@
+@keyframes bar {
+    0%,
+    100% {
+        transform: translateY(0px);
+        opacity: 0.5;
+    }
+    50% {
+        transform: translateY(-8px);
+        opacity: 1;
+    }
+}
+
+@keyframes spark {
+    0%,
+    100% {
+        transform: scale(0.9);
+        opacity: 0.65;
+    }
+    50% {
+        transform: scale(1.1);
+        opacity: 1;
+    }
+}
