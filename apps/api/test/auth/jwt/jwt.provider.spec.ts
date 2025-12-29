@@ -3,8 +3,8 @@ import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { UnauthorizedException } from '@nestjs/common';
 import { Provider } from '@prisma/client';
-import { JwtProvider } from '../../../src/auth/jwt/jwt.provider';
-import { JwtPayload } from '../../../src/auth/jwt/jwt-payload.interface';
+import { JwtProvider } from '../../../src/jwt/jwt.provider';
+import { JwtPayload } from '../../../src/jwt/jwt-payload.interface';
 
 describe('JwtProvider 테스트', () => {
   let jwtProvider: JwtProvider;

@@ -3,7 +3,7 @@ import { NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { Provider } from '@prisma/client';
 import { AuthService } from '../../src/auth/auth.service';
 import { UsersService } from '../../src/users/users.service';
-import { JwtProvider } from '../../src/auth/jwt/jwt.provider';
+import { JwtProvider } from '../../src/jwt/jwt.provider';
 import { UserWithoutPassword } from '../../src/common/type/user.types';
 
 describe('AuthService 테스트', () => {
