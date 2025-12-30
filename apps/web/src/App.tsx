@@ -1,9 +1,7 @@
+import OAuthLoginPage from './features/auth/ui/OAuthLoginPage';
+
 function App() {
-    return (
-        <div>
-            <h1>Locus</h1>
-        </div>
-    );
+  return <OAuthLoginPage />;
 }
 
 export default App;
