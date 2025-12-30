@@ -6,6 +6,7 @@ const meta = {
   component: OAuthLoginButton,
   parameters: {
     layout: 'centered',
+    actions: { argTypesRegex: undefined },
   },
   tags: ['autodocs'],
   argTypes: {
@@ -16,7 +17,7 @@ const meta = {
     },
     onClick: {
       action: 'clicked',
-      description: '버튼 클릭 핸들러',
+      description: '버튼 클릭 핸들러 (Storybook Actions 패널에 기록)',
     },
     className: {
       control: 'text',
@@ -31,85 +32,40 @@ type Story = StoryObj<typeof meta>;
 export const Google: Story = {
   args: {
     provider: 'google',
-    onClick: () => {
-      console.log('Google 로그인 클릭');
-    },
   },
 };
 
 export const Naver: Story = {
   args: {
     provider: 'naver',
-    onClick: () => {
-      console.log('Naver 로그인 클릭');
-    },
   },
 };
 
 export const Kakao: Story = {
   args: {
     provider: 'kakao',
-    onClick: () => {
-      console.log('Kakao 로그인 클릭');
-    },
   },
 };
 
 export const AllProviders: Story = {
-  render: () => (
-    <div className="w-full max-w-md space-y-3 p-4">
-      <OAuthLoginButton
-        provider="google"
-        onClick={() => {
-          console.log('Google 로그인 클릭');
-        }}
-      />
-      <OAuthLoginButton
-        provider="naver"
-        onClick={() => {
-          console.log('Naver 로그인 클릭');
-        }}
-      />
-      <OAuthLoginButton
-        provider="kakao"
-        onClick={() => {
-          console.log('Kakao 로그인 클릭');
-        }}
-      />
-    </div>
-  ),
-  parameters: {
-    layout: 'padded',
+  args: {
+    provider: 'google', // 타입 만족용 (render에서는 직접 provider 지정)
   },
-};
-
-export const WithCustomWidth: Story = {
-  render: () => (
-    <div className="space-y-3">
-      <OAuthLoginButton
-        provider="google"
-        className="w-64"
-        onClick={() => {
-          console.log('Google 로그인 클릭');
-        }}
-      />
-      <OAuthLoginButton
-        provider="naver"
-        className="w-80"
-        onClick={() => {
-          console.log('Naver 로그인 클릭');
-        }}
-      />
-      <OAuthLoginButton
-        provider="kakao"
-        className="w-full max-w-sm"
-        onClick={() => {
-          console.log('Kakao 로그인 클릭');
-        }}
-      />
+  render: (args) => (
+    <div className="w-full max-w-md mx-auto space-y-3 p-4">
+      <OAuthLoginButton provider="google" onClick={args.onClick} />
+      <OAuthLoginButton provider="naver" onClick={args.onClick} />
+      <OAuthLoginButton provider="kakao" onClick={args.onClick} />
     </div>
   ),
   parameters: {
     layout: 'padded',
+    controls: { disable: true },
+    docs: {
+      description: {
+        story:
+          'Google / Naver / Kakao OAuth 버튼을 한 화면에서 비교합니다. 클릭 이벤트는 Actions 패널에 기록됩니다.',
+      },
+    },
   },
 };
