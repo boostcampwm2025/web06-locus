@@ -94,6 +94,23 @@
   animation-fill-mode: forwards; /* 올라간 상태 유지 */
 }
 
+/* 파란 핀 선택 시 + 표시 pulse 애니메이션 */
+.pin-blue-selected .pin-plus-icon {
+  animation: plusIconPulse 1.6s ease-in-out infinite;
+}
+
+@keyframes plusIconPulse {
+  0% {
+    transform: scale(1.1);
+  }
+  45% {
+    transform: scale(1.2);
+  }
+  100% {
+    transform: scale(1.1);
+  }
+}
+
 /* =========================
    보라 핀 (record)
    - 기본: 정적
