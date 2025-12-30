@@ -67,9 +67,6 @@ export default function PinMarker({
           )}
         </div>
       </div>
-
-      {/* 파란 선택 시 그림자 (떠오르는 느낌 강화) */}
-      {isCurrent && <div className="pin-shadow" aria-hidden="true" />}
     </div>
   );
 }
