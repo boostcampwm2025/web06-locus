@@ -4,9 +4,7 @@
    - 보라 핀: selected 시 sweep + lift
 ============================================================================ */
 
-/* =========================
-   공통
-========================= */
+/* 공통 */
 
 /* 바깥 래퍼: lift(translateY) 담당 */
 .pin-motion-wrap {
@@ -24,21 +22,6 @@
 /* 아이콘 위 스윕 레이어가 잘 얹히도록 */
 .pin-pulse-wrap > svg {
   display: block;
-}
-
-/* 파란 선택 시 아래 그림자 */
-.pin-shadow {
-  position: absolute;
-  left: 50%;
-  top: calc(100% - 6px);
-  width: 22px;
-  height: 8px;
-  transform: translateX(-50%);
-  background: rgba(0, 0, 0, 0.18);
-  filter: blur(6px);
-  border-radius: 9999px;
-  opacity: 0;
-  pointer-events: none;
 }
 
 /* lift 공통 키프레임 */
@@ -62,6 +45,11 @@
   animation: bluePulseGlow 1.6s ease-in-out infinite;
 }
 
+/* 선택 상태에서 pulse를 조금 더 크게(지속) */
+.pin-blue-selected .pin-blue-pulse {
+  animation: bluePulseGlow 1.6s ease-in-out infinite;
+}
+
 /* 더 티 나게: scale 폭 + glow 강도 올림 */
 @keyframes bluePulseGlow {
   0% {
@@ -81,67 +69,10 @@
   }
 }
 
-/* 선택 상태에서 pulse를 조금 더 크게(지속) */
-.pin-blue-selected .pin-blue-pulse {
-  animation: bluePulseGlowSelected 1.6s ease-in-out infinite;
-}
-
-@keyframes bluePulseGlowSelected {
-  0% {
-    transform: scale(1);
-    filter: drop-shadow(0 0 0 rgba(59, 130, 246, 0))
-      drop-shadow(0 0 0 rgba(59, 130, 246, 0));
-  }
-  45% {
-    transform: scale(1.08);
-    filter: drop-shadow(0 12px 26px rgba(59, 130, 246, 0.42))
-      drop-shadow(0 0 26px rgba(59, 130, 246, 0.3));
-  }
-  100% {
-    transform: scale(1);
-    filter: drop-shadow(0 0 0 rgba(59, 130, 246, 0))
-      drop-shadow(0 0 0 rgba(59, 130, 246, 0));
-  }
-}
-
 /* 파란 선택: 위로 올라가 정착(바깥 래퍼에 적용) */
 .pin-blue-selected .pin-motion-wrap {
   animation: pinLift 180ms ease-in-out 1;
   animation-fill-mode: forwards; /* 올라간 상태 유지 */
-}
-
-/* 파란 선택: 선택 즉시 "선택됐네" 느낌의 미세 nudge(선택) */
-.pin-blue-selected .pin-pulse-wrap {
-  /* pulse는 유지하되, 선택 순간 감각만 주고 싶으면 아래 한 줄 유지.
-     불필요하면 삭제해도 됨. */
-  animation: blueIconNudge 120ms ease-in-out 1;
-}
-
-@keyframes blueIconNudge {
-  from {
-    transform: scale(0.98);
-  }
-  to {
-    transform: scale(1);
-  }
-}
-
-/* 파란 선택 시 그림자 확산 + 유지 */
-.pin-blue-selected .pin-shadow {
-  opacity: 1;
-  animation: blueShadow 180ms ease-in-out 1;
-  animation-fill-mode: forwards;
-}
-
-@keyframes blueShadow {
-  from {
-    opacity: 0;
-    transform: translateX(-50%) scaleX(1);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(-50%) scaleX(1.35);
-  }
 }
 
 /* =========================
