@@ -26,13 +26,17 @@ export default function PinMarker({
       'duration-150',
     ];
 
-    if (isCurrent && !isSelected) classes.push('pin-blue-idle');
+    const isCurrentIdle = isCurrent && !isSelected;
+    const isRecordHovered = isRecord && !isSelected && isHovered;
+    const selectedClassName = isCurrent
+      ? 'pin-blue-selected'
+      : 'pin-purple-selected';
 
-    if (isSelected)
-      classes.push(isCurrent ? 'pin-blue-selected' : 'pin-purple-selected');
+    if (isCurrentIdle) classes.push('pin-blue-idle');
+    if (isSelected) classes.push(selectedClassName);
 
     // 보라색 핀 hover 시 살짝 반응 (데스크톱 전용)
-    if (isRecord && !isSelected && isHovered) classes.push('pin-purple-hover');
+    if (isRecordHovered) classes.push('pin-purple-hover');
 
     return classes.join(' ');
   }, [isCurrent, isRecord, isHovered, isSelected]);
