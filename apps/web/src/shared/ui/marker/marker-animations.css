@@ -1,0 +1,205 @@
+/* ==========================================================================
+   - transform 충돌 방지: lift(translateY)와 pulse(scale)를 서로 다른 래퍼에 적용
+   - 파란 핀: idle에서도 무한 pulse+glow, selected에서도 위로 떠오른 채 pulse 유지
+   - 보라 핀: selected 시 sweep + lift
+============================================================================ */
+
+/* =========================
+   공통
+========================= */
+
+/* 바깥 래퍼: lift(translateY) 담당 */
+.pin-motion-wrap {
+  position: relative;
+  transform: translateY(0);
+  transform-origin: 50% 100%;
+}
+
+/* 안쪽 래퍼: pulse(scale) + glow(filter) 담당 */
+.pin-pulse-wrap {
+  position: relative;
+  transform-origin: 50% 100%;
+}
+
+/* 아이콘 위 스윕 레이어가 잘 얹히도록 */
+.pin-pulse-wrap > svg {
+  display: block;
+}
+
+/* 파란 선택 시 아래 그림자 */
+.pin-shadow {
+  position: absolute;
+  left: 50%;
+  top: calc(100% - 6px);
+  width: 22px;
+  height: 8px;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.18);
+  filter: blur(6px);
+  border-radius: 9999px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* lift 공통 키프레임 */
+@keyframes pinLift {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(-5px);
+  }
+}
+
+/* =========================
+   파란 핀 (current)
+   - 기본: 계속 pulse + glow (더 티 나게)
+   - 선택: 위로 lift + pulse는 더 크게 유지 + 그림자 확산
+========================= */
+
+/* 기본 상태에서도 계속 pulse+glow */
+.pin-blue-pulse {
+  animation: bluePulseGlow 1.6s ease-in-out infinite;
+}
+
+/* 더 티 나게: scale 폭 + glow 강도 올림 */
+@keyframes bluePulseGlow {
+  0% {
+    transform: scale(1);
+    filter: drop-shadow(0 0 0 rgba(59, 130, 246, 0))
+      drop-shadow(0 0 0 rgba(59, 130, 246, 0));
+  }
+  45% {
+    transform: scale(1.05);
+    filter: drop-shadow(0 10px 22px rgba(59, 130, 246, 0.35))
+      drop-shadow(0 0 22px rgba(59, 130, 246, 0.25));
+  }
+  100% {
+    transform: scale(1);
+    filter: drop-shadow(0 0 0 rgba(59, 130, 246, 0))
+      drop-shadow(0 0 0 rgba(59, 130, 246, 0));
+  }
+}
+
+/* 선택 상태에서 pulse를 조금 더 크게(지속) */
+.pin-blue-selected .pin-blue-pulse {
+  animation: bluePulseGlowSelected 1.6s ease-in-out infinite;
+}
+
+@keyframes bluePulseGlowSelected {
+  0% {
+    transform: scale(1);
+    filter: drop-shadow(0 0 0 rgba(59, 130, 246, 0))
+      drop-shadow(0 0 0 rgba(59, 130, 246, 0));
+  }
+  45% {
+    transform: scale(1.08);
+    filter: drop-shadow(0 12px 26px rgba(59, 130, 246, 0.42))
+      drop-shadow(0 0 26px rgba(59, 130, 246, 0.3));
+  }
+  100% {
+    transform: scale(1);
+    filter: drop-shadow(0 0 0 rgba(59, 130, 246, 0))
+      drop-shadow(0 0 0 rgba(59, 130, 246, 0));
+  }
+}
+
+/* 파란 선택: 위로 올라가 정착(바깥 래퍼에 적용) */
+.pin-blue-selected .pin-motion-wrap {
+  animation: pinLift 180ms ease-in-out 1;
+  animation-fill-mode: forwards; /* 올라간 상태 유지 */
+}
+
+/* 파란 선택: 선택 즉시 "선택됐네" 느낌의 미세 nudge(선택) */
+.pin-blue-selected .pin-pulse-wrap {
+  /* pulse는 유지하되, 선택 순간 감각만 주고 싶으면 아래 한 줄 유지.
+     불필요하면 삭제해도 됨. */
+  animation: blueIconNudge 120ms ease-in-out 1;
+}
+
+@keyframes blueIconNudge {
+  from {
+    transform: scale(0.98);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+
+/* 파란 선택 시 그림자 확산 + 유지 */
+.pin-blue-selected .pin-shadow {
+  opacity: 1;
+  animation: blueShadow 180ms ease-in-out 1;
+  animation-fill-mode: forwards;
+}
+
+@keyframes blueShadow {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) scaleX(1);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) scaleX(1.35);
+  }
+}
+
+/* =========================
+   보라 핀 (record)
+   - 기본: 정적
+   - 선택: 하이라이트 스윕 + 위로 lift
+   - 선택링 없음
+========================= */
+
+/* (선택) hover 시 아주 미세 반응 원하면 */
+.pin-purple-hover .pin-pulse-wrap {
+  animation: purpleHoverNudge 160ms ease-out 1;
+}
+
+@keyframes purpleHoverNudge {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(-2px);
+  }
+}
+
+/* 선택 시 위로 lift (파란과 동일한 느낌) */
+.pin-purple-selected .pin-motion-wrap {
+  animation: pinLift 180ms ease-in-out 1;
+  animation-fill-mode: forwards;
+}
+
+/* 하이라이트 스윕 */
+.pin-sweep {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+
+  /* 대각선으로 스쳐가는 얇은 하이라이트 */
+  background: linear-gradient(
+    120deg,
+    rgba(255, 255, 255, 0) 35%,
+    rgba(255, 255, 255, 0.55) 50%,
+    rgba(255, 255, 255, 0) 65%
+  );
+
+  transform: translateX(-60%);
+  animation: sweep 220ms ease-in-out 1;
+  mix-blend-mode: screen;
+  opacity: 0.9;
+
+  /* 아이콘 위로 올라오게 */
+  z-index: 1;
+}
+
+/* 스윕 이동 */
+@keyframes sweep {
+  from {
+    transform: translateX(-60%);
+  }
+  to {
+    transform: translateX(60%);
+  }
+}
