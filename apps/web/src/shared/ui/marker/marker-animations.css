@@ -40,27 +40,46 @@
    - 선택: 위로 lift + pulse는 더 크게 유지 + 그림자 확산
 ========================= */
 
-/* 기본 상태에서도 계속 pulse+glow */
+/* 기본 상태: 작은 pulse+glow */
 .pin-blue-pulse {
-  animation: bluePulseGlow 1.6s ease-in-out infinite;
+  animation: bluePulseGlowIdle 1.6s ease-in-out infinite;
 }
 
-/* 선택 상태에서 pulse를 조금 더 크게(지속) */
+/* 선택 상태: 더 큰 pulse+glow */
 .pin-blue-selected .pin-blue-pulse {
-  animation: bluePulseGlow 1.6s ease-in-out infinite;
+  animation: bluePulseGlowSelected 1.6s ease-in-out infinite;
 }
 
-/* 더 티 나게: scale 폭 + glow 강도 올림 */
-@keyframes bluePulseGlow {
+/* 기본 상태 애니메이션: 작게 */
+@keyframes bluePulseGlowIdle {
   0% {
     transform: scale(1);
     filter: drop-shadow(0 0 0 rgba(59, 130, 246, 0))
       drop-shadow(0 0 0 rgba(59, 130, 246, 0));
   }
   45% {
-    transform: scale(1.05);
-    filter: drop-shadow(0 10px 22px rgba(59, 130, 246, 0.35))
-      drop-shadow(0 0 22px rgba(59, 130, 246, 0.25));
+    transform: scale(1.02); /* 1.05 -> 1.02로 줄임 */
+    filter: drop-shadow(0 6px 16px rgba(59, 130, 246, 0.25))
+      drop-shadow(0 0 16px rgba(59, 130, 246, 0.15));
+  }
+  100% {
+    transform: scale(1);
+    filter: drop-shadow(0 0 0 rgba(59, 130, 246, 0))
+      drop-shadow(0 0 0 rgba(59, 130, 246, 0));
+  }
+}
+
+/* 선택 상태 애니메이션: 크게 (기존 유지 또는 더 크게) */
+@keyframes bluePulseGlowSelected {
+  0% {
+    transform: scale(1);
+    filter: drop-shadow(0 0 0 rgba(59, 130, 246, 0))
+      drop-shadow(0 0 0 rgba(59, 130, 246, 0));
+  }
+  45% {
+    transform: scale(1.08); /* 1.05 -> 1.08로 키움 (또는 1.1) */
+    filter: drop-shadow(0 12px 26px rgba(59, 130, 246, 0.42))
+      drop-shadow(0 0 26px rgba(59, 130, 246, 0.3));
   }
   100% {
     transform: scale(1);
@@ -78,31 +97,27 @@
 /* =========================
    보라 핀 (record)
    - 기본: 정적
-   - 선택: 하이라이트 스윕 + 위로 lift
-   - 선택링 없음
+   - 선택: lift + scale-up + sweep(1회)
 ========================= */
 
-/* (선택) hover 시 아주 미세 반응 원하면 */
-.pin-purple-hover .pin-pulse-wrap {
-  animation: purpleHoverNudge 160ms ease-out 1;
-}
-
-@keyframes purpleHoverNudge {
-  from {
-    transform: translateY(0);
-  }
-  to {
-    transform: translateY(-2px);
-  }
-}
-
-/* 선택 시 위로 lift (파란과 동일한 느낌) */
+/* 선택 시 위로 lift (바깥 래퍼: translateY 담당) */
 .pin-purple-selected .pin-motion-wrap {
   animation: pinLift 180ms ease-in-out 1;
   animation-fill-mode: forwards;
 }
 
-/* 하이라이트 스윕 */
+/* 보라 선택 시 살짝 커짐 (안쪽 래퍼: scale 담당) */
+.pin-pulse-wrap {
+  transform: scale(1);
+  transform-origin: 50% 100%;
+  transition: transform 160ms ease; /* 선택/해제 모두 부드럽게 */
+}
+
+.pin-purple-selected .pin-pulse-wrap {
+  transform: scale(1.06);
+}
+
+/* 하이라이트 스윕 (선택 시에만 span이 렌더된다는 전제) */
 .pin-sweep {
   position: absolute;
   inset: 0;
@@ -116,21 +131,31 @@
     rgba(255, 255, 255, 0) 65%
   );
 
+  /* 시작 위치 */
   transform: translateX(-60%);
-  animation: sweep 220ms ease-in-out 1;
-  mix-blend-mode: screen;
-  opacity: 0.9;
+  opacity: 0;
 
-  /* 아이콘 위로 올라오게 */
-  z-index: 1;
+  /* 한 번만 실행 */
+  animation: sweepOnce 600ms ease-in-out 1;
+
+  mix-blend-mode: screen;
+  z-index: 1; /* 아이콘 위로 */
 }
 
-/* 스윕 이동 */
-@keyframes sweep {
-  from {
+/* 스윕: 끊김 방지 opacity 사용 */
+@keyframes sweepOnce {
+  0% {
     transform: translateX(-60%);
+    opacity: 0;
   }
-  to {
+  10% {
+    opacity: 0.9;
+  }
+  90% {
+    opacity: 0.9;
+  }
+  100% {
     transform: translateX(60%);
+    opacity: 0;
   }
 }
