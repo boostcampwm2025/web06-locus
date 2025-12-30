@@ -22,14 +22,14 @@ export default function PinMarkerPendingIcon({
       />
       <path
         d="M28 44.7991V69.9986"
-        stroke="#8B5CF6"
+        stroke="#3B82F6"
         strokeWidth="3.49993"
         strokeLinecap="round"
       />
       <path
         d="M28 5.59988C39.1998 5.59988 44.7997 13.9997 44.7997 25.1995C44.7997 36.3993 28 44.7991 28 44.7991C28 44.7991 11.2003 36.3993 11.2003 25.1995C11.2003 13.9997 16.8002 5.59988 28 5.59988Z"
-        fill="#A78BFA"
-        stroke="#7C3AED"
+        fill="#60A5FA"
+        stroke="#2563EB"
         strokeWidth="2.79994"
       />
       <path
@@ -38,13 +38,31 @@ export default function PinMarkerPendingIcon({
         fill="white"
       />
       <path
-        d="M25.2001 25.1995V16.7997L32.1999 19.5996L25.2001 22.3995V25.1995Z"
-        fill="#7C3AED"
+        d="M28 26.5995C30.3195 26.5995 32.1999 24.7191 32.1999 22.3995C32.1999 20.08 30.3195 18.1996 28 18.1996C25.6804 18.1996 23.8001 20.08 23.8001 22.3995C23.8001 24.7191 25.6804 26.5995 28 26.5995Z"
+        fill="#2563EB"
       />
       <path
-        d="M25.2001 16.7997V27.9994"
-        stroke="#7C3AED"
-        strokeWidth="2.09996"
+        d="M28 13.9997V18.1996"
+        stroke="#2563EB"
+        strokeWidth="2.79994"
+        strokeLinecap="round"
+      />
+      <path
+        d="M28 26.5995V30.7994"
+        stroke="#2563EB"
+        strokeWidth="2.79994"
+        strokeLinecap="round"
+      />
+      <path
+        d="M19.6002 22.3995H23.8001"
+        stroke="#2563EB"
+        strokeWidth="2.79994"
+        strokeLinecap="round"
+      />
+      <path
+        d="M32.1999 22.3995H36.3998"
+        stroke="#2563EB"
+        strokeWidth="2.79994"
         strokeLinecap="round"
       />
       <path
