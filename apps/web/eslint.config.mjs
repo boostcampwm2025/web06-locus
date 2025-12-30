@@ -1,6 +1,3 @@
-// For more info, see https://github.com/storybookjs/eslint-plugin-storybook#configuration-flat-config-format
-import storybook from 'eslint-plugin-storybook';
-
 import base from '../../eslint.config.mjs';
 import { defineConfig, globalIgnores } from 'eslint/config';
 import globals from 'globals';
@@ -9,7 +6,7 @@ import reactRefresh from 'eslint-plugin-react-refresh';
 
 export default defineConfig(
   ...base,
-  globalIgnores(['dist/**', 'build/**']),
+  globalIgnores(['dist/**', 'build/**', '.storybook/**']),
   // 설정 파일들에 대한 타입 체크 (tsconfig.node.json 사용)
   {
     files: ['*.config.ts', 'tailwind.config.ts', 'vitest.shims.d.ts'],
@@ -34,6 +31,7 @@ export default defineConfig(
   },
   {
     files: ['**/*.{ts,tsx,js,jsx}'],
+    ignores: ['.storybook/**'],
     extends: [
       reactHooks.configs['recommended-latest'],
       reactRefresh.configs.vite,
@@ -42,7 +40,4 @@ export default defineConfig(
       globals: { ...globals.browser },
     },
   },
-  // Storybook 파일에 대한 ESLint 설정
-  globalIgnores(['!.storybook'], 'Include Storybook Directory'),
-  ...storybook.configs['flat/recommended'],
 );
