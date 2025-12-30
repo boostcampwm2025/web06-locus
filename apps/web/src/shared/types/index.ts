@@ -6,3 +6,4 @@ export type {
   PinMarkerData,
   PinMarkerProps,
 } from './marker';
+export type { OAuthProvider } from './oauth';
