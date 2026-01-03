@@ -9,9 +9,9 @@ CREATE TABLE "users" (
     "nickname" TEXT,
     "profile_image_url" TEXT,
     "provider" "Provider" NOT NULL DEFAULT 'LOCAL',
-    "providerId" TEXT,
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" TIMESTAMP(3) NOT NULL,
+    "provider_id" TEXT,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "users_pkey" PRIMARY KEY ("id")
 );
@@ -20,7 +20,4 @@ CREATE TABLE "users" (
 CREATE UNIQUE INDEX "users_email_key" ON "users"("email");
 
 -- CreateIndex
-CREATE INDEX "users_email_idx" ON "users"("email");
-
--- CreateIndex
-CREATE INDEX "users_provider_providerId_idx" ON "users"("provider", "providerId");
+CREATE INDEX "users_provider_provider_id_idx" ON "users"("provider", "provider_id");
