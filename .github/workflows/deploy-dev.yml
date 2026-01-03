@@ -1,0 +1,65 @@
+name: CI/CD to NCP (Dev)
+
+on:
+  push:
+    branches: [ develop ]
+
+jobs:
+  # CI 단계: 빌드 및 테스트 검증
+  test-and-build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Install Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 22
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 9
+
+      - name: Install dependencies
+        run: pnpm install
+
+      # app.e2e.spec.ts을 고려한 환경변수 설정
+      - name: Create temporary .env for testing
+        run: |
+          echo "${{ secrets.DEV_ENV_PROD }}" > .env
+
+      - name: Lint check
+        run: pnpm turbo run lint
+
+      # Prisma client가 있어야 테스트 코드가 작동하는 경우 필요
+      - name: Generate Prisma Client
+        run: pnpm turbo run db:generate
+
+      - name: Run Tests
+        run: pnpm turbo run test
+
+      - name: Build check
+        run: pnpm turbo run build
+
+  # CD 단계: 테스트 통과 시에만 서버 배포 실행
+  deploy:
+    needs: test-and-build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to Server via SSH
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.DEV_HOST }}
+          username: ${{ secrets.DEV_USERNAME }}
+          password: ${{ secrets.DEV_PASSWORD }}
+          script: |
+            cd ~/projects/web06-locus
+            git fetch origin develop
+            git checkout -f develop
+            git pull origin develop
+            echo "${{ secrets.DEV_ENV_PROD }}" > .env.prod
+            docker compose down
+            docker compose up -d --build
+            docker compose exec -T locus-api pnpm --filter @locus/api run db:push
