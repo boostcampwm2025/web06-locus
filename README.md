@@ -138,6 +138,9 @@ Locus를 이해하는 가장 빠른 방법입니다.
 - 👉 [**실행 계획**](https://github.com/boostcampwm2025/web06-locus/wiki/%EC%8B%A4%ED%96%89-%EA%B3%84%ED%9A%8D)  
   → 일정, 마일스톤, 그리고 검증 전략
 
+- 👉 [**팀 공식 블로그**](https://locus-log.tistory.com/)  
+  → 설계 결정 과정, 구현 중 고민, 회고를 기록합니다
+
 ---
 
 ## 🚀 시작하기
@@ -170,8 +173,8 @@ Locus를 이해하는 가장 빠른 방법입니다.
    pnpm exec playwright install
    ```
 
-   > [!WARNING]
-   > 스토리북 테스트 실행을 위해 필수입니다.
+> [!WARNING]
+> 스토리북 테스트 실행을 위해 필수입니다.
 
 4. **개발 서버 실행**
 
