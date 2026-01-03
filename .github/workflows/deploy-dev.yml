@@ -25,17 +25,8 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
-      # app.e2e.spec.ts을 고려한 환경변수 설정
-      - name: Create temporary .env for testing
-        run: |
-          echo "${{ secrets.DEV_ENV_PROD }}" > .env
-
       - name: Lint check
         run: pnpm turbo run lint
-
-      # Prisma client가 있어야 테스트 코드가 작동하는 경우 필요
-      - name: Generate Prisma Client
-        run: pnpm turbo run db:generate
 
       - name: Run Tests
         run: pnpm turbo run test
