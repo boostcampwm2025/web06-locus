@@ -7,7 +7,7 @@ export default function ActionButton({
   ...props
 }: ActionButtonProps) {
   const baseClasses =
-    'w-full rounded-xl px-6 py-3.5 text-base font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900 focus-visible:ring-offset-2';
+    'w-full rounded-xl px-6 py-3.5 text-base font-normal transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900 focus-visible:ring-offset-2';
 
   const variantClasses =
     variant === 'primary'
