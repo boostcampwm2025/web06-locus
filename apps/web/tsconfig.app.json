@@ -26,7 +26,8 @@
     "paths": {
       "@/*": ["./src/*"],
       "@public/*": ["./public/*"],
-      "@locus/shared": ["../../packages/shared/src"]
+      "@locus/shared": ["../../packages/shared/src"],
+      "@features/home/*": ["./src/features/home/*"]
     }
   },
   "include": ["src"]
