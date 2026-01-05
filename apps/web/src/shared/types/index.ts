@@ -13,3 +13,4 @@ export type {
   CategoryChipProps,
   CategoryChipsProps,
 } from './category';
+export type { TabId, BottomTabBarProps } from './navigation';
