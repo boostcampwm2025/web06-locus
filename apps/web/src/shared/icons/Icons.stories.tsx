@@ -5,6 +5,9 @@ import GoogleIcon from './GoogleIcon';
 import NaverIcon from './NaverIcon';
 import KakaoIcon from './KakaoIcon';
 import Logo from './Logo';
+import MapIcon from './MapIcon';
+import SearchIcon from './SearchIcon';
+import BookmarkIcon from './BookmarkIcon';
 
 const meta = {
   title: 'Shared/Icons',
@@ -66,6 +69,21 @@ export const IconCatalog: Story = {
             icon={<RefreshIcon className="w-8 h-8 text-blue-500" />}
             description="새로고침/재시도 아이콘"
           />
+          <IconCard
+            name="MapIcon"
+            icon={<MapIcon className="w-8 h-8 text-gray-700" />}
+            description="지도 아이콘"
+          />
+          <IconCard
+            name="SearchIcon"
+            icon={<SearchIcon className="w-8 h-8 text-gray-600" />}
+            description="검색 아이콘"
+          />
+          <IconCard
+            name="BookmarkIcon"
+            icon={<BookmarkIcon className="w-8 h-8 text-gray-500" />}
+            description="북마크 아이콘"
+          />
         </div>
       </div>
 
@@ -113,6 +131,12 @@ export const AllIcons: Story = {
     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
       <IconCard name="ErrorIcon" icon={<ErrorIcon className="w-8 h-8" />} />
       <IconCard name="RefreshIcon" icon={<RefreshIcon className="w-8 h-8" />} />
+      <IconCard name="MapIcon" icon={<MapIcon className="w-8 h-8" />} />
+      <IconCard name="SearchIcon" icon={<SearchIcon className="w-8 h-8" />} />
+      <IconCard
+        name="BookmarkIcon"
+        icon={<BookmarkIcon className="w-8 h-8" />}
+      />
       <IconCard name="GoogleIcon" icon={<GoogleIcon className="w-8 h-8" />} />
       <IconCard name="NaverIcon" icon={<NaverIcon className="w-8 h-8" />} />
       <IconCard name="KakaoIcon" icon={<KakaoIcon className="w-8 h-8" />} />

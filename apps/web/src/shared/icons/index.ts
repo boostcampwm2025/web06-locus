@@ -6,3 +6,6 @@ export { default as GoogleIcon } from './GoogleIcon';
 export { default as NaverIcon } from './NaverIcon';
 export { default as KakaoIcon } from './KakaoIcon';
 export { default as Logo } from './Logo';
+export { default as MapIcon } from './MapIcon';
+export { default as SearchIcon } from './SearchIcon';
+export { default as BookmarkIcon } from './BookmarkIcon';
