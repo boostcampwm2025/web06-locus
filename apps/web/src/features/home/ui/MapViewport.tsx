@@ -1,4 +1,4 @@
-import type { MapViewportProps } from '../types/map-viewport.types';
+import type { MapViewportProps } from '@features/home/types/map-viewport.types';
 
 export default function MapViewport({ className = '' }: MapViewportProps) {
   return (

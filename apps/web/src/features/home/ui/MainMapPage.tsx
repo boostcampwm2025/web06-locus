@@ -1,7 +1,7 @@
-import AppHeader from '../../../shared/ui/header/AppHeader';
-import CategoryChips from '../../../shared/ui/category/CategoryChips';
+import AppHeader from '@/shared/ui/header/AppHeader';
+import CategoryChips from '@/shared/ui/category/CategoryChips';
 import MapViewport from './MapViewport';
-import BottomTabBar from '../../../shared/ui/navigation/BottomTabBar';
+import BottomTabBar from '@/shared/ui/navigation/BottomTabBar';
 
 export default function MainMapPage() {
   return (
