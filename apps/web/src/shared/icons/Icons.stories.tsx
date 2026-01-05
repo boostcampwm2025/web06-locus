@@ -8,6 +8,7 @@ import Logo from './Logo';
 import MapIcon from './MapIcon';
 import SearchIcon from './SearchIcon';
 import BookmarkIcon from './BookmarkIcon';
+import ArrowLeftIcon from './ArrowLeftIcon';
 
 const meta = {
   title: 'Shared/Icons',
@@ -84,6 +85,11 @@ export const IconCatalog: Story = {
             icon={<BookmarkIcon className="w-8 h-8 text-gray-500" />}
             description="북마크 아이콘"
           />
+          <IconCard
+            name="ArrowLeftIcon"
+            icon={<ArrowLeftIcon className="w-8 h-8 text-gray-700" />}
+            description="뒤로가기 아이콘"
+          />
         </div>
       </div>
 
@@ -136,6 +142,10 @@ export const AllIcons: Story = {
       <IconCard
         name="BookmarkIcon"
         icon={<BookmarkIcon className="w-8 h-8" />}
+      />
+      <IconCard
+        name="ArrowLeftIcon"
+        icon={<ArrowLeftIcon className="w-8 h-8" />}
       />
       <IconCard name="GoogleIcon" icon={<GoogleIcon className="w-8 h-8" />} />
       <IconCard name="NaverIcon" icon={<NaverIcon className="w-8 h-8" />} />
