@@ -7,3 +7,9 @@ export type {
   PinMarkerProps,
 } from './marker';
 export type { OAuthProvider } from './oauth';
+export type { AppHeaderProps, AppHeaderTitleProps } from './header';
+export type {
+  Category,
+  CategoryChipProps,
+  CategoryChipsProps,
+} from './category';
