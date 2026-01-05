@@ -6,8 +6,8 @@ const HEIGHT_MAP: Record<
   string
 > = {
   compact: 'h-auto max-h-[35vh]',
-  small: 'h-[40vh]',
-  medium: 'h-[60vh]',
+  small: 'h-[50vh]',
+  medium: 'h-[70vh]',
   full: 'h-[90vh]',
 };
 
