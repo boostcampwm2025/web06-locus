@@ -9,3 +9,4 @@ export { default as Logo } from './Logo';
 export { default as MapIcon } from './MapIcon';
 export { default as SearchIcon } from './SearchIcon';
 export { default as BookmarkIcon } from './BookmarkIcon';
+export { default as ArrowLeftIcon } from './ArrowLeftIcon';
