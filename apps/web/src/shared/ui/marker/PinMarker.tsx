@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import PinMarkerPendingIcon from '@/shared/icons/PinMarkerPendingIcon';
 import PinMarkerCompletedIcon from '@/shared/icons/PinMarkerCompletedIcon';
 import type { PinMarkerProps } from '@/shared/types/marker';
-import './marker-animations.css';
+import './markerAnimations.css';
 
 export default function PinMarker({
   pin,

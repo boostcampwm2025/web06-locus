@@ -1,9 +1,9 @@
-import type { MapViewportProps } from '@features/home/types/map-viewport.types';
+import type { MapViewportProps } from '@features/home/types/mapViewport.types';
 
 export default function MapViewport({ className = '' }: MapViewportProps) {
   return (
     <div
-      className={`relative flex-1 bg-gray-100 ${className}`}
+      className={`relative flex-1 bg-gray-100 ${String(className)}`}
       aria-label="지도 영역"
     >
       {/* 지도 영역 - 실제 지도 SDK가 들어갈 공간 */}
