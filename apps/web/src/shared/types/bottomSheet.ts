@@ -1,4 +1,9 @@
-export type BottomSheetHeight = 'compact' | 'small' | 'medium' | 'full';
+export type BottomSheetHeight =
+  | 'compact'
+  | 'image'
+  | 'small'
+  | 'medium'
+  | 'full';
 
 export interface BaseBottomSheetProps {
   isOpen: boolean;

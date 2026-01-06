@@ -19,3 +19,5 @@ export type {
   TextAreaFieldProps,
   ImageUploadButtonProps,
 } from './form';
+export type { OptionButtonProps } from './button';
+export type { BottomSheetHeight, BaseBottomSheetProps } from './bottomSheet';

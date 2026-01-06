@@ -1,11 +1,12 @@
 import { useEffect, useRef } from 'react';
-import type { BaseBottomSheetProps } from './bottomSheet.types';
+import type { BaseBottomSheetProps } from '@/shared/types/bottomSheet';
 
 const HEIGHT_MAP: Record<
   NonNullable<BaseBottomSheetProps['height']>,
   string
 > = {
   compact: 'h-auto max-h-[35vh]',
+  image: 'h-auto max-h-[37vh]',
   small: 'h-[50vh]',
   medium: 'h-[70vh]',
   full: 'h-[90vh]',
