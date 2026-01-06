@@ -1,0 +1,88 @@
+/**
+ * 위치 정보
+ */
+export interface Location {
+  name: string;
+  address: string;
+}
+
+/**
+ * 기록 데이터
+ */
+export interface Record {
+  id: string;
+  text: string;
+  tags: string[];
+  location: Location;
+  createdAt: Date;
+}
+
+/**
+ * 기록 작성 폼 데이터
+ */
+export interface RecordFormData {
+  text: string;
+  tags: string[];
+}
+
+/**
+ * 위치 좌표 (지도 SDK용)
+ */
+export interface Coordinates {
+  lat: number;
+  lng: number;
+}
+
+/**
+ * 기록 작성 페이지 Props
+ */
+export interface RecordWritePageProps {
+  initialLocation: Location;
+  initialCoordinates?: Coordinates;
+  onSave: (record: Record) => void;
+  onCancel: () => void;
+}
+
+/**
+ * 이미지 선택 바텀시트 Props
+ */
+export interface ImageSelectBottomSheetProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onTakePhoto: () => void;
+  onSelectFromLibrary: () => void;
+}
+
+/**
+ * 기록 요약 바텀시트 Props
+ */
+export interface RecordSummaryBottomSheetProps {
+  isOpen: boolean;
+  onClose: () => void;
+  record: Record;
+  onEdit?: () => void;
+  onDelete?: () => void;
+}
+
+/**
+ * 기록 요약 헤더 Props
+ */
+export interface RecordSummaryHeaderProps {
+  title: string;
+  date: Date;
+  onClose: () => void;
+}
+
+/**
+ * 기록 위치 카드 Props
+ */
+export interface RecordLocationCardProps {
+  location: Location;
+}
+
+/**
+ * 기록 태그 섹션 Props
+ */
+export interface RecordTagsSectionProps {
+  tags: string[];
+}

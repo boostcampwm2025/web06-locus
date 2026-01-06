@@ -2,7 +2,7 @@ import BaseBottomSheet from '@/shared/ui/bottomSheet/BaseBottomSheet';
 import CameraIcon from '@/shared/icons/CameraIcon';
 import ImageIcon from '@/shared/icons/ImageIcon';
 import { ActionButton, OptionButton } from '@/shared/ui/button';
-import type { ImageSelectBottomSheetProps } from '../domain/record.types';
+import type { ImageSelectBottomSheetProps } from '../types';
 
 export default function ImageSelectBottomSheet({
   isOpen,
