@@ -10,6 +10,12 @@ import SearchIcon from './SearchIcon';
 import BookmarkIcon from './BookmarkIcon';
 import ArrowLeftIcon from './ArrowLeftIcon';
 import LocationIcon from './LocationIcon';
+import ImageIcon from './ImageIcon';
+import CameraIcon from './CameraIcon';
+import PlusIcon from './PlusIcon';
+import XIcon from './XIcon';
+import ZoomInIcon from './ZoomInIcon';
+import ZoomOutIcon from './ZoomOutIcon';
 
 const meta = {
   title: 'Shared/Icons',
@@ -96,6 +102,36 @@ export const IconCatalog: Story = {
             icon={<LocationIcon className="w-8 h-8 text-blue-600" />}
             description="위치/장소 아이콘"
           />
+          <IconCard
+            name="ImageIcon"
+            icon={<ImageIcon className="w-8 h-8 text-gray-600" />}
+            description="이미지/사진 아이콘"
+          />
+          <IconCard
+            name="CameraIcon"
+            icon={<CameraIcon className="w-8 h-8 text-gray-600" />}
+            description="카메라 아이콘"
+          />
+          <IconCard
+            name="PlusIcon"
+            icon={<PlusIcon className="w-8 h-8 text-gray-700" />}
+            description="추가/더하기 아이콘"
+          />
+          <IconCard
+            name="XIcon"
+            icon={<XIcon className="w-8 h-8 text-gray-700" />}
+            description="닫기/삭제 아이콘"
+          />
+          <IconCard
+            name="ZoomInIcon"
+            icon={<ZoomInIcon className="w-8 h-8 text-gray-600" />}
+            description="확대 아이콘"
+          />
+          <IconCard
+            name="ZoomOutIcon"
+            icon={<ZoomOutIcon className="w-8 h-8 text-gray-600" />}
+            description="축소 아이콘"
+          />
         </div>
       </div>
 
@@ -157,6 +193,12 @@ export const AllIcons: Story = {
         name="LocationIcon"
         icon={<LocationIcon className="w-8 h-8" />}
       />
+      <IconCard name="ImageIcon" icon={<ImageIcon className="w-8 h-8" />} />
+      <IconCard name="CameraIcon" icon={<CameraIcon className="w-8 h-8" />} />
+      <IconCard name="PlusIcon" icon={<PlusIcon className="w-8 h-8" />} />
+      <IconCard name="XIcon" icon={<XIcon className="w-8 h-8" />} />
+      <IconCard name="ZoomInIcon" icon={<ZoomInIcon className="w-8 h-8" />} />
+      <IconCard name="ZoomOutIcon" icon={<ZoomOutIcon className="w-8 h-8" />} />
       <IconCard name="GoogleIcon" icon={<GoogleIcon className="w-8 h-8" />} />
       <IconCard name="NaverIcon" icon={<NaverIcon className="w-8 h-8" />} />
       <IconCard name="KakaoIcon" icon={<KakaoIcon className="w-8 h-8" />} />
