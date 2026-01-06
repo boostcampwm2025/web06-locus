@@ -16,6 +16,10 @@ import PlusIcon from './PlusIcon';
 import XIcon from './XIcon';
 import ZoomInIcon from './ZoomInIcon';
 import ZoomOutIcon from './ZoomOutIcon';
+import TagIcon from './TagIcon';
+import CalendarIcon from './CalendarIcon';
+import EditIcon from './EditIcon';
+import TrashIcon from './TrashIcon';
 
 const meta = {
   title: 'Shared/Icons',
@@ -132,6 +136,26 @@ export const IconCatalog: Story = {
             icon={<ZoomOutIcon className="w-8 h-8 text-gray-600" />}
             description="축소 아이콘"
           />
+          <IconCard
+            name="TagIcon"
+            icon={<TagIcon className="w-8 h-8 text-gray-600" />}
+            description="태그 아이콘"
+          />
+          <IconCard
+            name="CalendarIcon"
+            icon={<CalendarIcon className="w-8 h-8 text-gray-600" />}
+            description="캘린더 아이콘"
+          />
+          <IconCard
+            name="EditIcon"
+            icon={<EditIcon className="w-8 h-8 text-gray-700" />}
+            description="수정 아이콘"
+          />
+          <IconCard
+            name="TrashIcon"
+            icon={<TrashIcon className="w-8 h-8 text-red-500" />}
+            description="삭제 아이콘"
+          />
         </div>
       </div>
 
@@ -199,6 +223,13 @@ export const AllIcons: Story = {
       <IconCard name="XIcon" icon={<XIcon className="w-8 h-8" />} />
       <IconCard name="ZoomInIcon" icon={<ZoomInIcon className="w-8 h-8" />} />
       <IconCard name="ZoomOutIcon" icon={<ZoomOutIcon className="w-8 h-8" />} />
+      <IconCard name="TagIcon" icon={<TagIcon className="w-8 h-8" />} />
+      <IconCard
+        name="CalendarIcon"
+        icon={<CalendarIcon className="w-8 h-8" />}
+      />
+      <IconCard name="EditIcon" icon={<EditIcon className="w-8 h-8" />} />
+      <IconCard name="TrashIcon" icon={<TrashIcon className="w-8 h-8" />} />
       <IconCard name="GoogleIcon" icon={<GoogleIcon className="w-8 h-8" />} />
       <IconCard name="NaverIcon" icon={<NaverIcon className="w-8 h-8" />} />
       <IconCard name="KakaoIcon" icon={<KakaoIcon className="w-8 h-8" />} />
