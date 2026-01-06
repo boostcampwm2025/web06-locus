@@ -1,6 +1,8 @@
 export { default as ArrowLeftIcon } from './ArrowLeftIcon';
 export { default as BookmarkIcon } from './BookmarkIcon';
+export { default as CalendarIcon } from './CalendarIcon';
 export { default as CameraIcon } from './CameraIcon';
+export { default as EditIcon } from './EditIcon';
 export { default as ErrorIcon } from './ErrorIcon';
 export { default as GoogleIcon } from './GoogleIcon';
 export { default as ImageIcon } from './ImageIcon';
@@ -14,6 +16,8 @@ export { default as PinMarkerPendingIcon } from './PinMarkerPendingIcon';
 export { default as PlusIcon } from './PlusIcon';
 export { default as RefreshIcon } from './RefreshIcon';
 export { default as SearchIcon } from './SearchIcon';
+export { default as TagIcon } from './TagIcon';
+export { default as TrashIcon } from './TrashIcon';
 export { default as XIcon } from './XIcon';
 export { default as ZoomInIcon } from './ZoomInIcon';
 export { default as ZoomOutIcon } from './ZoomOutIcon';
