@@ -3,6 +3,8 @@ import type { MapViewportProps } from '@features/home/types/mapViewport.types';
 import type { PinMarkerData } from '@/shared/types/marker';
 import PinMarker from '@/shared/ui/marker/PinMarker';
 import RecordCreateBottomSheet from './RecordCreateBottomSheet';
+import RecordWritePage from '@/features/record/ui/RecordWritePage';
+import type { Record as RecordType } from '@/features/record/types';
 
 // TODO: 지도 SDK 연동 시 제거할 mock 데이터
 const MOCK_PINS: PinMarkerData[] = [
@@ -59,6 +61,7 @@ export default function MapViewport({ className = '' }: MapViewportProps) {
     name: string;
     address: string;
   } | null>(null);
+  const [isRecordWritePageOpen, setIsRecordWritePageOpen] = useState(false);
 
   const handlePinClick = (pinId: string | number) => {
     const location = LOCATION_MAP[pinId];
@@ -74,11 +77,34 @@ export default function MapViewport({ className = '' }: MapViewportProps) {
   };
 
   const handleConfirmRecord = () => {
-    // TODO: 기록 작성 페이지로 이동
-    // console.log('기록 작성하기:', selectedLocation);
     setIsBottomSheetOpen(false);
-    setSelectedPinId(null);
+    setIsRecordWritePageOpen(true);
   };
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const handleSaveRecord = (record: RecordType) => {
+    // TODO: 기록 저장 처리 (mock 데이터로 생성됨)
+    setIsRecordWritePageOpen(false);
+    setSelectedPinId(null);
+    setSelectedLocation(null);
+  };
+
+  const handleCancelRecordWrite = () => {
+    setIsRecordWritePageOpen(false);
+    setSelectedPinId(null);
+    setSelectedLocation(null);
+  };
+
+  // 기록 작성 페이지가 열려있으면 페이지를 표시
+  if (isRecordWritePageOpen && selectedLocation) {
+    return (
+      <RecordWritePage
+        initialLocation={selectedLocation}
+        onSave={handleSaveRecord}
+        onCancel={handleCancelRecordWrite}
+      />
+    );
+  }
 
   return (
     <>

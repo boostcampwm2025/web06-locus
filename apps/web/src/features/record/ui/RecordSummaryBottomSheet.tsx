@@ -21,8 +21,11 @@ function formatDate(date: Date): string {
   }).format(date);
 }
 
-function getRecordTitle(text: string): string {
-  return text.split('\n')[0];
+function extractTitle(text: string, maxLength = 20): string {
+  const firstLine = text.split('\n')[0].trim();
+
+  if (firstLine.length <= maxLength) return firstLine;
+  return firstLine.slice(0, maxLength) + '…';
 }
 
 export default function RecordSummaryBottomSheet({
@@ -38,7 +41,7 @@ export default function RecordSummaryBottomSheet({
         {/* 고정 영역: 헤더, 위치, 태그, 버튼 */}
         <div className="shrink-0 px-6 pt-6">
           <RecordSummaryHeader
-            title={getRecordTitle(record.text)}
+            title={extractTitle(record.text)}
             date={record.createdAt}
             onClose={onClose}
           />
