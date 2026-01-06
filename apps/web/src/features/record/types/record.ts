@@ -41,6 +41,8 @@ export interface RecordWritePageProps {
   initialCoordinates?: Coordinates;
   onSave: (record: Record) => void;
   onCancel: () => void;
+  onTakePhoto?: () => void;
+  onSelectFromLibrary?: () => void;
 }
 
 /**
@@ -85,4 +87,34 @@ export interface RecordLocationCardProps {
  */
 export interface RecordTagsSectionProps {
   tags: string[];
+}
+
+/**
+ * 기록 작성 헤더 Props
+ */
+export interface RecordWriteHeaderProps {
+  location: Location;
+  onCancel: () => void;
+}
+
+import type { ChangeEvent } from 'react';
+
+/**
+ * 기록 작성 폼 Props
+ */
+export interface RecordWriteFormProps {
+  formData: RecordFormData;
+  availableTags: string[];
+  isAddingTag: boolean;
+  newTagInput: string;
+  onTextChange: (e: ChangeEvent<HTMLTextAreaElement>) => void;
+  onTagToggle: (tag: string) => void;
+  onAddTagClick: () => void;
+  onTagInputChange: (e: ChangeEvent<HTMLInputElement>) => void;
+  onConfirmAddTag: () => void;
+  onCancelAddTag: () => void;
+  onAddImage: () => void;
+  onSave: () => void;
+  onCancel: () => void;
+  canSave: boolean;
 }

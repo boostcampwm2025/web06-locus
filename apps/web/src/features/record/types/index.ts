@@ -9,4 +9,6 @@ export type {
   RecordSummaryHeaderProps,
   RecordLocationCardProps,
   RecordTagsSectionProps,
+  RecordWriteHeaderProps,
+  RecordWriteFormProps,
 } from './record';
