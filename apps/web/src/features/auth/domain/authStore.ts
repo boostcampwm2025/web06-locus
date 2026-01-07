@@ -51,8 +51,8 @@ export const useAuthStore = create<AuthStore>((set) => ({
         set({ isInitialized: true });
       }
     } catch (error) {
-      // localStorage 접근 실패 등 예외 상황
-      // 초기화는 완료된 것으로 간주하고 기본 상태로 진행
+      // localStorage 접근 실패 등의 예외 상황에서도 초기화는 완료된 것으로 간주하고 기본 상태로 진행
+      // TODO: Sentry에 예외 상황 전달하여 모니터링 필요
       console.error('Failed to initialize auth state:', error);
       set({ isInitialized: true });
     }
