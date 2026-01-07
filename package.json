@@ -45,11 +45,11 @@
   },
   "lint-staged": {
     "apps/web/**/*.{js,jsx,ts,tsx}": [
-      "cd apps/web && eslint --fix",
+      "pnpm --filter web lint --fix",
       "prettier --write"
     ],
     "apps/api/**/*.{js,ts}": [
-      "cd apps/api && eslint --fix",
+      "pnpm --filter api lint --fix",
       "prettier --write"
     ],
     "*.{json,css,md,yaml,yml}": [
