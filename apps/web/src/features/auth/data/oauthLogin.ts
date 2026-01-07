@@ -9,6 +9,5 @@ const API_BASE_URL =
  * @param provider - OAuth 제공자 (google, naver, kakao)
  */
 export const handleOAuthLogin = (provider: OAuthProvider): void => {
-  // OAuth 제공자별 인증 시작 endpoint로 리다이렉트
   window.location.href = `${API_BASE_URL}/auth/oauth2/${provider}`;
 };
