@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { map, Observable } from 'rxjs';
 import { ApiResponseType } from '../type/api-response.types';
-import { ApiResponse } from './api-response.helper';
+import { ApiResponse } from '../utils/api-response.helper';
 
 @Injectable()
 export class ResponseTransformInterceptor<T>
