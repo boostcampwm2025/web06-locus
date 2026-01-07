@@ -1,4 +1,4 @@
-name: CI/CD to NCP (Dev)
+name: Optimized CI/CD to NCP (Dev)
 
 on:
   push:
@@ -9,21 +9,23 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v5
 
       - name: Install pnpm
-        uses: pnpm/action-setup@v2
+        uses: pnpm/action-setup@v4
         with:
           version: 9
+          cache: true
+          run_install: false
 
       - name: Install Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v6
         with:
           node-version: 22
           cache: 'pnpm'
 
       - name: Turbo Cache
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: .turbo
           key: ${{ runner.os }}-turbo-${{ github.sha }}
@@ -40,28 +42,42 @@ jobs:
         run: pnpm turbo run build test lint --cache-dir=".turbo"
 
       - name: Login to NCR
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           registry: ${{ secrets.DEV_REGISTRY }}
           username: ${{ secrets.NCP_ACCESS_KEY }}
           password: ${{ secrets.NCP_SECRET_KEY }}
 
       - name: Build and Push API Image
-        run: |
-          docker build -t ${{ secrets.DEV_REGISTRY }}/locus-api:latest -f apps/api/Dockerfile .
-          docker push ${{ secrets.DEV_REGISTRY }}/locus-api:latest
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./apps/api/Dockerfile
+          push: true
+          tags: |
+            ${{ secrets.DEV_REGISTRY }}/locus-api:latest
+            ${{ secrets.DEV_REGISTRY }}/locus-api:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
       - name: Build and Push Nginx Image
-        run: |
-          docker build -t ${{ secrets.DEV_REGISTRY }}/locus-nginx:latest -f nginx/Dockerfile .
-          docker push ${{ secrets.DEV_REGISTRY }}/locus-nginx:latest
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./nginx/Dockerfile
+          push: true
+          tags: |
+            ${{ secrets.DEV_REGISTRY }}/locus-nginx:latest
+            ${{ secrets.DEV_REGISTRY }}/locus-nginx:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
   deploy:
     needs: test-and-build
     runs-on: ubuntu-latest
     steps:
       - name: Deploy to Server via SSH
-        uses: appleboy/ssh-action@master
+        uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.DEV_HOST }}
           username: ${{ secrets.DEV_USERNAME }}
@@ -76,7 +92,6 @@ jobs:
             
             docker login ${{ secrets.DEV_REGISTRY }} -u ${{ secrets.NCP_ACCESS_KEY }} -p ${{ secrets.NCP_SECRET_KEY }}
             docker compose pull
-            
             docker compose up -d
             
             docker image prune -f
