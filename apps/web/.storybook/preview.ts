@@ -1,23 +1,30 @@
 import type { Preview } from '@storybook/react-vite';
-// @ts-expect-error
 import '../src/index.css';
 
-const preview: Preview = {
-    parameters: {
-        controls: {
-            matchers: {
-                color: /(background|color)$/i,
-                date: /Date$/i,
-            },
-        },
+const customViewports = {
+  mobile1: {
+    name: 'Mobile',
+    styles: { width: '375px', height: '812px' },
+    type: 'mobile',
+  },
+  tablet: {
+    name: 'Tablet',
+    styles: { width: '768px', height: '1024px' },
+    type: 'tablet',
+  },
+  desktop: {
+    name: 'Desktop',
+    styles: { width: '1280px', height: '800px' },
+    type: 'desktop',
+  },
+};
 
-        a11y: {
-            // 'todo' - show a11y violations in the test UI only
-            // 'error' - fail CI on a11y violations
-            // 'off' - skip a11y checks entirely
-            test: 'todo',
-        },
+const preview: Preview = {
+  parameters: {
+    viewport: {
+      options: customViewports,
     },
+  },
 };
 
 export default preview;
