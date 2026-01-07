@@ -17,10 +17,16 @@ describe('GlobalExceptionFilter', () => {
     json: jest.fn().mockReturnThis(),
   } as unknown as Response;
 
-  // ArgumentsHost mock
+  //  Express Request mock
+  const req = {
+    method: 'GET',
+    url: '/test',
+  } as unknown as Request;
+
   const host = {
     switchToHttp: () => ({
       getResponse: () => res,
+      getRequest: () => req,
     }),
   } as unknown as ArgumentsHost;
 
@@ -86,7 +92,7 @@ describe('GlobalExceptionFilter', () => {
     });
   });
 
-  it('기본 HttpException 5xx는 error로 응답한다 (code에 normalize된 message가 들어간다)', () => {
+  it('기본 HttpException 5xx는 error로 응답한다', () => {
     // body가 객체이고 message가 string인 형태
     const ex = new HttpException({ message: 'DB down' }, 503);
 
@@ -96,7 +102,7 @@ describe('GlobalExceptionFilter', () => {
     expect(res.json).toHaveBeenCalledWith({
       status: 'error',
       message: 'Internal Server Error',
-      code: 'DB down',
+      code: undefined,
       data: undefined,
     });
   });
