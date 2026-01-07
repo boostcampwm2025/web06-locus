@@ -5,36 +5,57 @@ on:
     branches: [ develop ]
 
 jobs:
-  # CI 단계: 빌드 및 테스트 검증
   test-and-build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Install Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: 22
-
       - name: Install pnpm
         uses: pnpm/action-setup@v2
         with:
           version: 9
 
+      - name: Install Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 22
+          cache: 'pnpm'
+
+      - name: Turbo Cache
+        uses: actions/cache@v3
+        with:
+          path: .turbo
+          key: ${{ runner.os }}-turbo-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-turbo-
+
       - name: Install dependencies
         run: pnpm install
 
-      - name: Lint check
-        run: pnpm turbo run lint
+      - name: Create temporary .env for testing
+        run: echo "${{ secrets.DEV_ENV_PROD }}" > .env
 
-      - name: Run Tests
-        run: pnpm turbo run test
+      - name: Build & Test (Turbo)
+        run: pnpm turbo run build test lint --cache-dir=".turbo"
 
-      - name: Build check
-        run: pnpm turbo run build
+      - name: Login to NCR
+        uses: docker/login-action@v2
+        with:
+          registry: ${{ secrets.DEV_REGISTRY }}
+          username: ${{ secrets.NCP_ACCESS_KEY }}
+          password: ${{ secrets.NCP_SECRET_KEY }}
 
-  # CD 단계: 테스트 통과 시에만 서버 배포 실행
+      - name: Build and Push API Image
+        run: |
+          docker build -t ${{ secrets.DEV_REGISTRY }}/locus-api:latest -f apps/api/Dockerfile .
+          docker push ${{ secrets.DEV_REGISTRY }}/locus-api:latest
+
+      - name: Build and Push Nginx Image
+        run: |
+          docker build -t ${{ secrets.DEV_REGISTRY }}/locus-nginx:latest -f nginx/Dockerfile .
+          docker push ${{ secrets.DEV_REGISTRY }}/locus-nginx:latest
+
   deploy:
     needs: test-and-build
     runs-on: ubuntu-latest
@@ -50,7 +71,13 @@ jobs:
             git fetch origin develop
             git checkout -f develop
             git pull origin develop
+            
             echo "${{ secrets.DEV_ENV_PROD }}" > .env.prod
-            docker compose down
-            docker compose up -d --build
+            
+            docker login ${{ secrets.DEV_REGISTRY }} -u ${{ secrets.NCP_ACCESS_KEY }} -p ${{ secrets.NCP_SECRET_KEY }}
+            docker compose pull
+            
+            docker compose up -d
+            
+            docker image prune -f
             docker compose exec -T locus-api pnpm --filter @locus/api run db:push
