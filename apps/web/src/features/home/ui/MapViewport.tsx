@@ -82,7 +82,7 @@ export default function MapViewport({ className = '' }: MapViewportProps) {
   };
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const handleSaveRecord = (record: RecordType) => {
+  const handleSaveRecord = (_record: RecordType) => {
     // TODO: 기록 저장 처리 (mock 데이터로 생성됨)
     setIsRecordWritePageOpen(false);
     setSelectedPinId(null);
