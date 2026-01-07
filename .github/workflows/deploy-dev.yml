@@ -36,6 +36,9 @@ jobs:
 
       - name: Install dependencies
         run: HUSKY=0 pnpm install --frozen-lockfile
+      
+      - name: Generate Prisma Client
+        run: pnpm --filter @locus/api exec prisma generate
 
       - name: Build & Test (Turbo)
         run: pnpm turbo run build test lint --cache-dir=".turbo"
