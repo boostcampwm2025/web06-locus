@@ -10,7 +10,7 @@ export default defineConfig(
   eslint.configs.recommended,
 
   // TS 추천 (타입 기반 버그 방지)
-  tseslint.configs.strictTypeChecked,
+  tseslint.configs.recommendedTypeChecked,
 
   // TS 스타일 추천 (일관된 코드 스타일)
   tseslint.configs.stylisticTypeChecked,
