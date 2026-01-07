@@ -8,11 +8,15 @@ import {
 import { BusinessException } from '../exceptions/business.exception';
 import { ApiResponse } from '../utils/api-response.helper';
 import { Response } from 'express';
+import { logException } from '../logger/exception-logger';
 
 @Catch()
 export class GlobalExceptionFilter implements ExceptionFilter {
   catch(exception: unknown, host: ArgumentsHost) {
+    const req = host.switchToHttp().getRequest<Request>();
     const res = host.switchToHttp().getResponse<Response>();
+
+    logException(exception, req);
 
     if (exception instanceof BusinessException) {
       const status = exception.getStatus();
