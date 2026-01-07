@@ -22,7 +22,12 @@ function formatDate(date: Date): string {
 }
 
 function extractTitle(text: string, maxLength = 20): string {
-  const firstLine = text.split('\n')[0].trim();
+  const lines = text
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  const firstLine = lines[0] ?? '';
 
   if (firstLine.length <= maxLength) return firstLine;
   return firstLine.slice(0, maxLength) + '…';
