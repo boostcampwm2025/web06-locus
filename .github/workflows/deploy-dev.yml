@@ -14,7 +14,6 @@ jobs:
       - name: Install pnpm
         uses: pnpm/action-setup@v4
         with:
-          version: 9
           cache: true
           run_install: false
 
@@ -32,11 +31,11 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-turbo-
 
-      - name: Install dependencies
-        run: pnpm install
-
       - name: Create temporary .env for testing
         run: echo "${{ secrets.DEV_ENV_PROD }}" > .env
+
+      - name: Install dependencies
+        run: HUSKY=0 pnpm install --frozen-lockfile
 
       - name: Build & Test (Turbo)
         run: pnpm turbo run build test lint --cache-dir=".turbo"
