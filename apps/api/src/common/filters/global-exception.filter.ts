@@ -77,7 +77,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       // 5xx -> error
       return {
         status,
-        body: ApiResponse.error('Internal Server Error', message),
+        body: ApiResponse.error('Internal Server Error'),
       };
     }
 
