@@ -56,20 +56,31 @@ export default function BaseBottomSheet({
     >
       <div
         ref={sheetRef}
-        className={`relative w-full bg-white rounded-t-3xl shadow-lg transition-transform duration-300 ease-out ${HEIGHT_MAP[height]} ${className}`}
+        className={`
+            relative flex flex-col w-full bg-white rounded-t-3xl shadow-lg 
+            transition-transform duration-300 ease-out ${HEIGHT_MAP[height]} ${className}
+        `}
         style={{
           transform: 'translateY(0)',
         }}
       >
         {showHandle && (
-          <div className="flex justify-center pt-3 pb-2">
+          <div
+            className="shrink-0 flex justify-center pt-3 pb-2"
+            aria-label="바텀시트 핸들러"
+          >
             <div
               className="h-1 w-12 rounded-full bg-gray-300"
               aria-hidden="true"
             />
           </div>
         )}
-        <div className="h-full overflow-y-auto">{children}</div>
+        <div
+          className="flex-1 flex flex-col min-h-0"
+          aria-label="바텀시트 자식"
+        >
+          {children}
+        </div>
       </div>
     </div>
   );
