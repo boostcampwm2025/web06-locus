@@ -1,7 +1,9 @@
-name: Optimized CI/CD to NCP (Dev)
+name: CI - Build and Push
 
 on:
   push:
+    branches: [ develop ]
+  pull_request:
     branches: [ develop ]
 
 jobs:
@@ -14,7 +16,6 @@ jobs:
       - name: Install pnpm
         uses: pnpm/action-setup@v4
         with:
-          cache: true
           run_install: false
 
       - name: Install Node.js
@@ -76,28 +77,3 @@ jobs:
             ${{ secrets.DEV_REGISTRY }}/locus-nginx:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-
-  deploy:
-    needs: test-and-build
-    runs-on: ubuntu-latest
-    steps:
-      - name: Deploy to Server via SSH
-        uses: appleboy/ssh-action@v1.2.0
-        with:
-          host: ${{ secrets.DEV_HOST }}
-          username: ${{ secrets.DEV_USERNAME }}
-          password: ${{ secrets.DEV_PASSWORD }}
-          script: |
-            cd ~/projects/web06-locus
-            git fetch origin develop
-            git checkout -f develop
-            git pull origin develop
-            
-            echo "${{ secrets.DEV_ENV_PROD }}" > .env.prod
-            
-            docker login ${{ secrets.DEV_REGISTRY }} -u ${{ secrets.NCP_ACCESS_KEY }} -p ${{ secrets.NCP_SECRET_KEY }}
-            docker compose pull
-            docker compose up -d
-            
-            docker image prune -f
-            docker compose exec -T locus-api pnpm --filter @locus/api run db:push
