@@ -42,51 +42,49 @@ export default function RecordSummaryBottomSheet({
 }: RecordSummaryBottomSheetProps) {
   return (
     <BaseBottomSheet isOpen={isOpen} onClose={onClose} height="summary">
-      <div className="flex flex-col h-full">
-        {/* 고정 영역: 헤더, 위치, 태그, 버튼 */}
-        <div className="shrink-0 px-6 pt-6">
-          <RecordSummaryHeader
-            title={extractTitle(record.text)}
-            date={record.createdAt}
-            onClose={onClose}
-          />
-          <RecordLocationCard location={record.location} />
-          <RecordTagsSection tags={record.tags} />
-        </div>
+      {/* 고정 영역: 헤더, 위치, 태그, 버튼 */}
+      <div className="shrink-0 px-6 pt-6">
+        <RecordSummaryHeader
+          title={extractTitle(record.text)}
+          date={record.createdAt}
+          onClose={onClose}
+        />
+        <RecordLocationCard location={record.location} />
+        <RecordTagsSection tags={record.tags} />
+      </div>
 
-        {/* 스크롤 영역: 설명 텍스트 */}
-        <div className="flex-1 overflow-y-auto px-6 min-h-0">
-          <div className="pb-6">
-            <p className="text-sm text-gray-600 whitespace-pre-line leading-relaxed">
-              {record.text}
-            </p>
-          </div>
+      {/* 스크롤 영역: 설명 텍스트 */}
+      <div className="flex-1 overflow-y-auto px-6 min-h-0">
+        <div className="pb-6">
+          <p className="text-sm text-gray-600 whitespace-pre-line leading-relaxed">
+            {record.text}
+          </p>
         </div>
+      </div>
 
-        {/* 고정 영역: 액션 버튼 */}
-        <div className="shrink-0 px-6 pb-6 pt-4 border-t border-transparent">
-          <div className="flex gap-3">
-            {onEdit && (
-              <ActionButton
-                variant="secondary"
-                onClick={onEdit}
-                className="flex-1 flex items-center justify-center gap-2"
-              >
-                <EditIcon className="w-4 h-4" />
-                수정
-              </ActionButton>
-            )}
-            {onDelete && (
-              <ActionButton
-                variant="secondary"
-                onClick={onDelete}
-                className="flex-1 flex items-center justify-center gap-2 bg-red-50 text-red-600 hover:bg-red-100 focus-visible:ring-red-500"
-              >
-                <TrashIcon className="w-4 h-4" />
-                삭제
-              </ActionButton>
-            )}
-          </div>
+      {/* 고정 영역: 액션 버튼 */}
+      <div className="shrink-0 px-6 pb-6 pt-4 border-t border-transparent">
+        <div className="flex gap-3">
+          {onEdit && (
+            <ActionButton
+              variant="secondary"
+              onClick={onEdit}
+              className="flex-1 flex items-center justify-center gap-2"
+            >
+              <EditIcon className="w-4 h-4" />
+              수정
+            </ActionButton>
+          )}
+          {onDelete && (
+            <ActionButton
+              variant="secondary"
+              onClick={onDelete}
+              className="flex-1 flex items-center justify-center gap-2 bg-red-50 text-red-600 hover:bg-red-100 focus-visible:ring-red-500"
+            >
+              <TrashIcon className="w-4 h-4" />
+              삭제
+            </ActionButton>
+          )}
         </div>
       </div>
     </BaseBottomSheet>
