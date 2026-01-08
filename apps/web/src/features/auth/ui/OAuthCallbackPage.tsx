@@ -4,6 +4,7 @@ import LoadingPage from '@/shared/ui/loading/LoadingPage';
 import ErrorFallback from '@/shared/ui/error/ErrorFallback';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { getRandomLoadingVersion } from '@/shared/utils/loadingUtils';
+import { ROUTES } from '@/router/routes';
 
 export default function OAuthCallbackPage() {
   const [searchParams] = useSearchParams();
@@ -44,8 +45,8 @@ export default function OAuthCallbackPage() {
       setTokens(accessToken, refreshToken);
 
       // URL에서 토큰 파라미터 제거
-      window.history.replaceState({}, document.title, '/auth/callback');
-      void navigate('/home', { replace: true });
+      window.history.replaceState({}, document.title, ROUTES.AUTH_CALLBACK);
+      void navigate(ROUTES.HOME, { replace: true });
     } catch (err) {
       // 예외 발생 시 기존 토큰 정리
       clearAuth();
@@ -66,7 +67,7 @@ export default function OAuthCallbackPage() {
     <ErrorFallback
       error={error ?? new Error('알 수 없는 오류가 발생했습니다.')}
       resetErrorBoundary={() => {
-        void navigate('/', { replace: true });
+        void navigate(ROUTES.LOGIN, { replace: true });
       }}
     />
   );

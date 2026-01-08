@@ -1,5 +1,6 @@
 import { Navigate } from 'react-router-dom';
 import { useAuthStore } from '@/features/auth/domain/authStore';
+import { ROUTES } from './routes';
 
 interface PublicRouteProps {
   children: React.ReactNode;
@@ -15,7 +16,7 @@ interface PublicRouteProps {
  */
 export default function PublicRoute({
   children,
-  redirectTo = '/home',
+  redirectTo = ROUTES.HOME,
 }: PublicRouteProps) {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
 
