@@ -4,8 +4,10 @@ import type { MapViewportProps } from '@features/home/types/mapViewport';
 import type { PinMarkerData } from '@/shared/types/marker';
 import { PinOverlay } from '@/infra/map/marker';
 import RecordCreateBottomSheet from './RecordCreateBottomSheet';
+import RecordSummaryBottomSheet from '@/features/record/ui/RecordSummaryBottomSheet';
 import { ROUTES } from '@/router/routes';
 import { useMapInstance } from '@/shared/hooks/useMapInstance';
+import type { Record as RecordType } from '@/features/record/types';
 
 // TODO: 지도 SDK 연동 시 제거할 mock 데이터
 const MOCK_PINS: PinMarkerData[] = [
@@ -21,22 +23,29 @@ const MOCK_PINS: PinMarkerData[] = [
   },
 ];
 
-// TODO: 지도 SDK 연동 시 API에서 가져올 위치 정보
-const LOCATION_MAP: Record<string | number, { name: string; address: string }> =
-  {
-    1: {
+// TODO: 지도 SDK 연동 시 API에서 가져올 기록 데이터
+const MOCK_RECORDS: Record<string | number, RecordType> = {
+  2: {
+    id: '2',
+    text: '경복궁에서 산책하며 느낀 생각들\n\n자연 속에서 걷다 보면 마음이 편안해진다. 새소리와 바람소리가 귀에 들어오고, 발 아래로 느껴지는 흙의 감촉이 좋다.',
+    location: {
       name: '경복궁',
-      address: '서울시 종로구 사직로 161',
-    },
-    2: {
-      name: '서울숲',
       address: '서울특별시 성동구 뚝섬로 273',
     },
-    3: {
+    tags: ['산책', '자연', '휴식'],
+    createdAt: new Date('2024-01-15'),
+  },
+  3: {
+    id: '3',
+    text: '남산타워에서 본 서울의 야경\n\n도시의 불빛들이 마치 별처럼 반짝인다. 높은 곳에서 내려다보니 일상의 고민들이 작아 보인다.',
+    location: {
       name: '남산타워',
       address: '서울특별시 용산구 남산공원길 105',
     },
-  };
+    tags: ['야경', '도시', '명상'],
+    createdAt: new Date('2024-01-20'),
+  },
+};
 
 export default function MapViewport({ className = '' }: MapViewportProps) {
   const navigate = useNavigate();
@@ -49,6 +58,8 @@ export default function MapViewport({ className = '' }: MapViewportProps) {
     address: string;
     coordinates?: { lat: number; lng: number };
   } | null>(null);
+  const [selectedRecord, setSelectedRecord] = useState<RecordType | null>(null);
+  const [isSummaryOpen, setIsSummaryOpen] = useState(false);
 
   // 지도 인스턴스 관리
   const {
@@ -68,16 +79,29 @@ export default function MapViewport({ className = '' }: MapViewportProps) {
     autoCenterToGeolocation: true,
   });
 
-  const handlePinClick = (pinId: string | number) => {
-    const location = LOCATION_MAP[pinId];
-    const pin = MOCK_PINS.find((p) => p.id === pinId);
-    // 모든 mock 핀은 LOCATION_MAP에 있으므로 항상 존재함
-    setSelectedPinId(pinId);
-    setSelectedLocation({
-      ...location,
-      coordinates: pin?.position,
-    });
-    setIsBottomSheetOpen(true);
+  // 보라 핀(기록 핀) 클릭 핸들러 - summary 표시
+  const handleRecordPinClick = (pinId: string | number) => {
+    const record = MOCK_RECORDS[pinId];
+    if (record) {
+      setSelectedRecord(record);
+      setIsSummaryOpen(true);
+      setSelectedPinId(pinId);
+    }
+  };
+
+  // 파란 핀(현재 위치) 클릭 핸들러 - 기록 작성 페이지로 이동
+  const handleCurrentLocationClick = () => {
+    if (latitude !== null && longitude !== null) {
+      void navigate(ROUTES.RECORD, {
+        state: {
+          location: {
+            name: '현재 위치',
+            address: '현재 위치',
+            coordinates: { lat: latitude, lng: longitude },
+          },
+        },
+      });
+    }
   };
 
   const handleCloseBottomSheet = () => {
@@ -144,10 +168,11 @@ export default function MapViewport({ className = '' }: MapViewportProps) {
                 variant: 'current',
               }}
               isSelected={false}
+              onClick={handleCurrentLocationClick}
             />
           )}
 
-        {/* 지도에 고정된 핀 마커들 */}
+        {/* 지도에 고정된 핀 마커들 (기록 핀) */}
         {isMapLoaded &&
           mapInstanceRef.current &&
           MOCK_PINS.map((pin) => (
@@ -156,7 +181,7 @@ export default function MapViewport({ className = '' }: MapViewportProps) {
               map={mapInstanceRef.current!}
               pin={pin}
               isSelected={selectedPinId === pin.id}
-              onClick={handlePinClick}
+              onClick={handleRecordPinClick}
             />
           ))}
 
@@ -169,6 +194,7 @@ export default function MapViewport({ className = '' }: MapViewportProps) {
           연결 모드
         </button>
       </div>
+      {/* 기록 작성용 Bottom Sheet (현재는 사용 안 함) */}
       {selectedLocation && (
         <RecordCreateBottomSheet
           isOpen={isBottomSheetOpen}
@@ -176,6 +202,18 @@ export default function MapViewport({ className = '' }: MapViewportProps) {
           locationName={selectedLocation.name}
           address={selectedLocation.address}
           onConfirm={handleConfirmRecord}
+        />
+      )}
+
+      {/* 기록 Summary Bottom Sheet */}
+      {selectedRecord && (
+        <RecordSummaryBottomSheet
+          isOpen={isSummaryOpen}
+          onClose={() => {
+            setIsSummaryOpen(false);
+            setSelectedRecord(null);
+          }}
+          record={selectedRecord}
         />
       )}
     </>
