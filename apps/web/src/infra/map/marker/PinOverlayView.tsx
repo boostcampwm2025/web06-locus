@@ -116,11 +116,18 @@ function createPinOverlayViewClass() {
       this.container.style.transformOrigin = '50% 100%';
     }
 
+    /**
+     * 지도에서 오버레이가 삭제될 때 호출
+     * React root를 unmount하고 DOM 요소 제거
+     */
     onRemove(): void {
-      this.root.unmount();
-      if (this.container.parentNode) {
-        this.container.parentNode.removeChild(this.container);
-      }
+      // React 렌더링 완료 후 unmount하도록 비동기 처리
+      void Promise.resolve().then(() => {
+        this.root.unmount();
+        if (this.container.parentNode) {
+          this.container.parentNode.removeChild(this.container);
+        }
+      });
     }
 
     setPosition(position: naver.maps.LatLng): void {
