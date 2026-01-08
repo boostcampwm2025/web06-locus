@@ -49,11 +49,9 @@ describe('GlobalExceptionFilter', () => {
     expect(res.status).toHaveBeenCalledWith(404);
     expect(res.json).toHaveBeenCalledWith({
       status: 'fail',
-      data: {
-        code: 'USER_NOT_FOUND',
-        message: '유저 없음',
-        details: { userId: '1' },
-      },
+      code: 'USER_NOT_FOUND',
+      message: '유저 없음',
+      details: { userId: '1' },
     });
   });
 
@@ -65,11 +63,9 @@ describe('GlobalExceptionFilter', () => {
     expect(res.status).toHaveBeenCalledWith(404);
     expect(res.json).toHaveBeenCalledWith({
       status: 'fail',
-      data: {
-        code: 'DEFAULT_CLIENT_ERROR',
-        message: 'Cannot GET /ok',
-        details: undefined,
-      },
+      code: 'DEFAULT_CLIENT_ERROR',
+      message: 'Cannot GET /ok',
+      details: undefined,
     });
   });
 
@@ -84,11 +80,9 @@ describe('GlobalExceptionFilter', () => {
     expect(res.status).toHaveBeenCalledWith(400);
     expect(res.json).toHaveBeenCalledWith({
       status: 'fail',
-      data: {
-        code: 'DEFAULT_CLIENT_ERROR',
-        message: 'name must be a string, age must be a number',
-        details: undefined,
-      },
+      code: 'DEFAULT_CLIENT_ERROR',
+      message: 'name must be a string, age must be a number',
+      details: undefined,
     });
   });
 
@@ -103,7 +97,7 @@ describe('GlobalExceptionFilter', () => {
       status: 'error',
       message: 'Internal Server Error',
       code: undefined,
-      data: undefined,
+      details: undefined,
     });
   });
 
@@ -117,7 +111,7 @@ describe('GlobalExceptionFilter', () => {
       status: 'error',
       message: 'Internal Server Error',
       code: undefined,
-      data: undefined,
+      details: undefined,
     });
   });
 });

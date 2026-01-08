@@ -10,10 +10,10 @@ export const ApiResponse = {
   },
 
   fail(code: string, message?: string, details?: unknown): ApiResponseFail {
-    return { status: 'fail', data: { code, message, details } };
+    return { status: 'fail', code, message, details };
   },
 
-  error(message: string, code?: string, data?: unknown): ApiResponseError {
-    return { status: 'error', message, code, data };
+  error(message: string, code?: string, details?: unknown): ApiResponseError {
+    return { status: 'error', message, code, details };
   },
 };
