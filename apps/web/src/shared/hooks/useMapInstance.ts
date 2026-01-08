@@ -27,7 +27,7 @@ export function useMapInstance(options: UseMapInstanceOptions = {}) {
   const latitude = shouldUseGeolocation ? geolocation.latitude : null;
   const longitude = shouldUseGeolocation ? geolocation.longitude : null;
 
-  // Naver Maps API 동적 로드 및 지도 초기화
+  // 지도는 한 번만 초기화되도록 보장 (의존성 배열 최소화)
   useEffect(() => {
     const clientId = import.meta.env.VITE_NAVER_CLIENT_ID;
 
@@ -36,10 +36,16 @@ export function useMapInstance(options: UseMapInstanceOptions = {}) {
       return;
     }
 
+    // 이미 지도가 초기화되었으면 재초기화하지 않음
+    if (mapInstanceRef.current) {
+      return;
+    }
+
     const getCenterCoordinates = () => {
       if (initialCoordinates) {
         return initialCoordinates;
       }
+      // 초기화 시점에 위치 정보가 있으면 사용, 없으면 기본값
       if (latitude !== null && longitude !== null) {
         return { lat: latitude, lng: longitude };
       }
@@ -102,16 +108,11 @@ export function useMapInstance(options: UseMapInstanceOptions = {}) {
         mapInstanceRef.current = null;
       }
     };
-  }, [
-    initialCoordinates,
-    zoom,
-    zoomControl,
-    zoomControlOptions,
-    defaultCenter,
-    latitude,
-    longitude,
-    onMapReady,
-  ]);
+    // 지도는 한 번만 초기화되도록 보장
+    // zoomControlOptions, onMapReady 등 객체/함수는 매 렌더링마다 새로운 참조가 생성되므로 의존성에서 제외
+    // initialCoordinates, zoom, zoomControl, defaultCenter도 초기값만 사용하고 이후 변경은 무시
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // 빈 배열로 한 번만 실행
 
   // 현재 위치로 자동 중심 이동
   useEffect(() => {
@@ -151,7 +152,6 @@ export function useMapInstance(options: UseMapInstanceOptions = {}) {
     mapLoadError,
     handleZoomIn,
     handleZoomOut,
-    // geolocation 정보도 반환 (필요한 경우)
     latitude: shouldUseGeolocation ? latitude : null,
     longitude: shouldUseGeolocation ? longitude : null,
   };
