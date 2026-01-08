@@ -75,10 +75,12 @@ export default function RecordWritePageRoute() {
   const initialCoordinates: Coordinates | undefined =
     coordinatesFromState ?? coordinatesFromQuery ?? undefined;
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const handleSave = (_record: Record) => {
-    // 저장 후 메인 페이지로 이동
-    void navigate(ROUTES.HOME, { replace: true });
+  const handleSave = (record: Record) => {
+    // 저장 후 메인 페이지로 이동 (저장된 record를 state로 전달)
+    void navigate(ROUTES.HOME, {
+      replace: true,
+      state: { savedRecord: record },
+    });
   };
 
   const handleCancel = () => {
