@@ -15,7 +15,7 @@ interface PublicRouteProps {
  */
 export default function PublicRoute({
   children,
-  redirectTo = '/main',
+  redirectTo = '/home',
 }: PublicRouteProps) {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
 

@@ -45,7 +45,7 @@ export default function OAuthCallbackPage() {
 
       // URL에서 토큰 파라미터 제거
       window.history.replaceState({}, document.title, '/auth/callback');
-      void navigate('/main', { replace: true });
+      void navigate('/home', { replace: true });
     } catch (err) {
       // 예외 발생 시 기존 토큰 정리
       clearAuth();
