@@ -1,33 +1,32 @@
 import { useState, useEffect } from 'react';
+import type { GeolocationState } from '@/shared/types';
 
-export interface GeolocationState {
-  latitude: number | null;
-  longitude: number | null;
-  error: GeolocationPositionError | null;
-  isLoading: boolean;
-}
+const initialState: GeolocationState = {
+  latitude: null,
+  longitude: null,
+  error: null,
+  isLoading: true,
+};
 
-export function useGeolocation() {
-  const [state, setState] = useState<GeolocationState>({
-    latitude: null,
-    longitude: null,
-    error: null,
-    isLoading: true,
-  });
+export function useGeolocation(): GeolocationState {
+  const [state, setState] = useState<GeolocationState>(initialState);
 
   useEffect(() => {
+    // 지원이 안되는 브라우저 처리
     if (!navigator.geolocation) {
-      setState((prev) => ({
-        ...prev,
-        error: {
-          code: 0,
-          message: 'Geolocation is not supported by this browser.',
-          PERMISSION_DENIED: 1,
-          POSITION_UNAVAILABLE: 2,
-          TIMEOUT: 3,
-        } as GeolocationPositionError,
+      const error: GeolocationPositionError = {
+        code: 0,
+        message: 'Geolocation이 지원되지 않는 브라우저입니다.',
+        PERMISSION_DENIED: 1,
+        POSITION_UNAVAILABLE: 2,
+        TIMEOUT: 3,
+      } as GeolocationPositionError;
+
+      setState({
+        ...initialState,
+        error,
         isLoading: false,
-      }));
+      });
       return;
     }
 
@@ -40,14 +39,16 @@ export function useGeolocation() {
           isLoading: false,
         });
       },
-      (error) => {
-        setState((prev) => ({
-          ...prev,
+      // 권한 거부 처리
+      (error: GeolocationPositionError) => {
+        setState({
+          ...initialState,
           error,
           isLoading: false,
-        }));
+        });
       },
       {
+        // GPS 정확도 높임
         enableHighAccuracy: true,
         timeout: 10000,
         maximumAge: 0,
