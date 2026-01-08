@@ -1,18 +1,14 @@
 import { useState } from 'react';
-import type { MapViewportProps } from '@features/home/types/mapViewport.types';
+import { useNavigate } from 'react-router-dom';
+import type { MapViewportProps } from '@features/home/types/mapViewport';
 import type { PinMarkerData } from '@/shared/types/marker';
-import PinMarker from '@/shared/ui/marker/PinMarker';
+import { PinOverlay } from '@/infra/map/marker';
 import RecordCreateBottomSheet from './RecordCreateBottomSheet';
-import RecordWritePage from '@/features/record/ui/RecordWritePage';
-import type { Record as RecordType } from '@/features/record/types';
+import { ROUTES } from '@/router/routes';
+import { useMapInstance } from '@/shared/hooks/useMapInstance';
 
 // TODO: 지도 SDK 연동 시 제거할 mock 데이터
 const MOCK_PINS: PinMarkerData[] = [
-  {
-    id: 1,
-    position: { lat: 37.5665, lng: 126.978 },
-    variant: 'current',
-  },
   {
     id: 2,
     position: { lat: 37.5796, lng: 126.977 },
@@ -42,17 +38,8 @@ const LOCATION_MAP: Record<string | number, { name: string; address: string }> =
     },
   };
 
-// TODO: 지도 SDK 연동 시 제거할 mock 위치 좌표 (픽셀 기준)
-const MOCK_PIN_POSITIONS: Record<
-  string | number,
-  { top: string; left: string }
-> = {
-  1: { top: '30%', left: '50%' },
-  2: { top: '25%', left: '60%' },
-  3: { top: '40%', left: '45%' },
-};
-
 export default function MapViewport({ className = '' }: MapViewportProps) {
+  const navigate = useNavigate();
   const [isBottomSheetOpen, setIsBottomSheetOpen] = useState(false);
   const [selectedPinId, setSelectedPinId] = useState<string | number | null>(
     null,
@@ -60,51 +47,68 @@ export default function MapViewport({ className = '' }: MapViewportProps) {
   const [selectedLocation, setSelectedLocation] = useState<{
     name: string;
     address: string;
+    coordinates?: { lat: number; lng: number };
   } | null>(null);
-  const [isRecordWritePageOpen, setIsRecordWritePageOpen] = useState(false);
+
+  // 지도 인스턴스 관리
+  const {
+    mapContainerRef,
+    mapInstanceRef,
+    isMapLoaded,
+    mapLoadError,
+    latitude,
+    longitude,
+  } = useMapInstance({
+    useGeolocation: true,
+    zoom: 13,
+    zoomControl: true,
+    zoomControlOptions: {
+      position: 1, // naver.maps.Position.TOP_RIGHT
+    },
+    autoCenterToGeolocation: true,
+  });
 
   const handlePinClick = (pinId: string | number) => {
     const location = LOCATION_MAP[pinId];
+    const pin = MOCK_PINS.find((p) => p.id === pinId);
     // 모든 mock 핀은 LOCATION_MAP에 있으므로 항상 존재함
     setSelectedPinId(pinId);
-    setSelectedLocation(location);
+    setSelectedLocation({
+      ...location,
+      coordinates: pin?.position,
+    });
     setIsBottomSheetOpen(true);
   };
 
   const handleCloseBottomSheet = () => {
     setIsBottomSheetOpen(false);
     setSelectedPinId(null);
+    setSelectedLocation(null);
   };
 
   const handleConfirmRecord = () => {
+    if (!selectedLocation) return;
+
     setIsBottomSheetOpen(false);
-    setIsRecordWritePageOpen(true);
-  };
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const handleSaveRecord = (record: RecordType) => {
-    // TODO: 기록 저장 처리 (mock 데이터로 생성됨)
-    setIsRecordWritePageOpen(false);
-    setSelectedPinId(null);
-    setSelectedLocation(null);
+    // locationId가 있으면 쿼리에 넣고, state로도 전달 (북마크/새로고침 대비)
+    // locationId가 없으면 state만 사용 (즉시 사용 가능, 새로고침 대비)
+    if (selectedPinId) {
+      // locationId를 쿼리로 전달
+      void navigate(`${ROUTES.RECORD}?locationId=${selectedPinId}`, {
+        state: {
+          location: selectedLocation,
+        },
+      });
+    } else {
+      // locationId가 없으면 state만 사용
+      void navigate(ROUTES.RECORD, {
+        state: {
+          location: selectedLocation,
+        },
+      });
+    }
   };
-
-  const handleCancelRecordWrite = () => {
-    setIsRecordWritePageOpen(false);
-    setSelectedPinId(null);
-    setSelectedLocation(null);
-  };
-
-  // 기록 작성 페이지가 열려있으면 페이지를 표시
-  if (isRecordWritePageOpen && selectedLocation) {
-    return (
-      <RecordWritePage
-        initialLocation={selectedLocation}
-        onSave={handleSaveRecord}
-        onCancel={handleCancelRecordWrite}
-      />
-    );
-  }
 
   return (
     <>
@@ -112,38 +116,49 @@ export default function MapViewport({ className = '' }: MapViewportProps) {
         className={`relative flex-1 bg-gray-100 ${className || ''}`}
         aria-label="지도 영역"
       >
-        {/* 지도 영역 - 실제 지도 SDK가 들어갈 공간 */}
-        <div className="absolute inset-0 bg-linear-to-br from-blue-50 via-green-50 to-yellow-50">
-          {/* 지도 배경 시뮬레이션 */}
-          <div className="absolute inset-0 opacity-20">
-            <div className="absolute top-1/4 left-1/4 w-32 h-32 bg-blue-200 rounded-full blur-3xl" />
-            <div className="absolute bottom-1/3 right-1/3 w-40 h-40 bg-green-200 rounded-full blur-3xl" />
+        {/* 지도 컨테이너 - 항상 렌더링 (ref를 위해 필요) */}
+        <div ref={mapContainerRef} className="absolute inset-0 w-full h-full" />
+
+        {/* 로딩/에러 오버레이 */}
+        {mapLoadError ? (
+          <div className="absolute inset-0 flex items-center justify-center bg-gray-100 z-10">
+            <p className="text-red-500">{mapLoadError}</p>
           </div>
-        </div>
+        ) : !isMapLoaded ? (
+          <div className="absolute inset-0 flex items-center justify-center bg-gray-100 z-10">
+            <p className="text-gray-400">지도를 불러오는 중...</p>
+          </div>
+        ) : null}
 
-        {/* TODO: 지도 SDK 연동 시 제거할 mock 핀 마커들 */}
-        {MOCK_PINS.map((pin) => {
-          const position = MOCK_PIN_POSITIONS[pin.id];
-          // 모든 mock 핀은 MOCK_PIN_POSITIONS에 있으므로 항상 존재함
-
-          return (
-            <div
-              key={pin.id}
-              className="absolute z-20"
-              style={{
-                top: position.top,
-                left: position.left,
-                transform: 'translate(-50%, -100%)',
+        {/* 현재 위치 파란 핀 */}
+        {isMapLoaded &&
+          mapInstanceRef.current &&
+          latitude !== null &&
+          longitude !== null && (
+            <PinOverlay
+              key="current-location"
+              map={mapInstanceRef.current}
+              pin={{
+                id: 'current-location',
+                position: { lat: latitude, lng: longitude },
+                variant: 'current',
               }}
-            >
-              <PinMarker
-                pin={pin}
-                isSelected={selectedPinId === pin.id}
-                onClick={handlePinClick}
-              />
-            </div>
-          );
-        })}
+              isSelected={false}
+            />
+          )}
+
+        {/* 지도에 고정된 핀 마커들 */}
+        {isMapLoaded &&
+          mapInstanceRef.current &&
+          MOCK_PINS.map((pin) => (
+            <PinOverlay
+              key={pin.id}
+              map={mapInstanceRef.current!}
+              pin={pin}
+              isSelected={selectedPinId === pin.id}
+              onClick={handlePinClick}
+            />
+          ))}
 
         {/* Floating Action Button */}
         <button
