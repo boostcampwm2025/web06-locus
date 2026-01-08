@@ -13,11 +13,11 @@ interface NaverMapLoaderOptions {
   clientId: string;
 }
 
+/**
+ * Window 전역 타입 확장
+ */
 declare global {
   interface Window {
-    naver?: {
-      maps?: unknown;
-    };
     navermap_authFailure?: () => void;
   }
 }
@@ -29,7 +29,7 @@ let loadingPromise: Promise<boolean> | null = null;
 /**
  * Naver Maps API가 로드되었는지 확인
  */
-function isNaverMapLoaded(): boolean {
+export function isNaverMapLoaded(): boolean {
   return (
     typeof window !== 'undefined' &&
     typeof window.naver === 'object' &&

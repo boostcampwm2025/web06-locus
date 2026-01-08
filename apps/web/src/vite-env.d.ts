@@ -10,3 +10,12 @@ interface ImportMetaEnv {
 interface ImportMeta {
   readonly env: ImportMetaEnv;
 }
+
+/**
+ * Window 전역 타입 확장
+ */
+declare global {
+  interface Window {
+    navermap_authFailure?: () => void;
+  }
+}
