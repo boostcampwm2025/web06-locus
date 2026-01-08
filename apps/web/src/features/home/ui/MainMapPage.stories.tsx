@@ -1,9 +1,17 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
+import { MemoryRouter } from 'react-router-dom';
 import MainMapPage from './MainMapPage';
 
 const meta = {
   title: 'Features/Home/MainMapPage',
   component: MainMapPage,
+  decorators: [
+    (Story) => (
+      <MemoryRouter>
+        <Story />
+      </MemoryRouter>
+    ),
+  ],
   parameters: {
     layout: 'fullscreen',
     viewport: {
