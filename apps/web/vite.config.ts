@@ -90,6 +90,7 @@ const config = {
       '@': resolveFromRoot('src'),
       '@public': resolveFromRoot('public'),
       '@locus/shared': resolveFromRoot('../../packages/shared/src'),
+      '@features/home': resolveFromRoot('src/features/home'),
     },
   },
 

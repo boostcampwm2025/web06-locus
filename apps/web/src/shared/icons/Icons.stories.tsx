@@ -5,6 +5,21 @@ import GoogleIcon from './GoogleIcon';
 import NaverIcon from './NaverIcon';
 import KakaoIcon from './KakaoIcon';
 import Logo from './Logo';
+import MapIcon from './MapIcon';
+import SearchIcon from './SearchIcon';
+import BookmarkIcon from './BookmarkIcon';
+import ArrowLeftIcon from './ArrowLeftIcon';
+import LocationIcon from './LocationIcon';
+import ImageIcon from './ImageIcon';
+import CameraIcon from './CameraIcon';
+import PlusIcon from './PlusIcon';
+import XIcon from './XIcon';
+import ZoomInIcon from './ZoomInIcon';
+import ZoomOutIcon from './ZoomOutIcon';
+import TagIcon from './TagIcon';
+import CalendarIcon from './CalendarIcon';
+import EditIcon from './EditIcon';
+import TrashIcon from './TrashIcon';
 
 const meta = {
   title: 'Shared/Icons',
@@ -66,6 +81,81 @@ export const IconCatalog: Story = {
             icon={<RefreshIcon className="w-8 h-8 text-blue-500" />}
             description="새로고침/재시도 아이콘"
           />
+          <IconCard
+            name="MapIcon"
+            icon={<MapIcon className="w-8 h-8 text-gray-700" />}
+            description="지도 아이콘"
+          />
+          <IconCard
+            name="SearchIcon"
+            icon={<SearchIcon className="w-8 h-8 text-gray-600" />}
+            description="검색 아이콘"
+          />
+          <IconCard
+            name="BookmarkIcon"
+            icon={<BookmarkIcon className="w-8 h-8 text-gray-500" />}
+            description="북마크 아이콘"
+          />
+          <IconCard
+            name="ArrowLeftIcon"
+            icon={<ArrowLeftIcon className="w-8 h-8 text-gray-700" />}
+            description="뒤로가기 아이콘"
+          />
+          <IconCard
+            name="LocationIcon"
+            icon={<LocationIcon className="w-8 h-8 text-blue-600" />}
+            description="위치/장소 아이콘"
+          />
+          <IconCard
+            name="ImageIcon"
+            icon={<ImageIcon className="w-8 h-8 text-gray-600" />}
+            description="이미지/사진 아이콘"
+          />
+          <IconCard
+            name="CameraIcon"
+            icon={<CameraIcon className="w-8 h-8 text-gray-600" />}
+            description="카메라 아이콘"
+          />
+          <IconCard
+            name="PlusIcon"
+            icon={<PlusIcon className="w-8 h-8 text-gray-700" />}
+            description="추가/더하기 아이콘"
+          />
+          <IconCard
+            name="XIcon"
+            icon={<XIcon className="w-8 h-8 text-gray-700" />}
+            description="닫기/삭제 아이콘"
+          />
+          <IconCard
+            name="ZoomInIcon"
+            icon={<ZoomInIcon className="w-8 h-8 text-gray-600" />}
+            description="확대 아이콘"
+          />
+          <IconCard
+            name="ZoomOutIcon"
+            icon={<ZoomOutIcon className="w-8 h-8 text-gray-600" />}
+            description="축소 아이콘"
+          />
+          <IconCard
+            name="TagIcon"
+            icon={<TagIcon className="w-8 h-8 text-gray-600" />}
+            description="태그 아이콘"
+          />
+          <IconCard
+            name="CalendarIcon"
+            icon={<CalendarIcon className="w-8 h-8 text-gray-600" />}
+            description="캘린더 아이콘"
+          />
+          <IconCard
+            name="EditIcon"
+            icon={<EditIcon className="w-8 h-8 text-gray-700" />}
+            description="수정 아이콘"
+          />
+          <IconCard
+            name="TrashIcon"
+            icon={<TrashIcon className="w-8 h-8 text-red-500" />}
+            description="삭제 아이콘"
+          />
         </div>
       </div>
 
@@ -113,6 +203,33 @@ export const AllIcons: Story = {
     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
       <IconCard name="ErrorIcon" icon={<ErrorIcon className="w-8 h-8" />} />
       <IconCard name="RefreshIcon" icon={<RefreshIcon className="w-8 h-8" />} />
+      <IconCard name="MapIcon" icon={<MapIcon className="w-8 h-8" />} />
+      <IconCard name="SearchIcon" icon={<SearchIcon className="w-8 h-8" />} />
+      <IconCard
+        name="BookmarkIcon"
+        icon={<BookmarkIcon className="w-8 h-8" />}
+      />
+      <IconCard
+        name="ArrowLeftIcon"
+        icon={<ArrowLeftIcon className="w-8 h-8" />}
+      />
+      <IconCard
+        name="LocationIcon"
+        icon={<LocationIcon className="w-8 h-8" />}
+      />
+      <IconCard name="ImageIcon" icon={<ImageIcon className="w-8 h-8" />} />
+      <IconCard name="CameraIcon" icon={<CameraIcon className="w-8 h-8" />} />
+      <IconCard name="PlusIcon" icon={<PlusIcon className="w-8 h-8" />} />
+      <IconCard name="XIcon" icon={<XIcon className="w-8 h-8" />} />
+      <IconCard name="ZoomInIcon" icon={<ZoomInIcon className="w-8 h-8" />} />
+      <IconCard name="ZoomOutIcon" icon={<ZoomOutIcon className="w-8 h-8" />} />
+      <IconCard name="TagIcon" icon={<TagIcon className="w-8 h-8" />} />
+      <IconCard
+        name="CalendarIcon"
+        icon={<CalendarIcon className="w-8 h-8" />}
+      />
+      <IconCard name="EditIcon" icon={<EditIcon className="w-8 h-8" />} />
+      <IconCard name="TrashIcon" icon={<TrashIcon className="w-8 h-8" />} />
       <IconCard name="GoogleIcon" icon={<GoogleIcon className="w-8 h-8" />} />
       <IconCard name="NaverIcon" icon={<NaverIcon className="w-8 h-8" />} />
       <IconCard name="KakaoIcon" icon={<KakaoIcon className="w-8 h-8" />} />

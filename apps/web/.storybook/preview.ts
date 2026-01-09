@@ -1,5 +1,4 @@
 import type { Preview } from '@storybook/react-vite';
-// @ts-expect-error
 import '../src/index.css';
 
 const customViewports = {
