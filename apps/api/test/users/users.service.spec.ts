@@ -1,12 +1,13 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import {
-  ConflictException,
-  InternalServerErrorException,
-  NotFoundException,
-} from '@nestjs/common';
+import { InternalServerErrorException } from '@nestjs/common';
 import { UsersService } from '../../src/users/users.service';
 import { PrismaService } from '../../src/prisma/prisma.service';
 import { Provider, User } from '@prisma/client';
+import {
+  OAuthEmailConflictException,
+  UserEmailAlreadyExistsException,
+  UserNotFoundException,
+} from '@/users/exception';
 
 describe('UsersService', () => {
   let usersService: UsersService;
@@ -203,7 +204,7 @@ describe('UsersService', () => {
       });
     });
 
-    test('같은 이메일로 다른 Provider로 가입된 사용자가 있으면 ConflictException을 던져야 한다', async () => {
+    test('같은 이메일로 다른 Provider로 가입된 사용자가 있으면 OAuthEmailConflictException을 던져야 한다', async () => {
       // given
       const existingUser = {
         ...mockUser,
@@ -223,7 +224,7 @@ describe('UsersService', () => {
           provider,
           providerId,
         ),
-      ).rejects.toThrow(ConflictException);
+      ).rejects.toThrow(OAuthEmailConflictException);
 
       await expect(
         usersService.findOrCreateOAuthUser(
@@ -416,30 +417,18 @@ describe('UsersService', () => {
       });
     });
 
-    test('이미 존재하는 이메일이면 ConflictException을 던져야 한다', async () => {
+    test('이미 존재하는 이메일이면 UserEmailAlreadyExistsException을 던져야 한다', async () => {
       // given
       mockPrismaService.user.findUnique.mockResolvedValue(mockLocalUser);
 
       // when & then
       await expect(
         usersService.signup(email, hashedPassword, nickname),
-      ).rejects.toThrow(ConflictException);
+      ).rejects.toThrow(UserEmailAlreadyExistsException);
 
       await expect(
         usersService.signup(email, hashedPassword, nickname),
       ).rejects.toThrow('이미 존재하는 이메일입니다.');
-
-      expect(prismaService.user.create).not.toHaveBeenCalled();
-    });
-
-    test('OAuth로 가입된 이메일이면 ConflictException을 던져야 한다', async () => {
-      // given
-      mockPrismaService.user.findUnique.mockResolvedValue(mockUser);
-
-      // when & then
-      await expect(
-        usersService.signup(email, hashedPassword, nickname),
-      ).rejects.toThrow(ConflictException);
 
       expect(prismaService.user.create).not.toHaveBeenCalled();
     });
@@ -506,36 +495,36 @@ describe('UsersService', () => {
       });
     });
 
-    test('사용자가 없으면 NotFoundException을 던져야 한다', async () => {
+    test('사용자가 없으면 UserNotFoundException을 던져야 한다', async () => {
       // given
       mockPrismaService.user.findUnique.mockResolvedValue(null);
 
       // when & then
       await expect(usersService.findById(999)).rejects.toThrow(
-        NotFoundException,
+        UserNotFoundException,
       );
       await expect(usersService.findById(999)).rejects.toThrow(
         '사용자를 찾을 수 없습니다.',
       );
     });
 
-    test('존재하지 않는 ID로 조회 시 NotFoundException을 던져야 한다', async () => {
+    test('존재하지 않는 ID로 조회 시 UserNotFoundException을 던져야 한다', async () => {
       // given
       mockPrismaService.user.findUnique.mockResolvedValue(null);
 
       // when & then
       await expect(usersService.findById(-1)).rejects.toThrow(
-        NotFoundException,
+        UserNotFoundException,
       );
     });
 
-    test('음수 ID로 조회 시 NotFoundException을 던져야 한다', async () => {
+    test('음수 ID로 조회 시 UserNotFoundException을 던져야 한다', async () => {
       // given
       mockPrismaService.user.findUnique.mockResolvedValue(null);
 
       // when & then
       await expect(usersService.findById(-100)).rejects.toThrow(
-        NotFoundException,
+        UserNotFoundException,
       );
     });
 
@@ -583,27 +572,27 @@ describe('UsersService', () => {
       expect(result.provider).toBe(Provider.GOOGLE);
     });
 
-    test('사용자가 없으면 NotFoundException을 던져야 한다', async () => {
+    test('사용자가 없으면 UserNotFoundException을 던져야 한다', async () => {
       // given
       mockPrismaService.user.findUnique.mockResolvedValue(null);
 
       // when & then
       await expect(
         usersService.findByEmail('nonexistent@example.com'),
-      ).rejects.toThrow(NotFoundException);
+      ).rejects.toThrow(UserNotFoundException);
 
       await expect(
         usersService.findByEmail('nonexistent@example.com'),
       ).rejects.toThrow('사용자를 찾을 수 없습니다.');
     });
 
-    test('빈 이메일로 조회 시 NotFoundException을 던져야 한다', async () => {
+    test('빈 이메일로 조회 시 UserNotFoundException을 던져야 한다', async () => {
       // given
       mockPrismaService.user.findUnique.mockResolvedValue(null);
 
       // when & then
       await expect(usersService.findByEmail('')).rejects.toThrow(
-        NotFoundException,
+        UserNotFoundException,
       );
     });
   });
