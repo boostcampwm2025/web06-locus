@@ -1,4 +1,12 @@
-import { Controller, Get, Req, Res, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Post,
+  Req,
+  Res,
+  UseGuards,
+} from '@nestjs/common';
 import { Request, Response } from 'express';
 import { AuthService } from './auth.service';
 import { GoogleAuthGuard } from './guards/google-auth.guard';
@@ -6,6 +14,8 @@ import { User } from '@prisma/client';
 import { ConfigService } from '@nestjs/config';
 import { NaverAuthGuard } from './guards/naver-auth.guard';
 import { KakaoAuthGuard } from './guards/kakao-auth.guard';
+import { SignUpRequest } from './dto/sign-up-request.dto';
+import { VerifyEmailRequest } from './dto/verify-email-request.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -13,6 +23,16 @@ export class AuthController {
     private readonly authService: AuthService,
     private readonly configService: ConfigService,
   ) {}
+
+  @Post('signup')
+  async signup(@Body() signupRequest: SignUpRequest): Promise<void> {
+    await this.authService.signup(signupRequest);
+  }
+
+  @Post('verify-email')
+  async verifyEmail(@Body() verifyEmailRequest: VerifyEmailRequest) {
+    await this.authService.verifyEmail(verifyEmailRequest);
+  }
 
   @Get('oauth2/google')
   @UseGuards(GoogleAuthGuard)
