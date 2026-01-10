@@ -1,7 +1,4 @@
 import {
-  BadRequestException,
-  ConflictException,
-  ForbiddenException,
   Injectable,
   NotFoundException,
   UnauthorizedException,
@@ -17,6 +14,15 @@ import { MailService } from '@/mail/mail.service';
 import { VerifyEmailRequest } from './dto/verify-email-request.dto';
 import { LoginRequest } from './dto/login-request.dto';
 import { Provider } from '@prisma/client';
+import {
+  EmailAlreadyExistsException,
+  EmailAlreadySentException,
+  EmailVerificationExpiredException,
+  EmailVerificationFailedException,
+  EmailVerificationTooManyTriesException,
+  InvalidCredentialsException,
+  SocialAlreadyLoginException,
+} from './exception';
 
 @Injectable()
 export class AuthService {
@@ -36,16 +42,14 @@ export class AuthService {
     const { email, password, nickname } = request;
 
     if (await this.usersService.isExistsByEmail(email)) {
-      throw new ConflictException('이미 가입된 이메일입니다');
+      throw new EmailAlreadyExistsException();
     }
 
     const redisKey = this.getPendingUserRedisKey(email);
 
     // 중복 요청 방지
     if (await this.redisService.get(redisKey)) {
-      throw new ConflictException(
-        '이미 인증 코드가 발송되었습니다. 잠시 후 다시 시도해주세요.',
-      );
+      throw new EmailAlreadySentException();
     }
 
     const code = this.generateVerificationCode();
@@ -74,17 +78,11 @@ export class AuthService {
     const user = await this.usersService.findByEmail(email);
 
     if (user.provider !== Provider.LOCAL || !user.password) {
-      throw new BadRequestException(
-        `${user.provider}로 가입된 계정입니다. 해당 소셜 로그인을 이용해주세요.`,
-      );
+      throw new SocialAlreadyLoginException(user.provider);
     }
 
     const isPasswordMatched = await compare(password, user.password);
-    if (!isPasswordMatched) {
-      throw new UnauthorizedException(
-        '이메일 또는 비밀번호가 올바르지 않습니다.',
-      );
-    }
+    if (!isPasswordMatched) throw new InvalidCredentialsException();
 
     const { password: _, ...userWithoutPassword } = user;
     return this.generateTokens(userWithoutPassword);
@@ -95,13 +93,13 @@ export class AuthService {
     const redisKey = this.getPendingUserRedisKey(email);
 
     const data = await this.redisService.get(redisKey);
-    if (!data) throw new BadRequestException('인증 정보가 만료되었습니다.');
+    if (!data) throw new EmailVerificationExpiredException();
 
     const pendingUser = JSON.parse(data) as PendingUser;
 
     if (pendingUser.retryCount >= this.MAX_RETRY) {
       await this.redisService.del(redisKey);
-      throw new ForbiddenException('인증 시도 횟수를 초과했습니다.');
+      throw new EmailVerificationTooManyTriesException();
     }
 
     if (pendingUser.code !== code) {
@@ -111,7 +109,7 @@ export class AuthService {
         JSON.stringify(pendingUser),
         this.VALIDATE_EMAIL_TTL,
       );
-      throw new BadRequestException('인증 코드가 올바르지 않습니다.');
+      throw new EmailVerificationFailedException(pendingUser.retryCount);
     }
 
     await this.usersService.signup(
