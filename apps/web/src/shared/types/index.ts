@@ -21,3 +21,5 @@ export type {
 } from './form';
 export type { OptionButtonProps } from './button';
 export type { BottomSheetHeight, BaseBottomSheetProps } from './bottomSheet';
+export type { GeolocationState } from './geolocation';
+export type { UseMapInstanceOptions } from './map';

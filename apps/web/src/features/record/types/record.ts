@@ -118,3 +118,20 @@ export interface RecordWriteFormProps {
   onCancel: () => void;
   canSave: boolean;
 }
+
+/**
+ * 기록 작성 지도 Props
+ */
+export interface RecordWriteMapProps {
+  initialCoordinates?: Coordinates;
+}
+
+/**
+ * Naver Map 훅 옵션
+ */
+export interface UseNaverMapOptions {
+  initialCoordinates?: Coordinates;
+  zoom?: number;
+  zoomControl?: boolean;
+  defaultCenter?: Coordinates;
+}
