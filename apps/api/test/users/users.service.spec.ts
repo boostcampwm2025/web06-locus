@@ -24,6 +24,18 @@ describe('UsersService', () => {
     updatedAt: new Date(),
   };
 
+  const mockLocalUser: User = {
+    id: 2,
+    email: 'local@example.com',
+    nickname: 'Local User',
+    password: '$2b$10$hashedPassword123',
+    profileImageUrl: null,
+    provider: Provider.LOCAL,
+    providerId: null,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  };
+
   const mockPrismaService = {
     user: {
       findFirst: jest.fn(),
@@ -358,6 +370,117 @@ describe('UsersService', () => {
     });
   });
 
+  describe('signup', () => {
+    const email = 'newuser@example.com';
+    const hashedPassword = '$2b$10$hashedPassword123';
+    const nickname = 'New User';
+
+    test('새로운 LOCAL 사용자를 생성해야 한다', async () => {
+      // given
+      mockPrismaService.user.findUnique.mockResolvedValue(null);
+      mockPrismaService.user.create.mockResolvedValue(mockLocalUser);
+
+      // when
+      await usersService.signup(email, hashedPassword, nickname);
+
+      // then
+      expect(prismaService.user.create).toHaveBeenCalledWith({
+        data: {
+          email,
+          password: hashedPassword,
+          nickname,
+          provider: Provider.LOCAL,
+        },
+      });
+    });
+
+    test('nickname 없이 사용자를 생성할 수 있어야 한다', async () => {
+      // given
+      mockPrismaService.user.findUnique.mockResolvedValue(null);
+      mockPrismaService.user.create.mockResolvedValue({
+        ...mockLocalUser,
+        nickname: null,
+      });
+
+      // when
+      await usersService.signup(email, hashedPassword);
+
+      // then
+      expect(prismaService.user.create).toHaveBeenCalledWith({
+        data: {
+          email,
+          password: hashedPassword,
+          nickname: undefined,
+          provider: Provider.LOCAL,
+        },
+      });
+    });
+
+    test('이미 존재하는 이메일이면 ConflictException을 던져야 한다', async () => {
+      // given
+      mockPrismaService.user.findUnique.mockResolvedValue(mockLocalUser);
+
+      // when & then
+      await expect(
+        usersService.signup(email, hashedPassword, nickname),
+      ).rejects.toThrow(ConflictException);
+
+      await expect(
+        usersService.signup(email, hashedPassword, nickname),
+      ).rejects.toThrow('이미 존재하는 이메일입니다.');
+
+      expect(prismaService.user.create).not.toHaveBeenCalled();
+    });
+
+    test('OAuth로 가입된 이메일이면 ConflictException을 던져야 한다', async () => {
+      // given
+      mockPrismaService.user.findUnique.mockResolvedValue(mockUser);
+
+      // when & then
+      await expect(
+        usersService.signup(email, hashedPassword, nickname),
+      ).rejects.toThrow(ConflictException);
+
+      expect(prismaService.user.create).not.toHaveBeenCalled();
+    });
+
+    test('provider가 LOCAL로 설정되어야 한다', async () => {
+      // given
+      mockPrismaService.user.findUnique.mockResolvedValue(null);
+      mockPrismaService.user.create.mockResolvedValue(mockLocalUser);
+
+      // when
+      await usersService.signup(email, hashedPassword, nickname);
+
+      // then
+      expect(prismaService.user.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            provider: Provider.LOCAL,
+          }),
+        }),
+      );
+    });
+
+    test('해시된 비밀번호가 저장되어야 한다', async () => {
+      // given
+      mockPrismaService.user.findUnique.mockResolvedValue(null);
+      mockPrismaService.user.create.mockResolvedValue(mockLocalUser);
+
+      // when
+      await usersService.signup(email, hashedPassword, nickname);
+
+      // then
+      expect(prismaService.user.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            password: hashedPassword,
+          }),
+        }),
+      );
+    });
+  });
+
   describe('findById', () => {
     test('ID로 사용자를 찾아서 비밀번호를 제외하고 반환해야 한다', async () => {
       // given
@@ -426,6 +549,129 @@ describe('UsersService', () => {
       await expect(usersService.findById(1)).rejects.toThrow(
         'Database connection failed',
       );
+    });
+  });
+
+  describe('findByEmail', () => {
+    const email = 'test@example.com';
+
+    test('이메일로 사용자를 찾아서 반환해야 한다 (비밀번호 포함)', async () => {
+      // given
+      mockPrismaService.user.findUnique.mockResolvedValue(mockLocalUser);
+
+      // when
+      const result = await usersService.findByEmail(email);
+
+      // then
+      expect(result).toEqual(mockLocalUser);
+      expect(result).toHaveProperty('password');
+      expect(result.password).toBe(mockLocalUser.password);
+      expect(prismaService.user.findUnique).toHaveBeenCalledWith({
+        where: { email },
+      });
+    });
+
+    test('OAuth 사용자도 반환해야 한다', async () => {
+      // given
+      mockPrismaService.user.findUnique.mockResolvedValue(mockUser);
+
+      // when
+      const result = await usersService.findByEmail(email);
+
+      // then
+      expect(result).toEqual(mockUser);
+      expect(result.provider).toBe(Provider.GOOGLE);
+    });
+
+    test('사용자가 없으면 NotFoundException을 던져야 한다', async () => {
+      // given
+      mockPrismaService.user.findUnique.mockResolvedValue(null);
+
+      // when & then
+      await expect(
+        usersService.findByEmail('nonexistent@example.com'),
+      ).rejects.toThrow(NotFoundException);
+
+      await expect(
+        usersService.findByEmail('nonexistent@example.com'),
+      ).rejects.toThrow('사용자를 찾을 수 없습니다.');
+    });
+
+    test('빈 이메일로 조회 시 NotFoundException을 던져야 한다', async () => {
+      // given
+      mockPrismaService.user.findUnique.mockResolvedValue(null);
+
+      // when & then
+      await expect(usersService.findByEmail('')).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+  });
+
+  describe('isExistsByEmail', () => {
+    const email = 'test@example.com';
+
+    test('사용자가 존재하면 true를 반환해야 한다', async () => {
+      // given
+      mockPrismaService.user.findUnique.mockResolvedValue(mockUser);
+
+      // when
+      const result = await usersService.isExistsByEmail(email);
+
+      // then
+      expect(result).toBe(true);
+      expect(prismaService.user.findUnique).toHaveBeenCalledWith({
+        where: { email },
+      });
+    });
+
+    test('사용자가 존재하지 않으면 false를 반환해야 한다', async () => {
+      // given
+      mockPrismaService.user.findUnique.mockResolvedValue(null);
+
+      // when
+      const result = await usersService.isExistsByEmail(
+        'nonexistent@example.com',
+      );
+
+      // then
+      expect(result).toBe(false);
+    });
+
+    test('빈 이메일로 조회하면 false를 반환해야 한다', async () => {
+      // given
+      mockPrismaService.user.findUnique.mockResolvedValue(null);
+
+      // when
+      const result = await usersService.isExistsByEmail('');
+
+      // then
+      expect(result).toBe(false);
+    });
+
+    test('여러 번 호출해도 일관된 결과를 반환해야 한다', async () => {
+      // given
+      mockPrismaService.user.findUnique.mockResolvedValue(mockUser);
+
+      // when
+      const result1 = await usersService.isExistsByEmail(email);
+      const result2 = await usersService.isExistsByEmail(email);
+
+      // then
+      expect(result1).toBe(true);
+      expect(result2).toBe(true);
+      expect(prismaService.user.findUnique).toHaveBeenCalledTimes(2);
+    });
+
+    test('null 이메일로 조회하면 false를 반환해야 한다', async () => {
+      // given
+      mockPrismaService.user.findUnique.mockResolvedValue(null);
+
+      // when
+      const result = await usersService.isExistsByEmail(null as any);
+
+      // then
+      expect(result).toBe(false);
     });
   });
 });
