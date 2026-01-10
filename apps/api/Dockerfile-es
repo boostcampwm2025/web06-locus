@@ -1,0 +1,4 @@
+FROM docker.elastic.co/elasticsearch/elasticsearch:9.2.3
+
+# Nori 플러그인 (한글 분석)
+RUN bin/elasticsearch-plugin install analysis-nori || true
