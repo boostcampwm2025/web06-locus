@@ -27,6 +27,7 @@ describe('AuthService 테스트', () => {
 
   const mockUser: UserWithoutPassword = {
     id: 1,
+    publicId: 'publicId',
     email: 'test@example.com',
     nickname: 'Test User',
     provider: Provider.GOOGLE,
@@ -38,6 +39,7 @@ describe('AuthService 테스트', () => {
 
   const mockLocalUser = {
     id: 2,
+    publicId: 'publicId',
     email: 'local@example.com',
     nickname: 'Local User',
     password: '$2b$10$hashedPassword123',

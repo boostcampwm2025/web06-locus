@@ -15,6 +15,7 @@ describe('UsersService', () => {
 
   const mockUser: User = {
     id: 1,
+    publicId: 'publicId',
     email: 'test@example.com',
     nickname: 'Test User',
     password: null,
@@ -27,6 +28,7 @@ describe('UsersService', () => {
 
   const mockLocalUser: User = {
     id: 2,
+    publicId: 'publicId',
     email: 'local@example.com',
     nickname: 'Local User',
     password: '$2b$10$hashedPassword123',
@@ -482,6 +484,7 @@ describe('UsersService', () => {
       expect(result).not.toHaveProperty('password');
       expect(result).toEqual({
         id: mockUser.id,
+        publicId: mockUser.publicId,
         email: mockUser.email,
         nickname: mockUser.nickname,
         profileImageUrl: mockUser.profileImageUrl,
