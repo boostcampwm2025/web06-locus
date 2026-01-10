@@ -4,6 +4,7 @@ CREATE TYPE "Provider" AS ENUM ('LOCAL', 'GOOGLE', 'NAVER', 'KAKAO');
 -- CreateTable
 CREATE TABLE "users" (
     "id" SERIAL NOT NULL,
+    "public_id" TEXT NOT NULL,
     "email" TEXT NOT NULL,
     "password" TEXT,
     "nickname" TEXT,
@@ -15,6 +16,9 @@ CREATE TABLE "users" (
 
     CONSTRAINT "users_pkey" PRIMARY KEY ("id")
 );
+
+-- CreateIndex
+CREATE UNIQUE INDEX "users_public_id_key" ON "users"("public_id");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "users_email_key" ON "users"("email");
