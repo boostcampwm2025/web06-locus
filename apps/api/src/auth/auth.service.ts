@@ -9,12 +9,14 @@ import {
 import { UsersService } from '../users/users.service';
 import { UserWithoutPassword } from '../common/type/user.types';
 import { JwtProvider } from '../jwt/jwt.provider';
-import { hash } from '../utils/password.utils';
+import { compare, hash } from '../utils/password.utils';
 import { SignUpRequest } from './dto/sign-up-request.dto';
 import { PendingUser } from './type/user';
 import { RedisService } from '@/redis/redis.service';
 import { MailService } from '@/mail/mail.service';
 import { VerifyEmailRequest } from './dto/verify-email-request.dto';
+import { LoginRequest } from './dto/login-request.dto';
+import { Provider } from '@prisma/client';
 
 @Injectable()
 export class AuthService {
@@ -64,6 +66,28 @@ export class AuthService {
     );
 
     await this.mailService.sendVerificationEmail(email, code);
+  }
+
+  async login(request: LoginRequest) {
+    const { email, password } = request;
+
+    const user = await this.usersService.findByEmail(email);
+
+    if (user.provider !== Provider.LOCAL || !user.password) {
+      throw new BadRequestException(
+        `${user.provider}로 가입된 계정입니다. 해당 소셜 로그인을 이용해주세요.`,
+      );
+    }
+
+    const isPasswordMatched = await compare(password, user.password);
+    if (!isPasswordMatched) {
+      throw new UnauthorizedException(
+        '이메일 또는 비밀번호가 올바르지 않습니다.',
+      );
+    }
+
+    const { password: _, ...userWithoutPassword } = user;
+    return this.generateTokens(userWithoutPassword);
   }
 
   async verifyEmail(request: VerifyEmailRequest): Promise<void> {
