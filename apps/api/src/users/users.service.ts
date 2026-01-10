@@ -53,6 +53,29 @@ export class UsersService {
     }
   }
 
+  async signup(
+    email: string,
+    hashedPassword: string,
+    nickname?: string,
+  ): Promise<void> {
+    const existingUser = await this.prisma.user.findUnique({
+      where: { email },
+    });
+
+    if (existingUser) {
+      throw new ConflictException('이미 존재하는 이메일입니다.');
+    }
+
+    await this.prisma.user.create({
+      data: {
+        email,
+        password: hashedPassword,
+        nickname,
+        provider: Provider.LOCAL,
+      },
+    });
+  }
+
   async findById(id: number): Promise<Omit<User, 'password'>> {
     const user = await this.prisma.user.findUnique({ where: { id } });
 
@@ -60,5 +83,11 @@ export class UsersService {
 
     const { password: _, ...userWithoutPassword } = user;
     return userWithoutPassword;
+  }
+
+  async isExistsByEmail(email: string): Promise<boolean> {
+    const user = await this.prisma.user.findUnique({ where: { email } });
+    if (!user) return false;
+    return true;
   }
 }
