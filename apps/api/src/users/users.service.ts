@@ -85,6 +85,14 @@ export class UsersService {
     return userWithoutPassword;
   }
 
+  async findByEmail(email: string): Promise<User> {
+    const user = await this.prisma.user.findUnique({ where: { email } });
+
+    if (!user) throw new NotFoundException('사용자를 찾을 수 없습니다.');
+
+    return user;
+  }
+
   async isExistsByEmail(email: string): Promise<boolean> {
     const user = await this.prisma.user.findUnique({ where: { email } });
     if (!user) return false;
