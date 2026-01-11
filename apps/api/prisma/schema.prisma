@@ -8,6 +8,7 @@ datasource db {
 
 model User {
   id        Int   @id @default(autoincrement())
+  publicId  String   @unique @map("public_id") @default(nanoid(12))
   email     String   @unique
   password  String?  // OAuth 사용자는 null
   nickname  String?

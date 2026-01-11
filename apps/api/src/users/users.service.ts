@@ -1,11 +1,11 @@
-import {
-  Injectable,
-  ConflictException,
-  InternalServerErrorException,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { Provider, User } from '@prisma/client';
+import {
+  UserNotFoundException,
+  UserEmailAlreadyExistsException,
+  OAuthEmailConflictException,
+} from './exception';
 
 @Injectable()
 export class UsersService {
@@ -28,11 +28,7 @@ export class UsersService {
     // 같은 이메일로 다른 Provider로 이미 가입된 사용자가 있는지 확인.
     user = await this.prisma.user.findUnique({ where: { email } });
 
-    if (user) {
-      throw new ConflictException(
-        `이 이메일은 이미 ${user.provider} 계정으로 가입되어 있습니다.`,
-      );
-    }
+    if (user) throw new OAuthEmailConflictException(user.provider);
 
     try {
       user = await this.prisma.user.create({
@@ -53,12 +49,47 @@ export class UsersService {
     }
   }
 
+  async signup(
+    email: string,
+    hashedPassword: string,
+    nickname?: string,
+  ): Promise<void> {
+    const existingUser = await this.prisma.user.findUnique({
+      where: { email },
+    });
+
+    if (existingUser) throw new UserEmailAlreadyExistsException();
+
+    await this.prisma.user.create({
+      data: {
+        email,
+        password: hashedPassword,
+        nickname,
+        provider: Provider.LOCAL,
+      },
+    });
+  }
+
   async findById(id: number): Promise<Omit<User, 'password'>> {
     const user = await this.prisma.user.findUnique({ where: { id } });
 
-    if (!user) throw new NotFoundException('사용자를 찾을 수 없습니다.');
+    if (!user) throw new UserNotFoundException();
 
     const { password: _, ...userWithoutPassword } = user;
     return userWithoutPassword;
+  }
+
+  async findByEmail(email: string): Promise<User> {
+    const user = await this.prisma.user.findUnique({ where: { email } });
+
+    if (!user) throw new UserNotFoundException();
+
+    return user;
+  }
+
+  async isExistsByEmail(email: string): Promise<boolean> {
+    const user = await this.prisma.user.findUnique({ where: { email } });
+    if (!user) return false;
+    return true;
   }
 }

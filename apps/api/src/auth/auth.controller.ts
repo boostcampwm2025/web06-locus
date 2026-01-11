@@ -1,4 +1,14 @@
-import { Controller, Get, Req, Res, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Post,
+  Req,
+  Res,
+  UseGuards,
+} from '@nestjs/common';
 import { Request, Response } from 'express';
 import { AuthService } from './auth.service';
 import { GoogleAuthGuard } from './guards/google-auth.guard';
@@ -6,13 +16,47 @@ import { User } from '@prisma/client';
 import { ConfigService } from '@nestjs/config';
 import { NaverAuthGuard } from './guards/naver-auth.guard';
 import { KakaoAuthGuard } from './guards/kakao-auth.guard';
+import { SignUpRequest } from './dto/sign-up-request.dto';
+import { VerifyEmailRequest } from './dto/verify-email-request.dto';
+import { LoginRequest } from './dto/login-request.dto';
 
 @Controller('auth')
 export class AuthController {
+  private readonly REFRESH_TOKEN_MAX_AGE: number;
+
   constructor(
     private readonly authService: AuthService,
     private readonly configService: ConfigService,
-  ) {}
+  ) {
+    const rawValue = this.configService.get<string>('JWT_REFRESH_EXPIRES_IN');
+    const days = parseInt(rawValue ?? '7', 10);
+    const validDays = isNaN(days) ? 7 : days;
+    this.REFRESH_TOKEN_MAX_AGE = validDays * 24 * 60 * 60 * 1000;
+  }
+
+  @Post('signup')
+  @HttpCode(HttpStatus.OK)
+  async signup(@Body() signupRequest: SignUpRequest): Promise<void> {
+    await this.authService.signup(signupRequest);
+  }
+
+  @Post('verify-email')
+  async verifyEmail(@Body() verifyEmailRequest: VerifyEmailRequest) {
+    await this.authService.verifyEmail(verifyEmailRequest);
+  }
+
+  @Post('login')
+  @HttpCode(HttpStatus.OK)
+  async login(
+    @Body() loginRequest: LoginRequest,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const { accessToken, refreshToken } =
+      await this.authService.login(loginRequest);
+
+    this.setRefreshTokenCookie(res, refreshToken);
+    return { accessToken };
+  }
 
   @Get('oauth2/google')
   @UseGuards(GoogleAuthGuard)
@@ -55,19 +99,30 @@ export class AuthController {
   private async handleOAuthCallback(req: Request, res: Response) {
     const user = req.user as User;
 
-    const tokens = await this.authService.generateTokens(user);
+    const { accessToken, refreshToken } =
+      await this.authService.generateTokens(user);
 
-    const redirectUrl = this.buildRedirectUrl(
-      tokens.accessToken,
-      tokens.refreshToken,
-    );
+    this.setRefreshTokenCookie(res, refreshToken);
+
+    const redirectUrl = this.buildRedirectUrl(accessToken);
 
     res.redirect(redirectUrl);
   }
 
-  private buildRedirectUrl(accessToken: string, refreshToken: string): string {
+  private setRefreshTokenCookie(res: Response, refreshToken: string) {
+    // Refresh Token을 HttpOnly 쿠키에 저장
+    res.cookie('refreshToken', refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production', // 프로덕션 환경(HTTPS)에서만 전송
+      sameSite: 'lax', // CSRF 방지
+      maxAge: this.REFRESH_TOKEN_MAX_AGE,
+      path: '/auth/reissue', // 오직 재발급 경로에서만 전송
+    });
+  }
+
+  private buildRedirectUrl(accessToken: string): string {
     const frontendUrl = this.configService.getOrThrow<string>('FRONTEND_URL');
 
-    return `${frontendUrl}/auth/callback?accessToken=${accessToken}&refreshToken=${refreshToken}`;
+    return `${frontendUrl}/auth/callback?accessToken=${accessToken}`;
   }
 }
