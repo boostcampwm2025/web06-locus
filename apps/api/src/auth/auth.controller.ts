@@ -2,6 +2,8 @@ import {
   Body,
   Controller,
   Get,
+  HttpCode,
+  HttpStatus,
   Post,
   Req,
   Res,
@@ -33,6 +35,7 @@ export class AuthController {
   }
 
   @Post('signup')
+  @HttpCode(HttpStatus.OK)
   async signup(@Body() signupRequest: SignUpRequest): Promise<void> {
     await this.authService.signup(signupRequest);
   }
@@ -43,6 +46,7 @@ export class AuthController {
   }
 
   @Post('login')
+  @HttpCode(HttpStatus.OK)
   async login(
     @Body() loginRequest: LoginRequest,
     @Res({ passthrough: true }) res: Response,
