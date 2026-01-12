@@ -14,18 +14,20 @@ import {
 import ImageSelectBottomSheet from './ImageSelectBottomSheet';
 import RecordSummaryBottomSheet from './RecordSummaryBottomSheet';
 import { useRecordForm } from './hook/useRecordForm';
+import { useRecordMap } from './hook/useRecordMap';
+import { PinOverlay } from '@/infra/map/marker';
 import type {
   RecordWritePageProps,
   Record,
   RecordWriteHeaderProps,
   RecordWriteFormProps,
+  RecordWriteMapProps,
 } from '../types';
 import { createMockRecord } from '../domain/record.mock';
 
 export default function RecordWritePage({
   initialLocation,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  initialCoordinates: _initialCoordinates, // TODO: 지도 SDK 연동 시 사용
+  initialCoordinates,
   onSave,
   onCancel,
   onTakePhoto,
@@ -96,7 +98,7 @@ export default function RecordWritePage({
   return (
     <div className="flex flex-col h-screen bg-white">
       <RecordWriteHeader location={initialLocation} onCancel={onCancel} />
-      <RecordWriteMap />
+      <RecordWriteMap initialCoordinates={initialCoordinates} />
       <RecordWriteForm
         formData={formData}
         availableTags={availableTags}
@@ -159,40 +161,71 @@ function RecordWriteHeader({ location, onCancel }: RecordWriteHeaderProps) {
   );
 }
 
-function RecordWriteMap() {
+function RecordWriteMap({ initialCoordinates }: RecordWriteMapProps) {
+  const {
+    mapContainerRef,
+    mapInstanceRef,
+    isMapLoaded,
+    mapLoadError,
+    handleZoomIn,
+    handleZoomOut,
+  } = useRecordMap({
+    initialCoordinates,
+    zoom: 16,
+    zoomControl: false,
+  });
+
   return (
     <div className="relative flex-[0.4] bg-gray-100">
-      {/* TODO: 지도 SDK 연동 */}
-      <div className="absolute inset-0 bg-linear-to-br from-blue-50 via-green-50 to-yellow-50">
-        {/* 지도 배경 시뮬레이션 */}
-        <div className="absolute inset-0 opacity-20">
-          <div className="absolute top-1/4 left-1/4 w-32 h-32 bg-blue-200 rounded-full blur-3xl" />
-          <div className="absolute bottom-1/3 right-1/3 w-40 h-40 bg-green-200 rounded-full blur-3xl" />
-        </div>
-      </div>
+      {/* 지도 컨테이너 - 항상 렌더링 (ref를 위해 필요) */}
+      <div ref={mapContainerRef} className="absolute inset-0 w-full h-full" />
 
-      {/* TODO: 지도 SDK 마커 표시 */}
-      <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-        <div className="w-8 h-8 bg-blue-500 rounded-full border-4 border-white shadow-lg" />
-      </div>
+      {/* 로딩/에러 오버레이 */}
+      {mapLoadError ? (
+        <div className="absolute inset-0 flex items-center justify-center bg-gray-100 z-10">
+          <p className="text-red-500 text-sm">{mapLoadError}</p>
+        </div>
+      ) : !isMapLoaded ? (
+        <div className="absolute inset-0 flex items-center justify-center bg-gray-100 z-10">
+          <p className="text-gray-400 text-sm">지도를 불러오는 중...</p>
+        </div>
+      ) : null}
+
+      {/* 커스텀 오버레이 핀 마커 */}
+      {isMapLoaded && mapInstanceRef.current && initialCoordinates && (
+        <PinOverlay
+          map={mapInstanceRef.current}
+          pin={{
+            id: 'record-location',
+
+            position: initialCoordinates,
+            variant: 'current',
+          }}
+          isSelected={false}
+        />
+      )}
 
       {/* 지도 컨트롤 (확대/축소) */}
-      <div className="absolute right-4 top-4 flex flex-col gap-2">
-        <button
-          type="button"
-          className="w-10 h-10 bg-white rounded-full shadow-md flex items-center justify-center hover:bg-gray-50 transition-colors"
-          aria-label="확대"
-        >
-          <ZoomInIcon className="w-5 h-5 text-gray-700" />
-        </button>
-        <button
-          type="button"
-          className="w-10 h-10 bg-white rounded-full shadow-md flex items-center justify-center hover:bg-gray-50 transition-colors"
-          aria-label="축소"
-        >
-          <ZoomOutIcon className="w-5 h-5 text-gray-700" />
-        </button>
-      </div>
+      {isMapLoaded && (
+        <div className="absolute right-4 top-4 flex flex-col gap-2 z-20">
+          <button
+            type="button"
+            onClick={handleZoomIn}
+            className="w-10 h-10 bg-white rounded-full shadow-md flex items-center justify-center hover:bg-gray-50 transition-colors"
+            aria-label="확대"
+          >
+            <ZoomInIcon className="w-5 h-5 text-gray-700" />
+          </button>
+          <button
+            type="button"
+            onClick={handleZoomOut}
+            className="w-10 h-10 bg-white rounded-full shadow-md flex items-center justify-center hover:bg-gray-50 transition-colors"
+            aria-label="축소"
+          >
+            <ZoomOutIcon className="w-5 h-5 text-gray-700" />
+          </button>
+        </div>
+      )}
     </div>
   );
 }

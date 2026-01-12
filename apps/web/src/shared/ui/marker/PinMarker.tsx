@@ -60,9 +60,9 @@ export default function PinMarker({
       <div className="pin-motion-wrap">
         <div className={`pin-pulse-wrap ${isCurrent ? 'pin-blue-pulse' : ''}`}>
           {isCurrent ? (
-            <PinMarkerPendingIcon className="w-14 h-20" />
+            <PinMarkerPendingIcon className="w-10 h-14" />
           ) : (
-            <PinMarkerCompletedIcon className="w-14 h-20" />
+            <PinMarkerCompletedIcon className="w-10 h-14" />
           )}
 
           {/* 보라 선택 시 스윕 */}

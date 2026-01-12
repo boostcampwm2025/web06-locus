@@ -11,4 +11,6 @@ export type {
   RecordTagsSectionProps,
   RecordWriteHeaderProps,
   RecordWriteFormProps,
+  RecordWriteMapProps,
+  UseNaverMapOptions,
 } from './record';
