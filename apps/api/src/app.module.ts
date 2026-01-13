@@ -9,11 +9,15 @@ import { AuthModule } from './auth/auth.module';
 import { SearchModule } from './search/search.module';
 import { ResponseTransformInterceptor } from './common/interceptors/response-tranform.interceptor';
 import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
+import { RedisModule } from './redis/redis.module';
+import { MailModule } from './mail/mail.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     PrismaModule,
+    RedisModule,
+    MailModule,
     SearchModule,
     AuthModule,
     UsersModule,

@@ -2,7 +2,7 @@ name: CD - Deploy to NCP
 
 on:
   workflow_run:
-    workflows: ["CI - Build and Push"]
+    workflows: ['CI - Build and Push']
     types:
       - completed
 
@@ -12,7 +12,6 @@ jobs:
       github.event.workflow_run.conclusion == 'success' &&
       github.event.workflow_run.event != 'pull_request'
     runs-on: ubuntu-latest
-
     env:
       ACG_RULE_FORMAT: "protocolTypeCode='TCP',ipBlock='GITHUB_IP/32',portRange='22'"
 
@@ -51,7 +50,7 @@ jobs:
         run: |
           cd CLI_*/cli_linux
           RULE=$(echo "${{ env.ACG_RULE_FORMAT }}" | sed "s/GITHUB_IP/${{ steps.ip.outputs.public_ip }}/")
-          
+
           ./ncloud vserver addAccessControlGroupInboundRule \
             --regionCode KR \
             --vpcNo "${{ secrets.NCP_VPC_ID }}" \
@@ -83,7 +82,7 @@ jobs:
 
           cd CLI_*/cli_linux
           RULE=$(echo "${{ env.ACG_RULE_FORMAT }}" | sed "s/GITHUB_IP/${{ steps.ip.outputs.public_ip }}/")
-          
+
           ./ncloud vserver removeAccessControlGroupInboundRule \
             --regionCode KR \
             --vpcNo "${{ secrets.NCP_VPC_ID }}" \
