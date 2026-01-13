@@ -58,7 +58,8 @@ model Outbox {
   processedAt   DateTime?        @map("processed_at")
 
   @@map("outbox")
-  @@index([status, createdAt])
+  // @@index([status, createdAt])
+  @@index([status, retryCount, createdAt])
   @@index([aggregateType, aggregateId])
 }
 
