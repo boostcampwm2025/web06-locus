@@ -37,7 +37,7 @@ export class RecordsService {
       );
 
     // 2. INSERT 후 record.id만 반환
-    const inserted = await this.prisma.$queryRaw<{ id: number }>`
+    const [inserted] = await this.prisma.$queryRaw<{ id: number }[]>`
       INSERT INTO records (
         user_id,
         title,
@@ -66,7 +66,7 @@ export class RecordsService {
     `;
 
     // 3. 사용자 public_id 포함되도록 JOIN 조회
-    const record = await this.prisma.$queryRaw<RecordModel>`
+    const [record] = await this.prisma.$queryRaw<RecordModel[]>`
       SELECT
         r.id,
         r.public_id,
