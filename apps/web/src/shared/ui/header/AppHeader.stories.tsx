@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import AppHeader from './AppHeader';
 
@@ -57,6 +58,26 @@ const meta = {
         type: { summary: '(() => void) | undefined' },
       },
     },
+    isSearchActive: {
+      control: 'boolean',
+      description: '검색 모드 활성화 여부',
+    },
+    searchPlaceholder: {
+      control: 'text',
+      description: '검색 입력창 placeholder 텍스트',
+    },
+    searchValue: {
+      control: 'text',
+      description: '검색 입력값 (제어 컴포넌트)',
+    },
+    onSearchChange: {
+      action: 'search value changed',
+      description: '검색 입력값 변경 핸들러',
+    },
+    onSearchCancel: {
+      action: 'search cancelled',
+      description: '검색 취소 핸들러',
+    },
     className: {
       control: 'text',
       description: '추가 CSS 클래스',
@@ -82,6 +103,76 @@ export const WithSearchOnly: Story = {
     docs: {
       description: {
         story: '검색 버튼만 있는 기본 헤더 (홈 페이지 등에서 사용)',
+      },
+    },
+  },
+};
+
+export const SearchActive: Story = {
+  args: {
+    isSearchActive: true,
+    searchPlaceholder: '키워드, 장소, 태그 검색',
+    searchValue: '',
+    onSearchCancel: () => {
+      /* empty */
+    },
+  },
+  parameters: {
+    docs: {
+      description: {
+        story: '검색 모드가 활성화된 헤더 (검색 입력창과 취소 버튼 표시)',
+      },
+    },
+  },
+};
+
+export const SearchActiveWithValue: Story = {
+  args: {
+    isSearchActive: true,
+    searchPlaceholder: '키워드, 장소, 태그 검색',
+    searchValue: '경복궁',
+    onSearchCancel: () => {
+      /* empty */
+    },
+  },
+  parameters: {
+    docs: {
+      description: {
+        story: '검색 모드에서 입력값이 있는 상태',
+      },
+    },
+  },
+};
+
+function InteractiveAppHeader() {
+  const [isSearchActive, setIsSearchActive] = useState(false);
+  const [searchValue, setSearchValue] = useState('');
+
+  return (
+    <AppHeader
+      isSearchActive={isSearchActive}
+      searchPlaceholder="키워드, 장소, 태그 검색"
+      searchValue={searchValue}
+      onSearchChange={setSearchValue}
+      onSearchClick={() => setIsSearchActive(true)}
+      onSearchCancel={() => {
+        setIsSearchActive(false);
+        setSearchValue('');
+      }}
+      onFilterClick={() => {
+        /* empty */
+      }}
+    />
+  );
+}
+
+export const Interactive: Story = {
+  render: () => <InteractiveAppHeader />,
+  parameters: {
+    docs: {
+      description: {
+        story:
+          '검색 버튼을 클릭하면 검색 모드로 전환되고, 취소 버튼을 클릭하면 일반 모드로 돌아갑니다. 실제 동작을 확인할 수 있습니다.',
       },
     },
   },

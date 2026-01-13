@@ -1,54 +1,47 @@
-import Logo from '@/shared/icons/Logo';
-import SearchIcon from '@/shared/icons/SearchIcon';
-import FilterIcon from '@/shared/icons/FilterIcon';
 import type { AppHeaderProps } from '@/shared/types/header';
-import AppHeaderTitle from './AppHeaderTitle';
+import { useSearchInput } from '@/shared/hooks/useSearchInput';
+import AppHeaderSearchMode from './AppHeaderSearchMode';
+import AppHeaderNormalMode from './AppHeaderNormalMode';
 
+/**
+ * 앱 헤더 컴포넌트
+ * 검색 모드와 일반 모드를 지원하며, Controlled/Uncontrolled 패턴을 모두 지원합니다.
+ */
 export default function AppHeader({
   onLogoClick,
   onSearchClick,
   onFilterClick,
+  isSearchActive = false,
+  searchPlaceholder = '키워드, 장소, 태그 검색',
+  searchValue,
+  onSearchChange,
+  onSearchCancel,
   className = '',
 }: AppHeaderProps) {
+  const searchInput = useSearchInput({
+    value: searchValue,
+    onChange: onSearchChange,
+    onCancel: onSearchCancel,
+  });
+
+  if (isSearchActive) {
+    return (
+      <AppHeaderSearchMode
+        value={searchInput.value}
+        onChange={searchInput.onChange}
+        onCancel={searchInput.onCancel}
+        placeholder={searchPlaceholder}
+        className={className}
+      />
+    );
+  }
+
   return (
-    <header
-      className={`flex items-center justify-between px-4 py-3 bg-white ${className}`}
-    >
-      <button
-        type="button"
-        onClick={onLogoClick}
-        aria-label="로고"
-        className="p-1 rounded-full hover:bg-gray-100 transition-colors"
-      >
-        <Logo className="w-10 h-10" />
-      </button>
-
-      <AppHeaderTitle />
-
-      <div className="flex items-center gap-2">
-        <button
-          type="button"
-          onClick={onFilterClick}
-          aria-label="필터"
-          disabled={!onFilterClick}
-          className={`p-2 rounded-full transition-colors ${
-            onFilterClick
-              ? 'hover:bg-gray-100 cursor-pointer'
-              : 'opacity-0 pointer-events-none'
-          }`}
-        >
-          <FilterIcon className="w-6 h-6 text-gray-700" />
-        </button>
-
-        <button
-          type="button"
-          onClick={onSearchClick}
-          aria-label="검색"
-          className="p-2 rounded-full hover:bg-gray-100 transition-colors"
-        >
-          <SearchIcon className="w-6 h-6 text-gray-700" />
-        </button>
-      </div>
-    </header>
+    <AppHeaderNormalMode
+      onLogoClick={onLogoClick}
+      onSearchClick={onSearchClick}
+      onFilterClick={onFilterClick}
+      className={className}
+    />
   );
 }
