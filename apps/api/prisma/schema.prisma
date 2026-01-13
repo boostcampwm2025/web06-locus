@@ -33,8 +33,7 @@ model Record {
   userId          Int      @map("user_id")
   title           String   @db.VarChar(100)
   content         String?  @db.VarChar(500)
-  latitude        Float
-  longitude       Float
+  location Unsupported("geometry(Point, 4326)")
   locationName    String   @map("location_name") @db.VarChar(200)
   locationAddress String   @map("location_address") @db.VarChar(500)
   tags            String[]
@@ -46,7 +45,6 @@ model Record {
   images Image[]
 
   @@index([userId])
-  @@index([latitude, longitude])
   @@index([createdAt])
   @@map("records")
 }
