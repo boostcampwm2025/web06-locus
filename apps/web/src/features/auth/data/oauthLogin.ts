@@ -1,8 +1,5 @@
 import type { OAuthProvider } from '@/shared/types';
-
-const API_BASE_URL =
-  (import.meta.env.VITE_API_BASE_URL as string | undefined) ??
-  'http://localhost:3000';
+import { API_BASE_URL } from '@/infra/api/constants';
 
 /**
  * OAuth 로그인 처리 함수
