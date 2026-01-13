@@ -34,15 +34,15 @@ export class AuthController {
     this.REFRESH_TOKEN_MAX_AGE = validDays * 24 * 60 * 60 * 1000;
   }
 
-  @Post('signup')
+  @Post('signup/request')
   @HttpCode(HttpStatus.OK)
-  async signup(@Body() signupRequest: SignUpRequest): Promise<void> {
-    await this.authService.signup(signupRequest);
+  async requestSignup(@Body() signupRequest: SignUpRequest): Promise<void> {
+    await this.authService.requestSignup(signupRequest);
   }
 
-  @Post('verify-email')
-  async verifyEmail(@Body() verifyEmailRequest: VerifyEmailRequest) {
-    await this.authService.verifyEmail(verifyEmailRequest);
+  @Post('signup/confirm')
+  async signupVerify(@Body() verifyEmailRequest: VerifyEmailRequest) {
+    await this.authService.completeSignup(verifyEmailRequest);
   }
 
   @Post('login')

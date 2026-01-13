@@ -38,7 +38,7 @@ export class AuthService {
     private readonly mailService: MailService,
   ) {}
 
-  async signup(request: SignUpRequest): Promise<void> {
+  async requestSignup(request: SignUpRequest): Promise<void> {
     const { email, password, nickname } = request;
 
     if (await this.usersService.isExistsByEmail(email)) {
@@ -88,7 +88,7 @@ export class AuthService {
     return this.generateTokens(userWithoutPassword);
   }
 
-  async verifyEmail(request: VerifyEmailRequest): Promise<void> {
+  async completeSignup(request: VerifyEmailRequest): Promise<void> {
     const { email, code } = request;
     const redisKey = this.getPendingUserRedisKey(email);
 

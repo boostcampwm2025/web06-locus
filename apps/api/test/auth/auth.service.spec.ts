@@ -110,7 +110,7 @@ describe('AuthService 테스트', () => {
     jest.clearAllMocks();
   });
 
-  describe('signup', () => {
+  describe('requestSignup', () => {
     const signUpRequest = {
       email: 'newuser@example.com',
       password: 'password123',
@@ -125,7 +125,7 @@ describe('AuthService 테스트', () => {
       mockMailService.sendVerificationEmail.mockResolvedValue(undefined);
 
       // when
-      await authService.signup(signUpRequest);
+      await authService.requestSignup(signUpRequest);
 
       // then
       expect(usersService.isExistsByEmail).toHaveBeenCalledWith(
@@ -143,10 +143,10 @@ describe('AuthService 테스트', () => {
       mockUsersService.isExistsByEmail.mockResolvedValue(true);
 
       // when & then
-      await expect(authService.signup(signUpRequest)).rejects.toThrow(
+      await expect(authService.requestSignup(signUpRequest)).rejects.toThrow(
         EmailAlreadyExistsException,
       );
-      await expect(authService.signup(signUpRequest)).rejects.toThrow(
+      await expect(authService.requestSignup(signUpRequest)).rejects.toThrow(
         '이미 가입된 이메일입니다',
       );
       expect(redisService.set).not.toHaveBeenCalled();
@@ -165,10 +165,10 @@ describe('AuthService 테스트', () => {
       );
 
       // when & then
-      await expect(authService.signup(signUpRequest)).rejects.toThrow(
+      await expect(authService.requestSignup(signUpRequest)).rejects.toThrow(
         EmailAlreadySentException,
       );
-      await expect(authService.signup(signUpRequest)).rejects.toThrow(
+      await expect(authService.requestSignup(signUpRequest)).rejects.toThrow(
         '이미 인증 코드가 발송되었습니다',
       );
     });
@@ -181,7 +181,7 @@ describe('AuthService 테스트', () => {
       mockMailService.sendVerificationEmail.mockResolvedValue(undefined);
 
       // when
-      await authService.signup(signUpRequest);
+      await authService.requestSignup(signUpRequest);
 
       // then
       expect(redisService.set).toHaveBeenCalledWith(
@@ -206,7 +206,7 @@ describe('AuthService 테스트', () => {
       mockMailService.sendVerificationEmail.mockResolvedValue(undefined);
 
       // when
-      await authService.signup(signUpRequest);
+      await authService.requestSignup(signUpRequest);
 
       // then
       const code = mockMailService.sendVerificationEmail.mock.calls[0][1];
@@ -215,7 +215,7 @@ describe('AuthService 테스트', () => {
     });
   });
 
-  describe('verifyEmail', () => {
+  describe('completeSignup', () => {
     const verifyRequest = {
       email: 'test@example.com',
       code: '123456',
@@ -236,7 +236,7 @@ describe('AuthService 테스트', () => {
       mockRedisService.del.mockResolvedValue(1);
 
       // when
-      await authService.verifyEmail(verifyRequest);
+      await authService.completeSignup(verifyRequest);
 
       // then
       expect(usersService.signup).toHaveBeenCalledWith(
@@ -254,10 +254,10 @@ describe('AuthService 테스트', () => {
       mockRedisService.get.mockResolvedValue(null);
 
       // when & then
-      await expect(authService.verifyEmail(verifyRequest)).rejects.toThrow(
+      await expect(authService.completeSignup(verifyRequest)).rejects.toThrow(
         EmailVerificationExpiredException,
       );
-      await expect(authService.verifyEmail(verifyRequest)).rejects.toThrow(
+      await expect(authService.completeSignup(verifyRequest)).rejects.toThrow(
         '인증 정보가 만료되었습니다.',
       );
     });
@@ -268,10 +268,10 @@ describe('AuthService 테스트', () => {
 
       // when & then
       await expect(
-        authService.verifyEmail({ ...verifyRequest, code: '999999' }),
+        authService.completeSignup({ ...verifyRequest, code: '999999' }),
       ).rejects.toThrow(EmailVerificationFailedException);
       await expect(
-        authService.verifyEmail({ ...verifyRequest, code: '999999' }),
+        authService.completeSignup({ ...verifyRequest, code: '999999' }),
       ).rejects.toThrow('인증 코드가 올바르지 않습니다.');
 
       const updatedData = JSON.parse(mockRedisService.set.mock.calls[0][1]);
@@ -285,10 +285,10 @@ describe('AuthService 테스트', () => {
       mockRedisService.del.mockResolvedValue(1);
 
       // when & then
-      await expect(authService.verifyEmail(verifyRequest)).rejects.toThrow(
+      await expect(authService.completeSignup(verifyRequest)).rejects.toThrow(
         EmailVerificationTooManyTriesException,
       );
-      await expect(authService.verifyEmail(verifyRequest)).rejects.toThrow(
+      await expect(authService.completeSignup(verifyRequest)).rejects.toThrow(
         '인증 시도 횟수를 초과했습니다',
       );
       expect(redisService.del).toHaveBeenCalled();
