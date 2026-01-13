@@ -8,6 +8,7 @@ const HEIGHT_MAP: Record<
   compact: 'h-auto max-h-[35vh]',
   image: 'h-auto max-h-[37vh]',
   summary: 'h-full min-h-[40vh] max-h-[80vh]',
+  filter: 'h-[62vh]',
   small: 'h-[50vh]',
   medium: 'h-[70vh]',
   full: 'h-[90vh]',
