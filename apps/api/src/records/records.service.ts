@@ -19,8 +19,6 @@ export class RecordsService {
     dto: CreateRecordDto,
   ): Promise<RecordResponseDto> {
     const user = await this.prisma.user.findUnique({
-      // FIXME: rebase 또는 merge 후 삭제
-      // @ts-expect-error publicId not yet in Prisma schema
       where: { publicId: userPublicId },
       select: { id: true },
     });
