@@ -12,6 +12,8 @@ import { RecordModule } from './record/record.module';
 import { OutboxModule } from './outbox/outbox.module';
 import { ScheduleModule } from '@nestjs/schedule';
 import { RabbitMqModule } from './mq/rabbitmq.module';
+import { RedisModule } from './redis/redis.module';
+import { MailModule } from './mail/mail.module';
 
 @Module({
   imports: [
@@ -20,6 +22,8 @@ import { RabbitMqModule } from './mq/rabbitmq.module';
     PrismaModule,
     RabbitMqModule,
     OutboxModule,
+    RedisModule,
+    MailModule,
     AuthModule,
     UsersModule,
     RecordModule,
