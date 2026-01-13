@@ -24,9 +24,60 @@ model User {
   @@map("users")
 }
 
+model Record {
+  id          BigInt   @id @default(autoincrement())
+  publicId    String   @default(nanoid()) @map("public_id")
+  userId      BigInt   @map("user_id")
+  title       String
+  content     String   @db.Text
+  isFavorite  Boolean   @default(false) @map("is_favorite")
+
+  locationLat     Float?    @map("location_lat")
+  locationLng     Float?    @map("location_lng")
+  locationAddress String?   @map("location_address")
+  locationName    String?   @map("location_name")
+
+  date            DateTime
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  @@map("records")
+  @@index([userId])
+  @@index([createdAt])
+}
+
+model Outbox {
+  id            BigInt           @id @default(autoincrement())
+  aggregateType String           @map("aggregate_type") @db.VarChar(50)
+  aggregateId   BigInt           @map("aggregate_id")
+  eventType     OutboxEventType  @map("event_type")
+  payload       Json
+  status        OutboxStatus     @default(PENDING)
+  retryCount    Int              @default(0) @map("retry_count")
+  createdAt     DateTime         @default(now()) @map("created_at")
+  processedAt   DateTime?        @map("processed_at")
+
+  @@map("outbox")
+  @@index([status, createdAt])
+  @@index([aggregateType, aggregateId])
+}
+
 enum Provider {
   LOCAL   // 이메일/비밀번호
   GOOGLE  
   NAVER   
   KAKAO   
+}
+
+enum OutboxStatus {
+  PENDING
+  RETRY
+  DONE
+  DEAD
+}
+
+enum OutboxEventType {
+  RECORD_CREATED
+  RECORD_UPDATED
+  RECORD_DELETED
 }
