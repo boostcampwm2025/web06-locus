@@ -2,7 +2,7 @@ name: CD - Deploy to NCP
 
 on:
   workflow_run:
-    workflows: ["CI - Build and Push"]
+    workflows: ['CI - Build and Push']
     types:
       - completed
 
@@ -24,12 +24,12 @@ jobs:
             git fetch origin develop
             git checkout -f develop
             git pull origin develop
-            
+
             echo "${{ secrets.DEV_ENV_PROD }}" > .env.prod
-            
+
             docker login ${{ secrets.DEV_REGISTRY }} -u ${{ secrets.NCP_ACCESS_KEY }} -p ${{ secrets.NCP_SECRET_KEY }}
             docker compose pull
             docker compose up -d
-            
+
             docker image prune -f
             docker compose exec -T locus-api pnpm --filter @locus/api run db:push
