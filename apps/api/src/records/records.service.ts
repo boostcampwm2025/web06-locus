@@ -4,6 +4,7 @@ import { ReverseGeocodingService } from './services/reverse-geocoding.service';
 import { CreateRecordDto } from './dto/create-record.dto';
 import { RecordResponseDto } from './dto/record-response.dto';
 import { RecordModel } from './records.types';
+import { RecordCreationFailedException } from './exceptions/record.exceptions';
 
 @Injectable()
 export class RecordsService {
@@ -32,52 +33,67 @@ export class RecordsService {
     }
 
     // 2. INSERT 후 생성된 기록 반환
-    const [record] = await this.prisma.$queryRaw<RecordModel[]>`
-      INSERT INTO records (
-        user_id,
-        title,
-        content,
-        location,
-        location_name,
-        location_address,
-        tags,
-        is_favorite,
-        created_at,
-        updated_at
-      )
-      VALUES (
-        ${userId},
-        ${dto.title},
-        ${dto.content ?? null},
-        ST_GeomFromText(${`POINT(${dto.location.longitude} ${dto.location.latitude})`}, 4326),
-        ${name},
-        ${address},
-        ${dto.tags ?? []},
-        false,
-        NOW(),
-        NOW()
-      )
-      RETURNING
-        id,
-        public_id,
-        title,
-        content,
-        ST_X(location) AS longitude,
-        ST_Y(location) AS latitude,
-        location_name,
-        location_address,
-        tags,
-        is_favorite,
-        created_at,
-        updated_at
-    `;
+    try {
+      const [record] = await this.prisma.$queryRaw<RecordModel[]>`
+        INSERT INTO records (
+          user_id,
+          title,
+          content,
+          location,
+          location_name,
+          location_address,
+          tags,
+          is_favorite,
+          created_at,
+          updated_at
+        )
+        VALUES (
+          ${userId},
+          ${dto.title},
+          ${dto.content ?? null},
+          ST_GeomFromText(${`POINT(${dto.location.longitude} ${dto.location.latitude})`}, 4326),
+          ${name},
+          ${address},
+          ${dto.tags ?? []},
+          false,
+          NOW(),
+          NOW()
+        )
+        RETURNING
+          id,
+          public_id,
+          title,
+          content,
+          ST_X(location) AS longitude,
+          ST_Y(location) AS latitude,
+          location_name,
+          location_address,
+          tags,
+          is_favorite,
+          created_at,
+          updated_at
+      `;
 
-    this.logger.log(
-      `Record created: publicId=${record.public_id}, userId=${userId}, title="${dto.title}"`,
-    );
+      this.logger.log(
+        `Record created: publicId=${record.public_id}, userId=${userId}, title="${dto.title}"`,
+      );
 
-    // 3. 응답 변환
-    return this.toResponseDto(record);
+      // 3. 응답 변환
+      return this.toResponseDto(record);
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        this.logger.error(
+          `Failed to create record: userId=${userId}, error=${error.message}`,
+          error.stack,
+        );
+        throw new RecordCreationFailedException(error);
+      } else {
+        this.logger.error(
+          `Non-Error exception thrown during record creation: userId=${userId}, raw=${JSON.stringify(error)}`,
+        );
+        throw new Error('Unexpected non-Error exception thrown');
+      }
+    }
   }
 
   private toResponseDto(record: RecordModel): RecordResponseDto {
