@@ -29,7 +29,7 @@ model User {
 
 model Record {
   id              Int      @id @default(autoincrement())
-  publicId        String   @unique @map("public_id")
+  publicId        String   @unique @map("public_id") @default(nanoid(12))
   userId          Int      @map("user_id")
   title           String   @db.VarChar(100)
   content         String?  @db.VarChar(500)
@@ -51,7 +51,7 @@ model Record {
 
 model Image {
   id              Int      @id @default(autoincrement())
-  publicId        String   @unique @map("public_id")
+  publicId        String   @unique @map("public_id") @default(nanoid(12))
   recordId        Int      @map("record_id")
   order           Int
 
