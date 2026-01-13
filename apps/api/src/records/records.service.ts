@@ -5,6 +5,7 @@ import { CreateRecordDto } from './dto/create-record.dto';
 import { RecordResponseDto } from './dto/record-response.dto';
 import { RecordModel } from './records.types';
 import { RecordCreationFailedException } from './exceptions/record.exceptions';
+import { nanoid } from 'nanoid';
 
 @Injectable()
 export class RecordsService {
@@ -34,8 +35,11 @@ export class RecordsService {
 
     // 2. INSERT 후 생성된 기록 반환
     try {
+      const publicId = nanoid(12);
+
       const [record] = await this.prisma.$queryRaw<RecordModel[]>`
         INSERT INTO records (
+          public_id,
           user_id,
           title,
           content,
@@ -48,6 +52,7 @@ export class RecordsService {
           updated_at
         )
         VALUES (
+          ${publicId},
           ${userId},
           ${dto.title},
           ${dto.content ?? null},
