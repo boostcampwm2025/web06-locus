@@ -1,11 +1,13 @@
 import Logo from '@/shared/icons/Logo';
 import SearchIcon from '@/shared/icons/SearchIcon';
+import FilterIcon from '@/shared/icons/FilterIcon';
 import type { AppHeaderProps } from '@/shared/types/header';
 import AppHeaderTitle from './AppHeaderTitle';
 
 export default function AppHeader({
   onLogoClick,
   onSearchClick,
+  onFilterClick,
   className = '',
 }: AppHeaderProps) {
   return (
@@ -23,14 +25,30 @@ export default function AppHeader({
 
       <AppHeaderTitle />
 
-      <button
-        type="button"
-        onClick={onSearchClick}
-        aria-label="검색"
-        className="p-2 rounded-full hover:bg-gray-100 transition-colors"
-      >
-        <SearchIcon className="w-6 h-6 text-gray-700" />
-      </button>
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={onFilterClick}
+          aria-label="필터"
+          disabled={!onFilterClick}
+          className={`p-2 rounded-full transition-colors ${
+            onFilterClick
+              ? 'hover:bg-gray-100 cursor-pointer'
+              : 'opacity-0 pointer-events-none'
+          }`}
+        >
+          <FilterIcon className="w-6 h-6 text-gray-700" />
+        </button>
+
+        <button
+          type="button"
+          onClick={onSearchClick}
+          aria-label="검색"
+          className="p-2 rounded-full hover:bg-gray-100 transition-colors"
+        >
+          <SearchIcon className="w-6 h-6 text-gray-700" />
+        </button>
+      </div>
     </header>
   );
 }
