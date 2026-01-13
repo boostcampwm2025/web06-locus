@@ -9,7 +9,7 @@ import {
 export class ReverseGeocodingService {
   private readonly logger = new Logger(ReverseGeocodingService.name);
   private readonly apiUrl =
-    'https://maps.apigw.ntruss.com/map-reversegeocode/v2';
+    'https://maps.apigw.ntruss.com/map-reversegeocode/v2/gc';
   private readonly clientId: string;
   private readonly clientSecret: string;
 
