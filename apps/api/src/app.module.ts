@@ -6,17 +6,23 @@ import { AppService } from './app.service';
 import { PrismaModule } from './prisma/prisma.module';
 import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
-import { SearchModule } from './search/search.module';
 import { ResponseTransformInterceptor } from './common/interceptors/response-tranform.interceptor';
 import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
+import { RecordModule } from './record/record.module';
+import { OutboxModule } from './outbox/outbox.module';
+import { ScheduleModule } from '@nestjs/schedule';
+import { RabbitMqModule } from './mq/rabbitmq.module';
 
 @Module({
   imports: [
+    ScheduleModule.forRoot(),
     ConfigModule.forRoot({ isGlobal: true }),
     PrismaModule,
-    SearchModule,
+    RabbitMqModule,
+    OutboxModule,
     AuthModule,
     UsersModule,
+    RecordModule,
   ],
   controllers: [AppController],
   providers: [
