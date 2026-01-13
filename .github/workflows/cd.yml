@@ -2,7 +2,7 @@ name: CD - Deploy to NCP
 
 on:
   workflow_run:
-    workflows: ['CI - Build and Push']
+    workflows: ["CI - Build and Push"]
     types:
       - completed
 
@@ -13,6 +13,47 @@ jobs:
       github.event.workflow_run.event != 'pull_request'
     runs-on: ubuntu-latest
     steps:
+      - name: Get Github Actions IP
+        id: ip
+        run: |
+          PUBLIC_IP=$(curl -s https://ifconfig.me)
+          echo "public_ip=$PUBLIC_IP" >> $GITHUB_OUTPUT
+
+      - name: Cache NCP CLI
+        id: cache-ncp-cli
+        uses: actions/cache@v4
+        with:
+          path: |
+            ncloud_cli.zip
+            CLI_*
+          key: ${{ runner.os }}-ncp-cli-1.1.27
+
+      - name: Install NCP CLI
+        if: steps.cache-ncp-cli.outputs.cache-hit != 'true'
+        run: |
+          wget -O ncloud_cli.zip https://www.ncloud.com/api/support/download/files/cli/CLI_1.1.27_20251120.zip
+          unzip ncloud_cli.zip
+
+      - name: Configure NCP CLI
+        run: |
+          chmod +x CLI_*/cli_linux/ncloud
+          mkdir -p ~/.ncloud
+          echo "[DEFAULT]" > ~/.ncloud/configure
+          echo "ncloud_access_key_id = ${{ secrets.NCP_ACCESS_KEY }}" >> ~/.ncloud/configure
+          echo "ncloud_secret_access_key = ${{ secrets.NCP_SECRET_KEY }}" >> ~/.ncloud/configure
+          echo "ncloud_api_url = https://ncloud.apigw.ntruss.com" >> ~/.ncloud/configure
+
+      - name: Add Github Action IP to ACG
+        run: |
+          cd CLI_*/cli_linux
+          RULE="protocolTypeCode='TCP',ipBlock='${{ steps.ip.outputs.public_ip }}/32',portRange='22'"
+          
+          ./ncloud vserver addAccessControlGroupInboundRule \
+            --regionCode KR \
+            --vpcNo "${{ secrets.NCP_VPC_ID }}" \
+            --accessControlGroupNo "${{ secrets.NCP_ACG_ID }}" \
+            --accessControlGroupRuleList "$RULE"
+
       - name: Deploy to Server via SSH
         uses: appleboy/ssh-action@v1.2.0
         with:
@@ -21,15 +62,24 @@ jobs:
           password: ${{ secrets.DEV_PASSWORD }}
           script: |
             cd ~/projects/web06-locus
-            git fetch origin develop
-            git checkout -f develop
-            git pull origin develop
-
+            git pull origin develop 
             echo "${{ secrets.DEV_ENV_PROD }}" > .env.prod
-
             docker login ${{ secrets.DEV_REGISTRY }} -u ${{ secrets.NCP_ACCESS_KEY }} -p ${{ secrets.NCP_SECRET_KEY }}
             docker compose pull
             docker compose up -d
-
             docker image prune -f
             docker compose exec -T locus-api pnpm --filter @locus/api run db:push
+
+      - name: Remove Github Action IP from ACG (Post-action)
+        if: always()
+        run: |
+          sleep 10
+
+          cd CLI_*/cli_linux
+          RULE="protocolTypeCode='TCP',ipBlock='${{ steps.ip.outputs.public_ip }}/32',portRange='22'"
+          
+          ./ncloud vserver removeAccessControlGroupInboundRule \
+            --regionCode KR \
+            --vpcNo "${{ secrets.NCP_VPC_ID }}" \
+            --accessControlGroupNo "${{ secrets.NCP_ACG_ID }}" \
+            --accessControlGroupRuleList "$RULE"
