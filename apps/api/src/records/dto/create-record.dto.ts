@@ -34,26 +34,6 @@ export class LocationDto {
   @Min(-180)
   @Max(180)
   longitude: number;
-
-  @ApiProperty({
-    description: '장소 이름',
-    example: '한강공원',
-    maxLength: 200,
-  })
-  @IsString()
-  @IsNotEmpty()
-  @MaxLength(200)
-  name: string;
-
-  @ApiProperty({
-    description: '장소 주소',
-    example: '서울특별시 강남구 삼성동',
-    maxLength: 500,
-  })
-  @IsString()
-  @IsNotEmpty()
-  @MaxLength(500)
-  address: string;
 }
 
 export class CreateRecordDto {
