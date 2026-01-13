@@ -40,6 +40,19 @@ export class RecordNotFoundException extends BusinessException {
   }
 }
 
+export class PairConnectionNotFoundException extends BusinessException {
+  constructor(recordId: string) {
+    super(
+      404,
+      ConnectionErrorCode.PAIR_CONNECTION_NOT_FOUND,
+      '역방향 기록을 찾을 수 없습니다.',
+      {
+        record_id: recordId,
+      },
+    );
+  }
+}
+
 export class ConnectionAlreadyExistsException extends BusinessException {
   constructor(fromRecordId: string, toRecordId: string) {
     super(
