@@ -4,6 +4,7 @@ import { ReverseGeocodingService } from './services/reverse-geocoding.service';
 import { CreateRecordDto } from './dto/create-record.dto';
 import { RecordResponseDto } from './dto/record-response.dto';
 import { RecordModel } from './records.types';
+import { UserNotFoundException } from '@/users/exception';
 
 @Injectable()
 export class RecordsService {
@@ -23,10 +24,9 @@ export class RecordsService {
       select: { id: true },
     });
 
-    // TODO: Users에서 exception 생성 후 적용
     if (!user) {
       this.logger.warn(`User not found publicId=${userPublicId}`);
-      throw new Error('User not found');
+      throw new UserNotFoundException();
     }
 
     // 1. 역지오코딩 호출
