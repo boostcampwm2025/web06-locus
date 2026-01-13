@@ -1,4 +1,4 @@
-name: QA
+name: QA Issue
 description: QA 테스트 중 발견된 문제 보고
 title: '[QA] '
 labels: []
