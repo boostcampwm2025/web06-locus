@@ -1,6 +1,7 @@
 import { LinkIcon, LocationIcon, ArrowRightIcon } from '@/shared/icons';
 import type { RecordCardProps } from './RecordCard.types';
 import { formatDateShort } from '@/shared/utils/dateUtils';
+import { getDisplayTags } from '@/shared/utils/tagUtils';
 
 export default function RecordCard({
   title,
@@ -13,8 +14,10 @@ export default function RecordCard({
   className = '',
 }: RecordCardProps) {
   // TODO: +N 버튼 클릭 핸들러 추가하여 모든 태그 표시 토글
-  const displayTags = tags.slice(0, 2);
-  const remainingTagCount = tags.length - 2;
+  const { displayTags, remainingCount: remainingTagCount } = getDisplayTags(
+    tags,
+    2,
+  );
 
   return (
     <button
