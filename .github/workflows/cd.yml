@@ -12,6 +12,10 @@ jobs:
       github.event.workflow_run.conclusion == 'success' &&
       github.event.workflow_run.event != 'pull_request'
     runs-on: ubuntu-latest
+
+    env:
+      ACG_RULE_FORMAT: "protocolTypeCode='TCP',ipBlock='GITHUB_IP/32',portRange='22'"
+
     steps:
       - name: Get Github Actions IP
         id: ip
@@ -46,7 +50,7 @@ jobs:
       - name: Add Github Action IP to ACG
         run: |
           cd CLI_*/cli_linux
-          RULE="protocolTypeCode='TCP',ipBlock='${{ steps.ip.outputs.public_ip }}/32',portRange='22'"
+          RULE=$(echo "${{ env.ACG_RULE_FORMAT }}" | sed "s/GITHUB_IP/${{ steps.ip.outputs.public_ip }}/")
           
           ./ncloud vserver addAccessControlGroupInboundRule \
             --regionCode KR \
@@ -62,7 +66,9 @@ jobs:
           password: ${{ secrets.DEV_PASSWORD }}
           script: |
             cd ~/projects/web06-locus
-            git pull origin develop 
+            git fetch origin develop
+            git checkout -f develop
+            git pull origin develop
             echo "${{ secrets.DEV_ENV_PROD }}" > .env.prod
             docker login ${{ secrets.DEV_REGISTRY }} -u ${{ secrets.NCP_ACCESS_KEY }} -p ${{ secrets.NCP_SECRET_KEY }}
             docker compose pull
@@ -70,13 +76,13 @@ jobs:
             docker image prune -f
             docker compose exec -T locus-api pnpm --filter @locus/api run db:push
 
-      - name: Remove Github Action IP from ACG (Post-action)
+      - name: Remove Github Action IP from ACG
         if: always()
         run: |
           sleep 10
 
           cd CLI_*/cli_linux
-          RULE="protocolTypeCode='TCP',ipBlock='${{ steps.ip.outputs.public_ip }}/32',portRange='22'"
+          RULE=$(echo "${{ env.ACG_RULE_FORMAT }}" | sed "s/GITHUB_IP/${{ steps.ip.outputs.public_ip }}/")
           
           ./ncloud vserver removeAccessControlGroupInboundRule \
             --regionCode KR \
