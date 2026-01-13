@@ -1,6 +1,7 @@
 export interface AppHeaderProps {
   onLogoClick?: () => void;
   onSearchClick?: () => void;
+  onFilterClick?: () => void;
   className?: string;
 }
 

@@ -50,6 +50,13 @@ const meta = {
       action: 'search clicked',
       description: '검색 버튼 클릭 핸들러',
     },
+    onFilterClick: {
+      action: 'filter clicked',
+      description: '필터 버튼 클릭 핸들러 (제공 시 필터 버튼 표시)',
+      table: {
+        type: { summary: '(() => void) | undefined' },
+      },
+    },
     className: {
       control: 'text',
       description: '추가 CSS 클래스',
@@ -62,6 +69,22 @@ type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {
   args: {},
+};
+
+export const WithSearchOnly: Story = {
+  args: {
+    onSearchClick: () => {
+      /* empty */
+    },
+    onFilterClick: undefined,
+  },
+  parameters: {
+    docs: {
+      description: {
+        story: '검색 버튼만 있는 기본 헤더 (홈 페이지 등에서 사용)',
+      },
+    },
+  },
 };
 
 export const WithActions: Story = {
