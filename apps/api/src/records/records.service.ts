@@ -25,6 +25,12 @@ export class RecordsService {
         dto.location.longitude,
       );
 
+    if (!name && !address) {
+      this.logger.warn(
+        `Reverse geocoding failed: lat=${dto.location.latitude}, lng=${dto.location.longitude}`,
+      );
+    }
+
     // 2. INSERT 후 생성된 기록 반환
     const [record] = await this.prisma.$queryRaw<RecordModel[]>`
       INSERT INTO records (
@@ -65,6 +71,10 @@ export class RecordsService {
         created_at,
         updated_at
     `;
+
+    this.logger.log(
+      `Record created: publicId=${record.public_id}, userId=${userId}, title="${dto.title}"`,
+    );
 
     // 3. 응답 변환
     return this.toResponseDto(record);
