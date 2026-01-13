@@ -19,6 +19,18 @@ import { KakaoAuthGuard } from './guards/kakao-auth.guard';
 import { SignUpRequest } from './dto/sign-up-request.dto';
 import { VerifyEmailRequest } from './dto/verify-email-request.dto';
 import { LoginRequest } from './dto/login-request.dto';
+import {
+  GoogleCallbackSwagger,
+  GoogleLoginSwagger,
+  KakaoCallbackSwagger,
+  KakaoLoginSwagger,
+  LoginSwagger,
+  NaverCallbackSwagger,
+  NaverLoginSwagger,
+  RequestSignupSwagger,
+  SignupVerifySwagger,
+} from './swagger/auth.swagger';
+import { TokenResponse } from './dto/auth-response.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -36,21 +48,24 @@ export class AuthController {
 
   @Post('signup/request')
   @HttpCode(HttpStatus.OK)
+  @RequestSignupSwagger()
   async requestSignup(@Body() signupRequest: SignUpRequest): Promise<void> {
     await this.authService.requestSignup(signupRequest);
   }
 
   @Post('signup/confirm')
+  @SignupVerifySwagger()
   async signupVerify(@Body() verifyEmailRequest: VerifyEmailRequest) {
     await this.authService.completeSignup(verifyEmailRequest);
   }
 
   @Post('login')
   @HttpCode(HttpStatus.OK)
+  @LoginSwagger()
   async login(
     @Body() loginRequest: LoginRequest,
     @Res({ passthrough: true }) res: Response,
-  ) {
+  ): Promise<TokenResponse> {
     const { accessToken, refreshToken } =
       await this.authService.login(loginRequest);
 
@@ -60,36 +75,42 @@ export class AuthController {
 
   @Get('oauth2/google')
   @UseGuards(GoogleAuthGuard)
+  @GoogleLoginSwagger()
   async googleLogin() {
     // Guard가 Google 로그인 페이지로 리다이렉트
   }
 
   @Get('oauth2/naver')
   @UseGuards(NaverAuthGuard)
+  @NaverLoginSwagger()
   async naverLogin() {
     // Guard가 Naver 로그인 페이지로 리다이렉트
   }
 
   @Get('oauth2/kakao')
   @UseGuards(KakaoAuthGuard)
+  @KakaoLoginSwagger()
   async kakaoLogin() {
     // Guard가 Kakao 로그인 페이지로 리다이렉트
   }
 
   @Get('oauth2/callback/google')
   @UseGuards(GoogleAuthGuard)
+  @GoogleCallbackSwagger()
   async googleCallback(@Req() req: Request, @Res() res: Response) {
     await this.handleOAuthCallback(req, res);
   }
 
   @Get('oauth2/callback/naver')
   @UseGuards(NaverAuthGuard)
+  @NaverCallbackSwagger()
   async naverCallback(@Req() req: Request, @Res() res: Response) {
     await this.handleOAuthCallback(req, res);
   }
 
   @Get('oauth2/callback/kakao')
   @UseGuards(KakaoAuthGuard)
+  @KakaoCallbackSwagger()
   async kakaoCallback(@Req() req: Request, @Res() res: Response) {
     await this.handleOAuthCallback(req, res);
   }
