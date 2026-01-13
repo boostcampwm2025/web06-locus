@@ -2,10 +2,13 @@ import { Injectable } from '@nestjs/common';
 import { CreateConnectionRequestDto } from './dto/create-connection.request.dto';
 import {
   ConnectionAlreadyExistsException,
+  PairConnectionNotFoundException,
   RecordNotFoundException,
   SameRecordConnectionNotAllowedException,
 } from './exceptions/business.exception';
 import { PrismaService } from '@/prisma/prisma.service';
+import { deletedConnectionDto } from './dto/delete-connection.response.dto';
+import { ConnectionDto } from './dto/create-connection.response.dto';
 
 @Injectable()
 export class ConnectionsService {
@@ -14,12 +17,8 @@ export class ConnectionsService {
   async create(
     userId: bigint,
     createConnectionDto: CreateConnectionRequestDto,
-  ) {
+  ): Promise<ConnectionDto> {
     const { fromRecordPublicId, toRecordPublicId } = createConnectionDto;
-
-    if (fromRecordPublicId === toRecordPublicId) {
-      throw new SameRecordConnectionNotAllowedException(fromRecordPublicId);
-    }
 
     const [fromRecord, toRecord] = await this.getRecords(
       fromRecordPublicId,
@@ -60,7 +59,37 @@ export class ConnectionsService {
     };
   }
 
-  async getRecords(fromRecordPublicId: string, toRecordPublicId: string) {
+  async delete(
+    userId: bigint,
+    publicId: string,
+  ): Promise<deletedConnectionDto> {
+    const [findOne, findPair] = await this.findPairConnections(
+      userId,
+      publicId,
+    );
+
+    await this.prismaService.$transaction([
+      this.prismaService.connection.delete({
+        where: { id: findOne.id },
+      }),
+      this.prismaService.connection.delete({
+        where: { id: findPair.id },
+      }),
+    ]);
+
+    return {
+      publicId: findOne.publicId,
+      pairPublicId: findPair.publicId,
+    };
+  }
+
+  private async getRecords(
+    fromRecordPublicId: string,
+    toRecordPublicId: string,
+  ) {
+    if (fromRecordPublicId === toRecordPublicId) {
+      throw new SameRecordConnectionNotAllowedException(fromRecordPublicId);
+    }
     const fromRecord = await this.prismaService.record.findUnique({
       where: { publicId: fromRecordPublicId },
       select: { id: true, userId: true, publicId: true },
@@ -83,7 +112,7 @@ export class ConnectionsService {
     return [fromRecord, toRecord];
   }
 
-  async validateConnection(
+  private async validateConnection(
     fromRecord: { id: bigint; publicId: string; userId: bigint },
     toRecord: { id: bigint; publicId: string; userId: bigint },
     userId: bigint,
@@ -107,5 +136,35 @@ export class ConnectionsService {
         toRecord.publicId,
       );
     }
+  }
+
+  private async findPairConnections(userId: bigint, publicId: string) {
+    const findOne = await this.prismaService.connection.findFirst({
+      where: { userId, publicId },
+      select: {
+        id: true,
+        fromRecordId: true,
+        toRecordId: true,
+        publicId: true,
+      },
+    });
+
+    if (!findOne) {
+      throw new RecordNotFoundException(publicId);
+    }
+
+    const findPair = await this.prismaService.connection.findFirst({
+      where: {
+        userId,
+        fromRecordId: findOne.toRecordId,
+        toRecordId: findOne.fromRecordId,
+      },
+      select: { id: true, publicId: true },
+    });
+
+    if (!findPair) {
+      throw new PairConnectionNotFoundException(publicId);
+    }
+    return [findOne, findPair];
   }
 }
