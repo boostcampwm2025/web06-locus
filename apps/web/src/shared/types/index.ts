@@ -23,3 +23,14 @@ export type { OptionButtonProps } from './button';
 export type { BottomSheetHeight, BaseBottomSheetProps } from './bottomSheet';
 export type { GeolocationState } from './geolocation';
 export type { UseMapInstanceOptions } from './map';
+export type {
+  Location,
+  Image,
+  Record,
+  RecordWithImages,
+  SearchRecordItem,
+  GraphNode,
+  GraphEdge,
+  GraphMeta,
+  ConnectedRecordDetail,
+} from '@locus/shared';
