@@ -1,6 +1,6 @@
 import {
   ArrowLeftIcon,
-  BookmarkIcon,
+  FavoriteIcon,
   MoreVerticalIcon,
   CalendarIcon,
   LocationIcon,
@@ -93,7 +93,7 @@ function RecordDetailHeader({
           aria-label={isFavorite ? '즐겨찾기 해제' : '즐겨찾기 추가'}
           className="p-2 rounded-full hover:bg-gray-100 transition-colors"
         >
-          <BookmarkIcon
+          <FavoriteIcon
             className={`w-6 h-6 ${
               isFavorite ? 'text-yellow-500 fill-yellow-500' : 'text-gray-700'
             }`}

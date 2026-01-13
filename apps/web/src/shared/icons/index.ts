@@ -1,6 +1,7 @@
 export { default as ArrowLeftIcon } from './ArrowLeftIcon';
 export { default as ArrowRightIcon } from './ArrowRightIcon';
 export { default as BookmarkIcon } from './BookmarkIcon';
+export { default as FavoriteIcon } from './FavoriteIcon';
 export { default as CalendarIcon } from './CalendarIcon';
 export { default as CheckIcon } from './CheckIcon';
 export { default as CameraIcon } from './CameraIcon';
