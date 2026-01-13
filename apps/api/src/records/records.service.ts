@@ -25,8 +25,8 @@ export class RecordsService {
         dto.location.longitude,
       );
 
-    // 2. INSERT 후 record.id만 반환
-    const [inserted] = await this.prisma.$queryRaw<{ id: number }[]>`
+    // 2. INSERT 후 생성된 기록 반환
+    const [record] = await this.prisma.$queryRaw<RecordModel[]>`
       INSERT INTO records (
         user_id,
         title,
@@ -51,39 +51,28 @@ export class RecordsService {
         NOW(),
         NOW()
       )
-      RETURNING id
+      RETURNING
+        id,
+        public_id,
+        title,
+        content,
+        ST_X(location) AS longitude,
+        ST_Y(location) AS latitude,
+        location_name,
+        location_address,
+        tags,
+        is_favorite,
+        created_at,
+        updated_at
     `;
 
-    // 3. 사용자 public_id 포함되도록 JOIN 조회
-    const [record] = await this.prisma.$queryRaw<RecordModel[]>`
-      SELECT
-        r.id,
-        r.public_id,
-        u.public_id AS user_public_id,
-        r.title,
-        r.content,
-        ST_X(r.location) AS longitude,
-        ST_Y(r.location) AS latitude,
-        r.location_name,
-        r.location_address,
-        r.tags,
-        r.is_favorite,
-        r.created_at,
-        r.updated_at
-      FROM records r
-      JOIN users u ON r.user_id = u.id
-      WHERE r.id = ${inserted.id}
-      LIMIT 1
-    `;
-
-    // 4. 응답 변환
+    // 3. 응답 변환
     return this.toResponseDto(record);
   }
 
   private toResponseDto(record: RecordModel): RecordResponseDto {
     return {
       public_id: record.public_id,
-      user_id: record.user_public_id,
       title: record.title,
       content: record.content,
       location: {

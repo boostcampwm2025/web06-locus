@@ -52,9 +52,6 @@ export class RecordResponseDto {
   @ApiProperty({ description: '기록 공개 ID', example: 'rec_7K9mP2nQ5xL' })
   public_id: string;
 
-  @ApiProperty({ description: '사용자 ID', example: 'MwVgxoESAOoi' })
-  user_id: string;
-
   @ApiProperty({ description: '기록 제목', example: '한강 산책' })
   title: string;
 

@@ -1,7 +1,6 @@
 export interface RecordModel {
   id: number;
   public_id: string;
-  user_public_id: string;
   title: string;
   content: string | null;
   longitude: number;
