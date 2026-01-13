@@ -13,4 +13,7 @@ export type {
   RecordWriteFormProps,
   RecordWriteMapProps,
   UseNaverMapOptions,
+  SortOrder,
+  FilterBottomSheetProps,
+  RecordDetailPageProps,
 } from './record';

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import RecordListPage from './RecordListPage';
 import FilterBottomSheet from './FilterBottomSheet';
-import type { SortOrder } from './FilterBottomSheet';
+import type { SortOrder } from '@/features/record/types';
 
 const meta = {
   title: 'Features/Record/RecordListPage',
