@@ -41,17 +41,32 @@ services:
     networks:
       - locus-network
 
-  # redis:
-  #   image: redis:7-alpine
-  #   container_name: locus-redis
-  #   ports:
-  #     - '6379:6379'
-  #   networks:
-  #     - locus-network
+  redis:
+    image: redis:8.4.0-alpine
+    container_name: locus-redis
+    ports:
+      - '6379:6379'
+    networks:
+      - locus-network
+    volumes:
+      - redis_data:/data
+
+  rabbitmq:
+    image: rabbitmq:4-management
+    container_name: locus-rabbitmq
+    ports:
+      - '5672:5672' # AMQP 용도 port
+      - '15672:15672' # Management UI용 port
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    networks:
+      - locus-network
 
 volumes:
   elasticsearch_data:
   postgres_data:
+  redis_data:
 
 networks:
   locus-network:
