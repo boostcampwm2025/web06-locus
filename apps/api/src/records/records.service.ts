@@ -4,7 +4,6 @@ import { ReverseGeocodingService } from './services/reverse-geocoding.service';
 import { CreateRecordDto } from './dto/create-record.dto';
 import { RecordResponseDto } from './dto/record-response.dto';
 import { RecordModel } from './records.types';
-import { UserNotFoundException } from '@/users/exception';
 
 @Injectable()
 export class RecordsService {
@@ -16,19 +15,9 @@ export class RecordsService {
   ) {}
 
   async createRecord(
-    userPublicId: string,
+    userId: number,
     dto: CreateRecordDto,
   ): Promise<RecordResponseDto> {
-    const user = await this.prisma.user.findUnique({
-      where: { publicId: userPublicId },
-      select: { id: true },
-    });
-
-    if (!user) {
-      this.logger.warn(`User not found publicId=${userPublicId}`);
-      throw new UserNotFoundException();
-    }
-
     // 1. 역지오코딩 호출
     const { name, address } =
       await this.reverseGeocodingService.getAddressFromCoordinates(
@@ -51,7 +40,7 @@ export class RecordsService {
         updated_at
       )
       VALUES (
-        ${user.id},
+        ${userId},
         ${dto.title},
         ${dto.content ?? null},
         ST_GeomFromText(${`POINT(${dto.location.longitude} ${dto.location.latitude})`}, 4326),
