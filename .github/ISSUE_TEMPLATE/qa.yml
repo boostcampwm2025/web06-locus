@@ -1,0 +1,54 @@
+name: QA Issue
+description: QA 테스트 중 발견된 문제 보고
+title: '[QA] '
+labels: []
+assignees: []
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## 🐞 QA 재현 경로
+
+  - type: textarea
+    id: given
+    attributes:
+      label: Given (문제 발생 환경)
+      placeholder: |
+        * 어떤 화면 / 상태 / 조건에서 발생했는지
+        * 예) 로그인 여부, 특정 데이터 존재 여부, 네트워크 상태 등
+    validations:
+      required: true
+
+  - type: textarea
+    id: when
+    attributes:
+      label: When (사용자 행동)
+      placeholder: |
+        * 사용자가 어떤 행동을 했을 때 문제가 발생했는지
+        * 가능한 한 순서대로 작성
+    validations:
+      required: true
+
+  - type: textarea
+    id: then
+    attributes:
+      label: Then (기대 결과 vs 실제 결과)
+      placeholder: |
+        * 기대했던 동작
+        * 실제로 발생한 동작
+        * 에러 메시지, 깨진 UI, 멈춤 현상 등 구체적으로 작성
+    validations:
+      required: true
+
+  - type: textarea
+    id: visual-evidence
+    attributes:
+      label: 시각 자료 및 추가 정보
+      placeholder: |
+        * API 정보 (엔드포인트 / 메서드 / 상태 코드)
+        * 콘솔 에러 / 네트워크 에러
+        * 스크린샷 또는 영상
+        * 재현 빈도 (항상 / 가끔)
+    validations:
+      required: true

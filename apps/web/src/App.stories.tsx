@@ -1,17 +1,9 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { MemoryRouter } from 'react-router-dom';
-import MainMapPage from './MainMapPage';
+import App from './App';
 
 const meta = {
-  title: 'Features/Home/MainMapPage',
-  component: MainMapPage,
-  decorators: [
-    (Story) => (
-      <MemoryRouter>
-        <Story />
-      </MemoryRouter>
-    ),
-  ],
+  title: 'App/Full Application',
+  component: App,
   parameters: {
     layout: 'fullscreen',
     viewport: {
@@ -49,7 +41,7 @@ const meta = {
     },
   },
   tags: ['autodocs'],
-} satisfies Meta<typeof MainMapPage>;
+} satisfies Meta<typeof App>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;
@@ -59,7 +51,7 @@ export const Default: Story = {
     docs: {
       description: {
         story:
-          '이미지에 맞춘 전체 UI 레이아웃입니다. AppHeader, CategoryChips, MapViewport, 플로팅 액션 버튼("연결 모드"), BottomTabBar가 모두 포함되어 있습니다.',
+          '전체 애플리케이션입니다. 로그인부터 메인 맵 페이지까지 전체 플로우를 시연할 수 있습니다.',
       },
     },
   },

@@ -1,4 +1,5 @@
 import { NestFactory } from '@nestjs/core';
+import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 
@@ -11,7 +12,17 @@ async function bootstrap() {
       transform: true, // 요청 데이터를 DTO 클래스 인스턴스로 자동 변환
     }),
   );
+
+  const config = new DocumentBuilder()
+    .setTitle('Locus')
+    .setDescription('Locus API docs')
+    .setVersion('1.0')
+    .build();
+  const documentFactory = () => SwaggerModule.createDocument(app, config);
+  SwaggerModule.setup('docs', app, documentFactory);
+
   app.enableShutdownHooks();
+
   await app.listen(process.env.PORT ?? 3000);
 }
 void bootstrap();

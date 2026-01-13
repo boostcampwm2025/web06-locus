@@ -38,7 +38,10 @@ export default function PinMarkerPendingIcon({
         fill="white"
       />
       {/* + 표시를 그룹으로 묶기 */}
-      <g className="pin-plus-icon" transform-origin="28 22.3995">
+      <g
+        className="pin-plus-icon"
+        style={{ transformOrigin: '28px 22.3995px' }}
+      >
         {/* 중앙 점 */}
         <path
           d="M28 26.5995C30.3195 26.5995 32.1999 24.7191 32.1999 22.3995C32.1999 20.08 30.3195 18.1996 28 18.1996C25.6804 18.1996 23.8001 20.08 23.8001 22.3995C23.8001 24.7191 25.6804 26.5995 28 26.5995Z"
