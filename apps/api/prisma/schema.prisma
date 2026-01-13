@@ -20,9 +20,65 @@ model User {
   
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
-  
+
+  records   Record[]
+
   @@index([provider, providerId])
   @@map("users")
+}
+
+model Record {
+  id              Int      @id @default(autoincrement())
+  publicId        String   @unique @map("public_id")
+  userId          Int      @map("user_id")
+  title           String   @db.VarChar(100)
+  content         String?  @db.VarChar(500)
+  latitude        Float
+  longitude       Float
+  locationName    String   @map("location_name") @db.VarChar(200)
+  locationAddress String   @map("location_address") @db.VarChar(500)
+  tags            String[]
+  isFavorite      Boolean  @default(false) @map("is_favorite")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  images Image[]
+
+  @@index([userId])
+  @@index([latitude, longitude])
+  @@index([createdAt])
+  @@map("records")
+}
+
+model Image {
+  id              Int      @id @default(autoincrement())
+  publicId        String   @unique @map("public_id")
+  recordId        Int      @map("record_id")
+  order           Int
+
+  thumbnailUrl    String @map("thumbnail_url")
+  thumbnailWidth  Int    @map("thumbnail_width")
+  thumbnailHeight Int    @map("thumbnail_height")
+  thumbnailSize   Int    @map("thumbnail_size")
+
+  mediumUrl    String @map("medium_url")
+  mediumWidth  Int    @map("medium_width")
+  mediumHeight Int    @map("medium_height")
+  mediumSize   Int    @map("medium_size")
+
+  originalUrl    String @map("original_url")
+  originalWidth  Int    @map("original_width")
+  originalHeight Int    @map("original_height")
+  originalSize   Int    @map("original_size")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  record Record @relation(fields: [recordId], references: [id], onDelete: Cascade)
+
+  @@unique([recordId, order])
+  @@index([recordId])
+  @@map("images")
 }
 
 enum Provider {
