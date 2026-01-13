@@ -103,6 +103,7 @@ export class RecordsService {
         name: record.location_name,
         address: record.location_address,
       },
+      // TODO: 태그 관련 중간테이블 및 서비스 추가
       tags: record.tags,
       // TODO: 이미지 기능 추가
       images: [],
