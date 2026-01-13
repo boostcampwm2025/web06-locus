@@ -28,8 +28,8 @@ export class RecordSearchService {
         await this.esService.indices.create({
           index: this.INDEX_NAME,
           settings: {
-            number_of_shards: 3,
-            number_of_replicas: 1,
+            number_of_shards: 1,
+            number_of_replicas: 0,
             analysis: {
               analyzer: {
                 nori_analyzer: {
