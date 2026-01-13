@@ -20,6 +20,7 @@ import TagIcon from './TagIcon';
 import CalendarIcon from './CalendarIcon';
 import EditIcon from './EditIcon';
 import TrashIcon from './TrashIcon';
+import FilterIcon from './FilterIcon';
 
 const meta = {
   title: 'Shared/Icons',
@@ -90,6 +91,11 @@ export const IconCatalog: Story = {
             name="SearchIcon"
             icon={<SearchIcon className="w-8 h-8 text-gray-600" />}
             description="검색 아이콘"
+          />
+          <IconCard
+            name="FilterIcon"
+            icon={<FilterIcon className="w-8 h-8 text-gray-600" />}
+            description="필터링 아이콘"
           />
           <IconCard
             name="BookmarkIcon"
@@ -205,6 +211,7 @@ export const AllIcons: Story = {
       <IconCard name="RefreshIcon" icon={<RefreshIcon className="w-8 h-8" />} />
       <IconCard name="MapIcon" icon={<MapIcon className="w-8 h-8" />} />
       <IconCard name="SearchIcon" icon={<SearchIcon className="w-8 h-8" />} />
+      <IconCard name="FilterIcon" icon={<FilterIcon className="w-8 h-8" />} />
       <IconCard
         name="BookmarkIcon"
         icon={<BookmarkIcon className="w-8 h-8" />}

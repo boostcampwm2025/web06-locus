@@ -4,6 +4,7 @@ export { default as CalendarIcon } from './CalendarIcon';
 export { default as CameraIcon } from './CameraIcon';
 export { default as EditIcon } from './EditIcon';
 export { default as ErrorIcon } from './ErrorIcon';
+export { default as FilterIcon } from './FilterIcon';
 export { default as GoogleIcon } from './GoogleIcon';
 export { default as ImageIcon } from './ImageIcon';
 export { default as KakaoIcon } from './KakaoIcon';
