@@ -14,6 +14,7 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { RabbitMqModule } from './mq/rabbitmq.module';
 import { RedisModule } from './redis/redis.module';
 import { MailModule } from './mail/mail.module';
+import { ConnectionsModule } from './connections/connections.module';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { MailModule } from './mail/mail.module';
     MailModule,
     AuthModule,
     UsersModule,
+    ConnectionsModule,
     RecordsModule,
   ],
   controllers: [AppController],
