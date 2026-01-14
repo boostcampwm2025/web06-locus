@@ -1,7 +1,5 @@
 import type { StorybookConfig } from '@storybook/react-vite';
-
-import { dirname } from 'path';
-
+import { dirname, resolve } from 'path';
 import { fileURLToPath } from 'url';
 
 /**
@@ -10,18 +8,31 @@ import { fileURLToPath } from 'url';
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function getAbsolutePath(value: string): any {
-    return dirname(fileURLToPath(import.meta.resolve(`${value}/package.json`)));
+  return dirname(fileURLToPath(import.meta.resolve(`${value}/package.json`)));
 }
 const config: StorybookConfig = {
-    stories: ['../src/**/*.mdx', '../src/**/*.stories.@(js|jsx|mjs|ts|tsx)'],
-    addons: [
-        getAbsolutePath('@chromatic-com/storybook'),
-        getAbsolutePath('@storybook/addon-vitest'),
-        getAbsolutePath('@storybook/addon-a11y'),
-        getAbsolutePath('@storybook/addon-docs'),
-        getAbsolutePath('@storybook/addon-onboarding'),
-    ],
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    framework: getAbsolutePath('@storybook/react-vite'),
+  stories: ['../src/**/*.mdx', '../src/**/*.stories.@(js|jsx|mjs|ts|tsx)'],
+  addons: [
+    getAbsolutePath('@chromatic-com/storybook'),
+    getAbsolutePath('@storybook/addon-vitest'),
+    getAbsolutePath('@storybook/addon-a11y'),
+    getAbsolutePath('@storybook/addon-docs'),
+    getAbsolutePath('@storybook/addon-onboarding'),
+  ],
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+  framework: getAbsolutePath('@storybook/react-vite'),
+  viteFinal(config) {
+    // Path alias 설정 (vite.config.ts와 동일하게)
+    const rootDir = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+    config.resolve = config.resolve ?? {};
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      '@': resolve(rootDir, 'src'),
+      '@public': resolve(rootDir, 'public'),
+      '@locus/shared': resolve(rootDir, '../../packages/shared/src'),
+      '@features/home': resolve(rootDir, 'src/features/home'),
+    };
+    return config;
+  },
 };
 export default config;
