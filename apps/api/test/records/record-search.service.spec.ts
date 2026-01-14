@@ -1,12 +1,12 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ElasticsearchService } from '@nestjs/elasticsearch';
-import { RecordSearchService } from '../../src/record/record-search.service';
-import { RecordSyncPayload } from '../../src/record/type/record-sync.types';
+import { RecordSearchService } from '../../src/records/record-search.service';
+import { RecordSyncPayload } from '../../src/records/type/record-sync.types';
 import {
   RECORD_INDEX_NAME,
   RECORD_INDEX_SETTINGS,
   RECORD_SEARCH_MAPPING,
-} from '../../src/record/constants/record-search.constant';
+} from '../../src/records/constants/record-search.constant';
 
 describe('RecordSearchService', () => {
   let service: RecordSearchService;

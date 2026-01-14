@@ -1,5 +1,5 @@
 import { OutboxEventType } from '@/common/constants/event-types.constants';
-import { Record } from '@prisma/client';
+import { RecordModel } from '../records.types';
 
 export interface RecordSyncEvent {
   eventId: string;
@@ -23,16 +23,19 @@ export interface RecordSyncPayload {
   createdAt: string;
 }
 
-export const createRecordSyncPayload = (record: Record): RecordSyncPayload => {
+export const createRecordSyncPayload = (
+  userId: bigint,
+  record: RecordModel,
+): RecordSyncPayload => {
   return {
     recordId: record.id.toString(),
     publicId: record.publicId,
-    userId: record.userId.toString(),
+    userId: userId.toString(),
     title: record.title,
     content: record.content,
     isFavorite: record.isFavorite,
     locationName: record.locationName,
-    tags: [], // todo: 수정 필요
+    tags: record.tags,
     hasImages: false, // todo: 수정 필요 !!record.images?.length,
     thumbnailImage: null, // todo: 수정 필요 record.images?.[0]?.url || null,
     connectionsCount: 0,
