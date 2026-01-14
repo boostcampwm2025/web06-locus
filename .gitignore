@@ -7,12 +7,14 @@ node_modules/
 # Build / Production
 # =====================
 dist/
+dist-types/
 build/
 .next/
 out/
 dist-ssr/
 dev-dist/
 **/dev-dist/
+dist-types/
 # vite-plugin-pwa 개발 환경 빌드
 
 # =====================

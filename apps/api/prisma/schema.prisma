@@ -20,9 +20,89 @@ model User {
   
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
-  
+
+  records   Record[]
+
   @@index([provider, providerId])
   @@map("users")
+}
+
+model Connection {
+  id            BigInt   @id @default(autoincrement())
+  publicId      String   @unique @default(nanoid()) @map("public_id")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  fromRecordId  BigInt   @map("from_record_id")
+  toRecordId    BigInt   @map("to_record_id")
+  userId        BigInt   @map("user_id")
+
+  //user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fromRecord    Record   @relation("FromRecord", fields: [fromRecordId], references: [id], onDelete: Cascade)
+  toRecord      Record   @relation("ToRecord", fields: [toRecordId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([fromRecordId])
+  @@index([toRecordId])
+
+  @@unique([userId, fromRecordId, toRecordId])
+
+  @@map("connections")
+}
+
+model Record {
+  id              BigInt      @id @default(autoincrement())
+  publicId        String   @unique @map("public_id") @default(nanoid(12))
+  userId          Int      @map("user_id")
+  title           String   @db.VarChar(100)
+  content         String?  @db.VarChar(500)
+  location Unsupported("geometry(Point, 4326)")?
+  locationName    String?   @map("location_name") @db.VarChar(200)
+  locationAddress String?   @map("location_address") @db.VarChar(500)
+  tags            String[]
+  isFavorite      Boolean  @default(false) @map("is_favorite")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  images Image[]
+
+  fromConnections Connection[] @relation("FromRecord")
+  toConnections   Connection[] @relation("ToRecord")
+
+  @@index([userId])
+  @@index([createdAt])
+  @@index([location], type: Gist)
+  @@map("records")
+}
+
+model Image {
+  id              BigInt      @id @default(autoincrement())
+  publicId        String   @unique @map("public_id") @default(nanoid(12))
+  recordId        BigInt      @map("record_id")
+  order           Int
+
+  thumbnailUrl    String @map("thumbnail_url")
+  thumbnailWidth  Int    @map("thumbnail_width")
+  thumbnailHeight Int    @map("thumbnail_height")
+  thumbnailSize   Int    @map("thumbnail_size")
+
+  mediumUrl    String @map("medium_url")
+  mediumWidth  Int    @map("medium_width")
+  mediumHeight Int    @map("medium_height")
+  mediumSize   Int    @map("medium_size")
+
+  originalUrl    String @map("original_url")
+  originalWidth  Int    @map("original_width")
+  originalHeight Int    @map("original_height")
+  originalSize   Int    @map("original_size")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  record Record @relation(fields: [recordId], references: [id], onDelete: Cascade)
+
+  @@unique([recordId, order])
+  @@index([recordId])
+  @@map("images")
 }
 
 enum Provider {

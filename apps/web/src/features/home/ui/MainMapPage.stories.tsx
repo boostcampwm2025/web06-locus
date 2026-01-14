@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react-vite';
 import { MemoryRouter } from 'react-router-dom';
 import MainMapPage from './MainMapPage';
 
-const meta = {
+const meta: Meta<typeof MainMapPage> = {
   title: 'Features/Home/MainMapPage',
   component: MainMapPage,
   decorators: [

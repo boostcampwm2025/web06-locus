@@ -28,7 +28,7 @@ services:
       - locus-network
 
   postgres:
-    image: postgres
+    image: postgis/postgis:17-master
     container_name: locus-postgres
     ports:
       - '5432:5432'
