@@ -39,7 +39,7 @@ export class ReverseGeocodingService {
       }
 
       const result = data.results[0];
-      const name = this.extractLocationName(result.region);
+      const name = this.extractLocationName(result.land);
       const address = this.extractAddress(result.region, result.land);
 
       return { name, address };
@@ -85,16 +85,16 @@ export class ReverseGeocodingService {
   }
 
   private extractLocationName(
-    region: NaverMapResponse['results'][0]['region'],
+    land: NaverMapResponse['results'][0]['land'],
   ): string | null {
-    const name = region.area3.name || region.area4.name || null;
+    const name = land.addition0.value || null;
 
     return name?.trim() ?? null;
   }
 
   private extractAddress(
     region: NaverMapResponse['results'][0]['region'],
-    land?: NaverMapResponse['results'][0]['land'],
+    land: NaverMapResponse['results'][0]['land'],
   ): string | null {
     let address = `${region.area1.name} ${region.area2.name} ${region.area3.name}`;
 

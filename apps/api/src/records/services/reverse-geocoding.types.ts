@@ -16,10 +16,14 @@ export interface NaverMapResponse {
       area3: { name: string }; // 읍면동
       area4: { name: string }; // 리
     };
-    land?: {
+    land: {
       name: string; // 지번 주소
-      number1: string;
-      number2: string;
+      number1: string; // 지번 1
+      number2: string; // 지번 2
+      addition0: {
+        type: string;
+        value: string; // 건물명
+      };
     };
   }[];
 }
