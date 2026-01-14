@@ -2,7 +2,7 @@ name: CD - Deploy to NCP
 
 on:
   push:
-    branches: [ develop ]
+    branches: [develop]
 
 jobs:
   deploy:
@@ -47,7 +47,7 @@ jobs:
             ${{ secrets.DEV_REGISTRY }}/locus-nginx:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-          
+
       - name: Get Github Actions IP
         id: ip
         run: |

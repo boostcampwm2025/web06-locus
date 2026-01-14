@@ -12,6 +12,7 @@ import { ResponseTransformInterceptor } from './common/interceptors/response-tra
 import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
 import { RedisModule } from './redis/redis.module';
 import { MailModule } from './mail/mail.module';
+import { ConnectionsModule } from './connections/connections.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { MailModule } from './mail/mail.module';
     SearchModule,
     AuthModule,
     UsersModule,
+    ConnectionsModule,
     RecordsModule,
   ],
   controllers: [AppController],
