@@ -22,6 +22,7 @@ export default defineConfig(
   {
     ignores: [
       'dist/**',
+      'dist-types/**',
       'build/**',
       'node_modules/**',
       '**/prisma.config.ts',
