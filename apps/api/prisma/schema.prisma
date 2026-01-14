@@ -29,11 +29,11 @@ model User {
 
 model Record {
   id              Int      @id @default(autoincrement())
-  publicId        String   @unique @map("public_id") @db.VarChar(12)
+  publicId        String   @unique @map("public_id") @default(nanoid(12))
   userId          Int      @map("user_id")
   title           String   @db.VarChar(100)
   content         String?  @db.VarChar(500)
-  location Unsupported("geometry(Point, 4326)")
+  location Unsupported("geometry(Point, 4326)")?
   locationName    String?   @map("location_name") @db.VarChar(200)
   locationAddress String?   @map("location_address") @db.VarChar(500)
   tags            String[]
