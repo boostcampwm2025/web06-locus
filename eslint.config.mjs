@@ -32,7 +32,7 @@ export default defineConfig(
 
   // JS 파일은 타입체킹 규칙 비활성화
   {
-    files: ['**/*.js', '**/*.mjs'],
+    files: ['**/*.js', '**/*.mjs', '**/*.cjs'],
     extends: [tseslint.configs.disableTypeChecked],
   },
 );
