@@ -48,6 +48,6 @@ export class RecordsController {
     @CurrentUser('sub') userId: number,
     @Body() dto: CreateRecordDto,
   ): Promise<RecordResponseDto> {
-    return this.recordsService.createRecord(userId, dto);
+    return await this.recordsService.createRecord(userId, dto);
   }
 }
