@@ -6,6 +6,22 @@ services:
       - "3000:3000"
     env_file:
       - .env.prod
+    environment:
+      - REDIS_HOST=locus-redis
+      - REDIS_PORT=6379
+    depends_on:
+      - locus-redis
+    networks:
+      - locus-network
+    restart: always
+
+  locus-redis:
+    image: redis:7-alpine
+    container_name: locus-redis
+    ports:
+      - "6379:6379"
+    networks:
+      - locus-network
     restart: always
 
   locus-nginx:
@@ -16,4 +32,10 @@ services:
       - "443:443"
     depends_on:
       - locus-api
+    networks:
+      - locus-network
     restart: always
+
+networks:
+  locus-network:
+    driver: bridge
