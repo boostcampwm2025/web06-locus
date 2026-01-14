@@ -1,7 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateRecordDto } from './dto/create-record.dto';
-import { Record } from '@prisma/client';
+import { Prisma } from '@prisma/client';
+import { createRecordSyncPayload } from './type/record-sync.types';
 
 @Injectable()
 export class RecordService {
@@ -22,7 +23,6 @@ export class RecordService {
           locationLng: dto.longitude,
           locationName: 'test',
           locationAddress: 'address',
-          date: new Date(),
         },
       });
 
@@ -32,28 +32,11 @@ export class RecordService {
           aggregateType: 'Record',
           aggregateId: record.id,
           eventType: 'RECORD_CREATED',
-          payload: this.buildEventPayload(record),
+          payload: createRecordSyncPayload(
+            record,
+          ) as unknown as Prisma.InputJsonObject,
         },
       });
     });
-  }
-
-  // NOTE: 현재는 예시 데이터
-  private buildEventPayload(record: Record) {
-    return {
-      recordId: record.id.toString(),
-      publicId: record.publicId,
-      userId: record.userId.toString(),
-      title: record.title,
-      content: record.content,
-      isFavorite: record.isFavorite,
-      locationName: record.locationName,
-      tags: ['test'],
-      hasImages: true,
-      thumbnailImage: 'http://storage/image.jpg',
-      connectionsCount: 0,
-      date: record.date.toISOString(),
-      createdAt: record.createdAt.toISOString(),
-    };
   }
 }
