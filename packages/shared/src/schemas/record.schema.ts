@@ -1,43 +1,43 @@
 import { z } from 'zod';
 import {
-  LocationSchema,
-  ImageSchema,
+  LocationResponseSchema,
+  ImageResponseSchema,
   SuccessResponseSchema,
   FailResponseSchema,
   ErrorResponseSchema,
-  CursorPaginationSchema,
+  CursorPaginationResponseSchema,
 } from './common.schema';
 
 // ============================================================================
-// 공통 스키마
+// 공통 스키마 (Response용)
 // ============================================================================
 
 /**
- * 기본 기록 스키마
+ * 기본 기록 스키마 (Response용 - camelCase)
  * connections 필드는 GET /records/{publicId}/graph와 GET /records/{publicId}/graph/records에서만 관리됨
  *
  * @api GET /records - 지도 범위 기반 기록 조회 응답에 사용
  */
-export const RecordSchema = z.object({
-  public_id: z.string(),
+export const RecordResponseSchema = z.object({
+  publicId: z.string(),
   title: z.string(),
   content: z.string().optional(),
-  location: LocationSchema,
+  location: LocationResponseSchema,
   tags: z.array(z.string()),
-  created_at: z.string().datetime(),
-  updated_at: z.string().datetime(),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
 });
 
 /**
- * 기록 생성/수정 응답용 기록 스키마 (이미지 포함)
+ * 기록 생성/수정 응답용 기록 스키마 (이미지 포함, Response용 - camelCase)
  *
  * @api POST /records - 기록 생성 응답에 사용
  * @api PATCH /records/{public_id} - 기록 수정 응답에 사용
  */
-export const RecordWithImagesSchema = RecordSchema.extend({
-  user_id: z.string().optional(),
-  images: z.array(ImageSchema),
-  is_favorite: z.boolean(),
+export const RecordWithImagesResponseSchema = RecordResponseSchema.extend({
+  userId: z.string().optional(),
+  images: z.array(ImageResponseSchema),
+  isFavorite: z.boolean(),
 });
 
 // ============================================================================
@@ -150,8 +150,8 @@ export const GetConnectedRecordsRequestSchema = z.object({
  */
 export const RecordsByBoundsResponseSchema = SuccessResponseSchema.extend({
   data: z.object({
-    records: z.array(RecordSchema),
-    total_count: z.number(),
+    records: z.array(RecordResponseSchema),
+    totalCount: z.number(),
   }),
 });
 
@@ -163,20 +163,20 @@ export const RecordsByBoundsResponseSchema = SuccessResponseSchema.extend({
 export const DeleteRecordResponseSchema = SuccessResponseSchema;
 
 /**
- * 기록 검색 결과 아이템 스키마
+ * 기록 검색 결과 아이템 스키마 (Response용 - camelCase)
  *
  * @api GET /records/search - 검색 응답의 records 배열 아이템
  */
-export const SearchRecordItemSchema = z.object({
-  record_id: z.number(),
+export const SearchRecordItemResponseSchema = z.object({
+  recordId: z.number(),
   title: z.string(),
   tags: z.array(z.string()),
-  location_name: z.string(),
-  is_favorite: z.boolean(),
-  thumbnail_image: z.string().url().optional(),
+  locationName: z.string(),
+  isFavorite: z.boolean(),
+  thumbnailImage: z.string().url().optional(),
   date: z.string(),
   connectionCount: z.number(),
-  created_at: z.string().datetime(),
+  createdAt: z.string().datetime(),
 });
 
 /**
@@ -186,8 +186,8 @@ export const SearchRecordItemSchema = z.object({
  */
 export const SearchRecordsResponseSchema = SuccessResponseSchema.extend({
   data: z.object({
-    records: z.array(SearchRecordItemSchema),
-    pagination: CursorPaginationSchema,
+    records: z.array(SearchRecordItemResponseSchema),
+    pagination: CursorPaginationResponseSchema,
   }),
 });
 
@@ -198,7 +198,7 @@ export const SearchRecordsResponseSchema = SuccessResponseSchema.extend({
  */
 export const CreateRecordResponseSchema = SuccessResponseSchema.extend({
   data: z.object({
-    record: RecordWithImagesSchema,
+    record: RecordWithImagesResponseSchema,
   }),
 });
 
@@ -209,17 +209,17 @@ export const CreateRecordResponseSchema = SuccessResponseSchema.extend({
  */
 export const UpdateRecordResponseSchema = SuccessResponseSchema.extend({
   data: z.object({
-    record: RecordWithImagesSchema,
+    record: RecordWithImagesResponseSchema,
   }),
 });
 
 /**
- * 연결 그래프 노드 스키마
+ * 연결 그래프 노드 스키마 (Response용 - camelCase)
  *
  * @api GET /records/{publicId}/graph - 응답의 nodes 배열 아이템
  */
-export const GraphNodeSchema = z.object({
-  public_id: z.string(),
+export const GraphNodeResponseSchema = z.object({
+  publicId: z.string(),
   location: z.object({
     latitude: z.number(),
     longitude: z.number(),
@@ -227,26 +227,26 @@ export const GraphNodeSchema = z.object({
 });
 
 /**
- * 연결 그래프 엣지 스키마
+ * 연결 그래프 엣지 스키마 (Response용 - camelCase)
  *
  * @api GET /records/{publicId}/graph - 응답의 edges 배열 아이템
  */
-export const GraphEdgeSchema = z.object({
+export const GraphEdgeResponseSchema = z.object({
   from: z.string(),
   to: z.string(),
 });
 
 /**
- * 연결 그래프 메타 정보 스키마
+ * 연결 그래프 메타 정보 스키마 (Response용 - camelCase)
  *
  * @api GET /records/{publicId}/graph - 응답의 meta 필드
  */
-export const GraphMetaSchema = z.object({
+export const GraphMetaResponseSchema = z.object({
   start: z.string(),
-  node_count: z.number(),
-  edge_count: z.number(),
+  nodeCount: z.number(),
+  edgeCount: z.number(),
   truncated: z.boolean(),
-  truncated_reason: z.string().optional(),
+  truncatedReason: z.string().optional(),
 });
 
 /**
@@ -256,25 +256,25 @@ export const GraphMetaSchema = z.object({
  */
 export const GraphResponseSchema = SuccessResponseSchema.extend({
   data: z.object({
-    nodes: z.array(GraphNodeSchema),
-    edges: z.array(GraphEdgeSchema),
-    meta: GraphMetaSchema,
+    nodes: z.array(GraphNodeResponseSchema),
+    edges: z.array(GraphEdgeResponseSchema),
+    meta: GraphMetaResponseSchema,
   }),
 });
 
 /**
- * 연결된 기록 상세 조회용 기록 스키마
+ * 연결된 기록 상세 조회용 기록 스키마 (Response용 - camelCase)
  *
  * @api GET /records/{publicId}/graph/records - 응답의 records 배열 아이템
  */
-export const ConnectedRecordDetailSchema = z.object({
-  public_id: z.string(),
+export const ConnectedRecordDetailResponseSchema = z.object({
+  publicId: z.string(),
   title: z.string(),
   content: z.string(),
-  location: LocationSchema,
+  location: LocationResponseSchema,
   tags: z.array(z.string()),
-  created_at: z.string().datetime(),
-  updated_at: z.string().datetime(),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
 });
 
 /**
@@ -285,11 +285,11 @@ export const ConnectedRecordDetailSchema = z.object({
 export const ConnectedRecordsResponseSchema = SuccessResponseSchema.extend({
   data: z.object({
     start: z.string(),
-    records: z.array(ConnectedRecordDetailSchema),
+    records: z.array(ConnectedRecordDetailResponseSchema),
     page: z.object({
       limit: z.number(),
-      next_cursor: z.string().nullable(),
-      has_next: z.boolean(),
+      nextCursor: z.string().nullable(),
+      hasNext: z.boolean(),
     }),
   }),
 });
