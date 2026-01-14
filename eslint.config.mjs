@@ -27,6 +27,7 @@ export default defineConfig(
       'node_modules/**',
       '**/prisma.config.ts',
       '**/prisma/**',
+      '**/jest.config.cjs'
     ],
   },
 
