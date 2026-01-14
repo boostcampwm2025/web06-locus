@@ -104,7 +104,6 @@ export const UpdateRecordRequestSchema = z.object({
     })
     .optional(),
   tags: z.array(z.string()).optional(),
-  connections: z.array(z.string()).optional(),
   is_favorite: z.boolean().optional(),
 });
 
