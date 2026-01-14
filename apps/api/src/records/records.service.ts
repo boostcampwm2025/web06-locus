@@ -5,6 +5,13 @@ import { CreateRecordDto } from './dto/create-record.dto';
 import { RecordResponseDto } from './dto/record-response.dto';
 import { RecordModel } from './records.types';
 import { RecordCreationFailedException } from './exceptions/record.exceptions';
+import { createRecordSyncPayload } from './type/record-sync.types';
+import { Prisma } from '@prisma/client';
+import { OutboxService } from '@/outbox/outbox.service';
+import {
+  AGGREGATE_TYPE,
+  OUTBOX_EVENT_TYPE,
+} from '@/common/constants/event-types.constants';
 
 @Injectable()
 export class RecordsService {
@@ -13,13 +20,13 @@ export class RecordsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly reverseGeocodingService: ReverseGeocodingService,
+    private readonly outboxService: OutboxService,
   ) {}
 
   async createRecord(
-    userId: number,
+    userId: bigint,
     dto: CreateRecordDto,
   ): Promise<RecordResponseDto> {
-    // 1. 역지오코딩 호출
     const { name, address } =
       await this.reverseGeocodingService.getAddressFromCoordinates(
         dto.location.latitude,
@@ -32,53 +39,30 @@ export class RecordsService {
       );
     }
 
-    // 2. Prisma create + geometry UPDATE
     try {
       const record = await this.prisma.$transaction(async (tx) => {
-        // 2-1. location 제외 레코드 생성
-        const created = await tx.record.create({
-          data: {
-            userId,
-            title: dto.title,
-            content: dto.content ?? null,
-            locationName: name,
-            locationAddress: address,
-            tags: dto.tags ?? [],
-            isFavorite: false,
-          },
-        });
+        const created = await this.saveRecord(tx, userId, dto, name, address);
+        const updated = await this.updateLocation(
+          tx,
+          created.id,
+          dto.location.longitude,
+          dto.location.latitude,
+        );
 
-        // 2-2. geometry 필드 업데이트 및 레코드 조회
-        const [updated] = await tx.$queryRaw<RecordModel[]>`
-          UPDATE records
-          SET location = ST_SetSRID(
-            ST_MakePoint(${dto.location.longitude}, ${dto.location.latitude}),
-            4326
-          )
-          WHERE id = ${created.id}
-          RETURNING
-            id,
-            public_id,
-            title,
-            content,
-            ST_X(location) AS longitude,
-            ST_Y(location) AS latitude,
-            location_name,
-            location_address,
-            tags,
-            is_favorite,
-            created_at,
-            updated_at
-        `;
+        await this.outboxService.publish(tx, {
+          aggregateType: AGGREGATE_TYPE.RECORD,
+          aggregateId: updated.id.toString(),
+          eventType: OUTBOX_EVENT_TYPE.RECORD_CREATED,
+          payload: createRecordSyncPayload(userId, updated),
+        });
 
         return updated;
       });
 
       this.logger.log(
-        `Record created: publicId=${record.public_id}, userId=${userId}, title="${dto.title}"`,
+        `Record created: publicId=${record.publicId}, userId=${userId}, title="${dto.title}"`,
       );
 
-      // 3. 응답 변환
       return RecordResponseDto.from(record);
     } catch (error: unknown) {
       if (error instanceof Error) {
@@ -98,4 +82,56 @@ export class RecordsService {
 
   // TODO: 태그 관련 중간테이블 및 서비스 추가
   // TODO: 이미지 기능 추가
+
+  // NOTE: repository 계층으로 분리..?
+  private async saveRecord(
+    tx: Prisma.TransactionClient,
+    userId: bigint,
+    dto: CreateRecordDto,
+    locationName: string | null,
+    address: string | null,
+  ) {
+    return tx.record.create({
+      data: {
+        userId,
+        title: dto.title,
+        content: dto.content ?? null,
+        locationName,
+        locationAddress: address,
+        tags: dto.tags ?? [],
+        isFavorite: false,
+      },
+    });
+  }
+
+  private async updateLocation(
+    tx: Prisma.TransactionClient,
+    recordId: bigint,
+    longitude: number,
+    latitude: number,
+  ): Promise<RecordModel> {
+    const [updated] = await tx.$queryRaw<RecordModel[]>`
+      UPDATE records
+      SET location = ST_SetSRID(
+        ST_MakePoint(${longitude}, ${latitude}),
+        4326
+      )
+      WHERE id = ${recordId}
+      RETURNING
+        id,
+        public_id AS "publicId", 
+        title,
+        content,
+        ST_X(location) AS longitude,
+        ST_Y(location) AS latitude,
+        location_name AS "locationName",
+        location_address AS "locationAddress",
+        tags,
+        is_favorite AS "isFavorite",
+        created_at AS "createdAt",
+        updated_at AS "updatedAt"
+    `;
+
+    return updated;
+  }
 }

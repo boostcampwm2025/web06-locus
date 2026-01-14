@@ -7,9 +7,10 @@ import { JwtModule } from '@/jwt/jwt.module';
 import { RecordSearchService } from './record-search.service';
 import { ElasticsearchConfigModule } from '@/elasticsearch/elasticsearch.module';
 import { RecordSyncConsumer } from './consumer/record-sync.consumer';
+import { OutboxModule } from '@/outbox/outbox.module';
 
 @Module({
-  imports: [PrismaModule, JwtModule, ElasticsearchConfigModule],
+  imports: [PrismaModule, JwtModule, ElasticsearchConfigModule, OutboxModule],
   controllers: [RecordsController, RecordSyncConsumer],
   providers: [RecordsService, ReverseGeocodingService, RecordSearchService],
   exports: [RecordsService, RecordSearchService],
