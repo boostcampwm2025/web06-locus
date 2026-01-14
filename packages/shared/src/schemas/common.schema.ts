@@ -1,10 +1,10 @@
 import { z } from 'zod';
 
 /**
- * 위치 정보 스키마
+ * 위치 정보 스키마 (Request용)
  *
- * @usedIn 여러 API의 location 필드에서 재사용
- * @api GET /records, POST /records, PATCH /records/{public_id}, GET /records/{publicId}/graph/records
+ * @usedIn Request 스키마의 location 필드에서 사용
+ * @api POST /records, PATCH /records/{public_id}
  */
 export const LocationSchema = z.object({
   latitude: z.number().min(-90).max(90),
@@ -14,12 +14,25 @@ export const LocationSchema = z.object({
 });
 
 /**
- * 이미지 크기 정보 스키마
+ * 위치 정보 스키마 (Response용 - camelCase)
  *
- * @usedIn ImageSchema의 thumbnail, medium, original 필드에서 사용
+ * @usedIn Response 스키마의 location 필드에서 사용
+ * @api GET /records, GET /records/{publicId}/graph/records
+ */
+export const LocationResponseSchema = z.object({
+  latitude: z.number().min(-90).max(90),
+  longitude: z.number().min(-180).max(180),
+  address: z.string(),
+  name: z.string().optional(),
+});
+
+/**
+ * 이미지 크기 정보 스키마 (Response용 - camelCase)
+ *
+ * @usedIn ImageResponseSchema의 thumbnail, medium, original 필드에서 사용
  * @api POST /records, PATCH /records/{public_id} - 응답의 images 배열 아이템
  */
-export const ImageSizeSchema = z.object({
+export const ImageSizeResponseSchema = z.object({
   url: z.string().url(),
   width: z.number(),
   height: z.number(),
@@ -27,28 +40,28 @@ export const ImageSizeSchema = z.object({
 });
 
 /**
- * 이미지 스키마
+ * 이미지 스키마 (Response용 - camelCase)
  *
- * @usedIn RecordWithImagesSchema의 images 필드에서 사용
+ * @usedIn RecordWithImagesResponseSchema의 images 필드에서 사용
  * @api POST /records, PATCH /records/{public_id} - 응답의 record.images 배열 아이템
  */
-export const ImageSchema = z.object({
-  public_id: z.string(),
-  thumbnail: ImageSizeSchema,
-  medium: ImageSizeSchema,
-  original: ImageSizeSchema,
+export const ImageResponseSchema = z.object({
+  publicId: z.string(),
+  thumbnail: ImageSizeResponseSchema,
+  medium: ImageSizeResponseSchema,
+  original: ImageSizeResponseSchema,
   order: z.number(),
 });
 
 /**
- * 페이지네이션 스키마 (커서 기반)
+ * 페이지네이션 스키마 (커서 기반, Response용 - camelCase)
  *
  * @api GET /records/search - 응답의 pagination 필드
  */
-export const CursorPaginationSchema = z.object({
-  has_more: z.boolean().optional(),
-  next_cursor: z.string().optional(),
-  has_next: z.boolean().optional(),
+export const CursorPaginationResponseSchema = z.object({
+  hasMore: z.boolean().optional(),
+  nextCursor: z.string().optional(),
+  hasNext: z.boolean().optional(),
   limit: z.number().optional(),
 });
 

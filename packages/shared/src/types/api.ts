@@ -1,14 +1,14 @@
 import { z } from 'zod';
 import {
-  LocationSchema,
-  ImageSchema,
-  RecordSchema,
-  RecordWithImagesSchema,
-  SearchRecordItemSchema,
-  GraphNodeSchema,
-  GraphEdgeSchema,
-  GraphMetaSchema,
-  ConnectedRecordDetailSchema,
+  LocationResponseSchema,
+  ImageResponseSchema,
+  RecordResponseSchema,
+  RecordWithImagesResponseSchema,
+  SearchRecordItemResponseSchema,
+  GraphNodeResponseSchema,
+  GraphEdgeResponseSchema,
+  GraphMetaResponseSchema,
+  ConnectedRecordDetailResponseSchema,
   GetRecordsByBoundsRequestSchema,
   SearchRecordsRequestSchema,
   CreateRecordRequestSchema,
@@ -19,17 +19,19 @@ import {
 } from '../schemas';
 
 /**
- * Zod 스키마에서 타입 추론 - 공통 타입
+ * Zod 스키마에서 타입 추론 - Response 타입 (camelCase)
  */
-export type Location = z.infer<typeof LocationSchema>;
-export type Image = z.infer<typeof ImageSchema>;
-export type Record = z.infer<typeof RecordSchema>;
-export type RecordWithImages = z.infer<typeof RecordWithImagesSchema>;
-export type SearchRecordItem = z.infer<typeof SearchRecordItemSchema>;
-export type GraphNode = z.infer<typeof GraphNodeSchema>;
-export type GraphEdge = z.infer<typeof GraphEdgeSchema>;
-export type GraphMeta = z.infer<typeof GraphMetaSchema>;
-export type ConnectedRecordDetail = z.infer<typeof ConnectedRecordDetailSchema>;
+export type Location = z.infer<typeof LocationResponseSchema>;
+export type Image = z.infer<typeof ImageResponseSchema>;
+export type Record = z.infer<typeof RecordResponseSchema>;
+export type RecordWithImages = z.infer<typeof RecordWithImagesResponseSchema>;
+export type SearchRecordItem = z.infer<typeof SearchRecordItemResponseSchema>;
+export type GraphNode = z.infer<typeof GraphNodeResponseSchema>;
+export type GraphEdge = z.infer<typeof GraphEdgeResponseSchema>;
+export type GraphMeta = z.infer<typeof GraphMetaResponseSchema>;
+export type ConnectedRecordDetail = z.infer<
+  typeof ConnectedRecordDetailResponseSchema
+>;
 
 /**
  * Request 타입 (BE 입력 검증용)
