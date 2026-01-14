@@ -5,6 +5,11 @@ import { CreateRecordDto } from './dto/create-record.dto';
 import { RecordResponseDto } from './dto/record-response.dto';
 import { RecordModel } from './records.types';
 import { RecordCreationFailedException } from './exceptions/record.exceptions';
+import { RecordNotFoundException } from '@/connections/exceptions/business.exception';
+import { GRAPH_ROWS_SQL } from './sql/graph.row.sql';
+import { GraphRowType } from './type/graph.type';
+import { GraphEdgeDto, GraphNodeDto } from './dto/graph.dto';
+import { GraphResponseDto } from './dto/graph.response.dto';
 
 @Injectable()
 export class RecordsService {
@@ -94,6 +99,74 @@ export class RecordsService {
         throw new Error('Unexpected non-Error exception thrown');
       }
     }
+  }
+
+  async getGraph(
+    startRecordPublicId: string,
+    userId: number,
+  ): Promise<GraphResponseDto> {
+    const startRecordId = await this.getRecordIdByPublicId(startRecordPublicId);
+
+    // 그래프 탐색 쿼리 실행
+    const rows = await this.prisma.$queryRawUnsafe<GraphRowType[]>(
+      GRAPH_ROWS_SQL,
+      startRecordId,
+      userId,
+    );
+
+    const { nodes, edges } = this.buildGraphFromRows(rows);
+
+    return {
+      nodes,
+      edges,
+      meta: {
+        start: startRecordPublicId,
+        nodeCount: nodes.length,
+        edgeCount: edges.length,
+        truncated: false,
+      },
+    };
+  }
+
+  async getRecordIdByPublicId(publicId: string): Promise<bigint> {
+    const recordId = await this.prisma.record.findUnique({
+      where: { publicId },
+      select: {
+        id: true,
+      },
+    });
+
+    if (!recordId) {
+      throw new RecordNotFoundException(publicId);
+    }
+
+    return recordId.id;
+  }
+
+  private buildGraphFromRows(rows: GraphRowType[]): {
+    nodes: GraphNodeDto[];
+    edges: GraphEdgeDto[];
+  } {
+    const nodes: GraphNodeDto[] = [];
+
+    const edges: GraphEdgeDto[] = [];
+
+    for (const row of rows) {
+      if (row.row_type === 'node') {
+        nodes.push({
+          publicId: row.node_public_id,
+          location: { latitude: row.latitude, longitude: row.longitude },
+        });
+      } else {
+        // edge
+        edges.push({
+          fromRecordPublicId: row.from_public_id,
+          toRecordPublicId: row.to_public_id,
+        });
+      }
+    }
+
+    return { nodes, edges };
   }
 
   // TODO: 태그 관련 중간테이블 및 서비스 추가

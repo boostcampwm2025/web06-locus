@@ -5,6 +5,8 @@ import {
   UseGuards,
   HttpCode,
   HttpStatus,
+  Get,
+  Param,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -17,6 +19,7 @@ import { CreateRecordDto } from './dto/create-record.dto';
 import { RecordResponseDto } from './dto/record-response.dto';
 import { JwtAuthGuard } from '@/jwt/guard/jwt.auth.guard';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
+import { GraphResponseDto } from './dto/graph.response.dto';
 
 @ApiTags('records')
 @Controller('records')
@@ -49,5 +52,14 @@ export class RecordsController {
     @Body() dto: CreateRecordDto,
   ): Promise<RecordResponseDto> {
     return await this.recordsService.createRecord(userId, dto);
+  }
+
+  // todo: 가드 추가 (현재는 임시 userId: 1 사용 중)
+  @Get(':publicId/graph')
+  async getGraph(
+    @Param('publicId') publicId: string,
+  ): Promise<GraphResponseDto> {
+    const graphData = await this.recordsService.getGraph(publicId, 1); // 임시 userId: 1, 가드 추가 후 수정 필요
+    return graphData;
   }
 }
