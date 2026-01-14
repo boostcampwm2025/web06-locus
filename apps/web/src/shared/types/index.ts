@@ -7,7 +7,14 @@ export type {
   PinMarkerProps,
 } from './marker';
 export type { OAuthProvider } from './oauth';
-export type { AppHeaderProps, AppHeaderTitleProps } from './header';
+export type {
+  AppHeaderProps,
+  AppHeaderTitleProps,
+  AppHeaderSearchModeProps,
+  AppHeaderNormalModeProps,
+  UseSearchInputOptions,
+  UseSearchInputReturn,
+} from './header';
 export type {
   Category,
   CategoryChipProps,

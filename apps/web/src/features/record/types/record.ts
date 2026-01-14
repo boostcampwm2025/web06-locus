@@ -135,3 +135,43 @@ export interface UseNaverMapOptions {
   zoomControl?: boolean;
   defaultCenter?: Coordinates;
 }
+
+/**
+ * 정렬 순서
+ */
+export type SortOrder = 'newest' | 'oldest';
+
+/**
+ * 필터 바텀시트 Props
+ */
+export interface FilterBottomSheetProps {
+  isOpen: boolean;
+  onClose: () => void;
+  sortOrder?: SortOrder;
+  includeImages?: boolean;
+  favoritesOnly?: boolean;
+  onSortOrderChange?: (order: SortOrder) => void;
+  onIncludeImagesChange?: (include: boolean) => void;
+  onFavoritesOnlyChange?: (only: boolean) => void;
+  onApply?: () => void;
+}
+
+/**
+ * 기록 상세 페이지 Props
+ */
+export interface RecordDetailPageProps {
+  title: string;
+  date: Date;
+  location: Location;
+  tags: string[];
+  description: string;
+  imageUrl?: string;
+  connectionCount: number;
+  isFavorite?: boolean;
+  onBack?: () => void;
+  onFavoriteToggle?: () => void;
+  onMenuClick?: () => void;
+  onConnectionManage?: () => void;
+  onConnectionMode?: () => void;
+  className?: string;
+}
