@@ -1,10 +1,56 @@
 export interface AppHeaderProps {
   onLogoClick?: () => void;
   onSearchClick?: () => void;
+  onFilterClick?: () => void;
+  // 검색 모드 관련 props
+  isSearchActive?: boolean;
+  searchPlaceholder?: string;
+  searchValue?: string;
+  onSearchChange?: (value: string) => void;
+  onSearchCancel?: () => void;
   className?: string;
 }
 
 export interface AppHeaderTitleProps {
   isOnline?: boolean;
+  className?: string;
+}
+
+/**
+ * 검색 입력 훅 옵션
+ */
+export interface UseSearchInputOptions {
+  value?: string;
+  onChange?: (value: string) => void;
+  onCancel?: () => void;
+}
+
+/**
+ * 검색 입력 훅 반환 타입
+ */
+export interface UseSearchInputReturn {
+  value: string;
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onCancel: () => void;
+}
+
+/**
+ * 검색 모드 헤더 컴포넌트 Props
+ */
+export interface AppHeaderSearchModeProps {
+  value: string;
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onCancel: () => void;
+  placeholder: string;
+  className?: string;
+}
+
+/**
+ * 일반 모드 헤더 컴포넌트 Props
+ */
+export interface AppHeaderNormalModeProps {
+  onLogoClick?: () => void;
+  onSearchClick?: () => void;
+  onFilterClick?: () => void;
   className?: string;
 }

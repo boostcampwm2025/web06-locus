@@ -1,8 +1,5 @@
 import { getAccessToken } from '../storage/tokenStorage';
-
-const API_BASE_URL =
-  (import.meta.env.VITE_API_BASE_URL as string | undefined) ??
-  'http://localhost:3000';
+import { API_BASE_URL } from './constants';
 
 export interface ApiClientOptions extends RequestInit {
   requireAuth?: boolean;
@@ -81,7 +78,12 @@ function prepareHeaders(
   return requestHeaders;
 }
 
-function buildApiUrl(endpoint: string): string {
+/**
+ * API URL 생성
+ * @param endpoint - API 엔드포인트
+ * @returns 완전한 API URL
+ */
+export function buildApiUrl(endpoint: string): string {
   return endpoint.startsWith('http') ? endpoint : `${API_BASE_URL}${endpoint}`;
 }
 

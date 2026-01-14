@@ -9,7 +9,9 @@ import MapIcon from './MapIcon';
 import SearchIcon from './SearchIcon';
 import BookmarkIcon from './BookmarkIcon';
 import ArrowLeftIcon from './ArrowLeftIcon';
+import ArrowRightIcon from './ArrowRightIcon';
 import LocationIcon from './LocationIcon';
+import LinkIcon from './LinkIcon';
 import ImageIcon from './ImageIcon';
 import CameraIcon from './CameraIcon';
 import PlusIcon from './PlusIcon';
@@ -20,6 +22,9 @@ import TagIcon from './TagIcon';
 import CalendarIcon from './CalendarIcon';
 import EditIcon from './EditIcon';
 import TrashIcon from './TrashIcon';
+import FilterIcon from './FilterIcon';
+import CheckIcon from './CheckIcon';
+import MoreVerticalIcon from './MoreVerticalIcon';
 
 const meta = {
   title: 'Shared/Icons',
@@ -92,6 +97,11 @@ export const IconCatalog: Story = {
             description="검색 아이콘"
           />
           <IconCard
+            name="FilterIcon"
+            icon={<FilterIcon className="w-8 h-8 text-gray-600" />}
+            description="필터링 아이콘"
+          />
+          <IconCard
             name="BookmarkIcon"
             icon={<BookmarkIcon className="w-8 h-8 text-gray-500" />}
             description="북마크 아이콘"
@@ -102,9 +112,19 @@ export const IconCatalog: Story = {
             description="뒤로가기 아이콘"
           />
           <IconCard
+            name="ArrowRightIcon"
+            icon={<ArrowRightIcon className="w-8 h-8 text-gray-700" />}
+            description="오른쪽 화살표 아이콘"
+          />
+          <IconCard
             name="LocationIcon"
             icon={<LocationIcon className="w-8 h-8 text-blue-600" />}
             description="위치/장소 아이콘"
+          />
+          <IconCard
+            name="LinkIcon"
+            icon={<LinkIcon className="w-8 h-8 text-gray-500" />}
+            description="연결 아이콘"
           />
           <IconCard
             name="ImageIcon"
@@ -156,6 +176,16 @@ export const IconCatalog: Story = {
             icon={<TrashIcon className="w-8 h-8 text-red-500" />}
             description="삭제 아이콘"
           />
+          <IconCard
+            name="CheckIcon"
+            icon={<CheckIcon className="w-8 h-8 text-gray-700" />}
+            description="체크/확인 아이콘"
+          />
+          <IconCard
+            name="MoreVerticalIcon"
+            icon={<MoreVerticalIcon className="w-8 h-8 text-gray-700" />}
+            description="세로 점 3개 메뉴 아이콘"
+          />
         </div>
       </div>
 
@@ -205,6 +235,7 @@ export const AllIcons: Story = {
       <IconCard name="RefreshIcon" icon={<RefreshIcon className="w-8 h-8" />} />
       <IconCard name="MapIcon" icon={<MapIcon className="w-8 h-8" />} />
       <IconCard name="SearchIcon" icon={<SearchIcon className="w-8 h-8" />} />
+      <IconCard name="FilterIcon" icon={<FilterIcon className="w-8 h-8" />} />
       <IconCard
         name="BookmarkIcon"
         icon={<BookmarkIcon className="w-8 h-8" />}
@@ -214,9 +245,14 @@ export const AllIcons: Story = {
         icon={<ArrowLeftIcon className="w-8 h-8" />}
       />
       <IconCard
+        name="ArrowRightIcon"
+        icon={<ArrowRightIcon className="w-8 h-8" />}
+      />
+      <IconCard
         name="LocationIcon"
         icon={<LocationIcon className="w-8 h-8" />}
       />
+      <IconCard name="LinkIcon" icon={<LinkIcon className="w-8 h-8" />} />
       <IconCard name="ImageIcon" icon={<ImageIcon className="w-8 h-8" />} />
       <IconCard name="CameraIcon" icon={<CameraIcon className="w-8 h-8" />} />
       <IconCard name="PlusIcon" icon={<PlusIcon className="w-8 h-8" />} />
@@ -230,6 +266,11 @@ export const AllIcons: Story = {
       />
       <IconCard name="EditIcon" icon={<EditIcon className="w-8 h-8" />} />
       <IconCard name="TrashIcon" icon={<TrashIcon className="w-8 h-8" />} />
+      <IconCard name="CheckIcon" icon={<CheckIcon className="w-8 h-8" />} />
+      <IconCard
+        name="MoreVerticalIcon"
+        icon={<MoreVerticalIcon className="w-8 h-8" />}
+      />
       <IconCard name="GoogleIcon" icon={<GoogleIcon className="w-8 h-8" />} />
       <IconCard name="NaverIcon" icon={<NaverIcon className="w-8 h-8" />} />
       <IconCard name="KakaoIcon" icon={<KakaoIcon className="w-8 h-8" />} />
