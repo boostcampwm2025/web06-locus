@@ -1,6 +1,5 @@
 import { Inject, Injectable, OnModuleDestroy, Logger } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
-import { PrismaService } from '../prisma/prisma.service';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { Outbox, OutboxStatus } from '@prisma/client';
 import { lastValueFrom, timeout } from 'rxjs';
@@ -10,6 +9,7 @@ import {
   AggregateType,
   OutboxEvent,
 } from '@/common/constants/event-types.constants';
+import { OutboxService } from './outbox.service';
 
 @Injectable()
 export class OutboxPublisher implements OnModuleDestroy {
@@ -18,7 +18,7 @@ export class OutboxPublisher implements OnModuleDestroy {
   private readonly MAX_RETRY_COUNT = 5;
 
   constructor(
-    private readonly prisma: PrismaService,
+    private readonly outboxService: OutboxService,
     @Inject(RABBITMQ_CONSTANTS.CLIENTS.RECORD_SYNC_PRODUCER)
     private readonly client: ClientProxy,
   ) {}
@@ -43,7 +43,7 @@ export class OutboxPublisher implements OnModuleDestroy {
     this.isProcessing = true;
 
     try {
-      const events = await this.getPendingOutboxEvents();
+      const events = await this.outboxService.getPendingOutboxEvents();
 
       for (const event of events) {
         await this.processEvent(event);
@@ -64,21 +64,10 @@ export class OutboxPublisher implements OnModuleDestroy {
     try {
       const outboxEvent = this.convertToOutboxEvent(event);
       await this.sendToRabbitMQ(outboxEvent);
-      await this.updateStatusDone(event.id);
+      await this.outboxService.updateStatus(event.id, OutboxStatus.DONE);
     } catch (_error) {
       await this.handlePublishFailure(event);
     }
-  }
-
-  private async getPendingOutboxEvents(): Promise<Outbox[]> {
-    return this.prisma.outbox.findMany({
-      where: {
-        status: { in: [OutboxStatus.PENDING, OutboxStatus.RETRY] },
-        retryCount: { lt: this.MAX_RETRY_COUNT },
-      },
-      take: 100,
-      orderBy: { createdAt: 'asc' },
-    });
   }
 
   private convertToOutboxEvent(outbox: Outbox): OutboxEvent {
@@ -101,25 +90,14 @@ export class OutboxPublisher implements OnModuleDestroy {
     this.logger.log(`✅ ${event.eventId} Event가 RabbitMQ에 publish`);
   }
 
-  // NOTE: 삭제를 할까..
-  private async updateStatusDone(id: bigint) {
-    await this.prisma.outbox.update({
-      where: { id },
-      data: { status: OutboxStatus.DONE, processedAt: new Date() },
-    });
-  }
-
   private async handlePublishFailure(outbox: Outbox): Promise<void> {
     const retryCount = outbox.retryCount + 1;
     const isDead = retryCount >= this.MAX_RETRY_COUNT;
 
-    await this.prisma.outbox.update({
-      where: { id: outbox.id },
-      data: {
-        retryCount,
-        status: isDead ? OutboxStatus.DEAD : OutboxStatus.RETRY,
-      },
-    });
+    await this.outboxService.updateStatus(
+      outbox.id,
+      isDead ? OutboxStatus.DEAD : OutboxStatus.RETRY,
+    );
 
     if (isDead) {
       this.logger.error(
