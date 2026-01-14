@@ -27,12 +27,13 @@ export default defineConfig(
       'node_modules/**',
       '**/prisma.config.ts',
       '**/prisma/**',
+      '**/jest.config.cjs'
     ],
   },
 
   // JS 파일은 타입체킹 규칙 비활성화
   {
-    files: ['**/*.js', '**/*.mjs', '**/*.cjs'],
+    files: ['**/*.js', '**/*.mjs'],
     extends: [tseslint.configs.disableTypeChecked],
   },
 );
