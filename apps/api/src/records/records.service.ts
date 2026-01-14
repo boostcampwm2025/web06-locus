@@ -48,19 +48,15 @@ export class RecordsService {
           },
         });
 
-        // 2-2. geometry 필드만 업데이트
-        await tx.$executeRaw`
+        // 2-2. geometry 필드 업데이트 및 레코드 조회
+        const [updated] = await tx.$queryRaw<RecordModel[]>`
           UPDATE records
-          SET location = ST_GeomFromText(
-            ${`POINT(${dto.location.longitude} ${dto.location.latitude})`},
+          SET location = ST_SetSRID(
+            ST_MakePoint(${dto.location.longitude}, ${dto.location.latitude}),
             4326
           )
           WHERE id = ${created.id}
-        `;
-
-        // 2-3. geometry 포함한 레코드 조회
-        const [updated] = await tx.$queryRaw<RecordModel[]>`
-          SELECT
+          RETURNING
             id,
             public_id,
             title,
@@ -73,8 +69,6 @@ export class RecordsService {
             is_favorite,
             created_at,
             updated_at
-          FROM records
-          WHERE id = ${created.id}
         `;
 
         return updated;
