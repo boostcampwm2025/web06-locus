@@ -105,7 +105,7 @@ jobs:
             docker compose pull
             docker compose up -d
             docker image prune -f
-            docker compose exec -T locus-api psql 'postgresql://admin:locus1234!@pg-3flk7r.vpc-cdb-kr.ntruss.com:5432/locus_dev_db' -c "ALTER ROLE admin SET search_path TO locus, public;"
+            psql 'postgresql://admin:locus1234!@pg-3flk7r.vpc-cdb-kr.ntruss.com:5432/locus_dev_db' -c "ALTER ROLE admin SET search_path TO locus, public;"
             docker compose exec -T locus-api pnpm --filter @locus/api exec prisma db push --accept-data-loss
       - name: Remove Github Action IP from ACG
         if: always()
