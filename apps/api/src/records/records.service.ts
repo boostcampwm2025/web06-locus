@@ -5,7 +5,6 @@ import { CreateRecordDto } from './dto/create-record.dto';
 import { RecordResponseDto } from './dto/record-response.dto';
 import { RecordModel } from './records.types';
 import { RecordCreationFailedException } from './exceptions/record.exceptions';
-import { nanoid } from 'nanoid';
 
 @Injectable()
 export class RecordsService {
@@ -33,51 +32,53 @@ export class RecordsService {
       );
     }
 
-    // 2. INSERT 후 생성된 기록 반환
+    // 2. Prisma create + geometry UPDATE
     try {
-      const publicId = nanoid(12);
+      const record = await this.prisma.$transaction(async (tx) => {
+        // 2-1. location 제외 레코드 생성
+        const created = await tx.record.create({
+          data: {
+            userId,
+            title: dto.title,
+            content: dto.content ?? null,
+            locationName: name,
+            locationAddress: address,
+            tags: dto.tags ?? [],
+            isFavorite: false,
+          },
+        });
 
-      const [record] = await this.prisma.$queryRaw<RecordModel[]>`
-        INSERT INTO records (
-          public_id,
-          user_id,
-          title,
-          content,
-          location,
-          location_name,
-          location_address,
-          tags,
-          is_favorite,
-          created_at,
-          updated_at
-        )
-        VALUES (
-          ${publicId},
-          ${userId},
-          ${dto.title},
-          ${dto.content ?? null},
-          ST_GeomFromText(${`POINT(${dto.location.longitude} ${dto.location.latitude})`}, 4326),
-          ${name},
-          ${address},
-          ${dto.tags ?? []},
-          false,
-          NOW(),
-          NOW()
-        )
-        RETURNING
-          id,
-          public_id,
-          title,
-          content,
-          ST_X(location) AS longitude,
-          ST_Y(location) AS latitude,
-          location_name,
-          location_address,
-          tags,
-          is_favorite,
-          created_at,
-          updated_at
-      `;
+        // 2-2. geometry 필드만 업데이트
+        await tx.$executeRaw`
+          UPDATE records
+          SET location = ST_GeomFromText(
+            ${`POINT(${dto.location.longitude} ${dto.location.latitude})`},
+            4326
+          )
+          WHERE id = ${created.id}
+        `;
+
+        // 2-3. geometry 포함한 레코드 조회
+        const [updated] = await tx.$queryRaw<RecordModel[]>`
+          SELECT
+            id,
+            public_id,
+            title,
+            content,
+            ST_X(location) AS longitude,
+            ST_Y(location) AS latitude,
+            location_name,
+            location_address,
+            tags,
+            is_favorite,
+            created_at,
+            updated_at
+          FROM records
+          WHERE id = ${created.id}
+        `;
+
+        return updated;
+      });
 
       this.logger.log(
         `Record created: publicId=${record.public_id}, userId=${userId}, title="${dto.title}"`,
