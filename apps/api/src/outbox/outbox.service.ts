@@ -1,12 +1,26 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { Outbox, OutboxStatus } from '@prisma/client';
+import { Outbox, OutboxStatus, Prisma } from '@prisma/client';
+import { OutboxEvent } from '@/common/constants/event-types.constants';
 
 @Injectable()
 export class OutboxService {
   private readonly MAX_RETRY_COUNT = 5;
 
   constructor(private readonly prisma: PrismaService) {}
+
+  async publish(tx: Prisma.TransactionClient, data: OutboxEvent) {
+    return tx.outbox.create({
+      data: {
+        aggregateType: data.aggregateType,
+        aggregateId: BigInt(data.aggregateId),
+        eventType: data.eventType,
+        status: OutboxStatus.PENDING,
+        // Prisma 타입에 맞게 조정
+        payload: data.payload as Prisma.InputJsonValue,
+      },
+    });
+  }
 
   async getPendingOutboxEvents(): Promise<Outbox[]> {
     return this.prisma.outbox.findMany({
