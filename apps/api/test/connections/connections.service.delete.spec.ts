@@ -29,15 +29,15 @@ describe('ConnectionsService - delete / findPairConnections', () => {
       $transaction: jest.fn(),
     };
 
-    const recordsServiceMock = {} as unknown as RecordsService;
+    const recordsServiceMock = {
+      findOneByPublicId: jest.fn(),
+    };
 
-    beforeEach(() => {
-      jest.clearAllMocks();
-      service = new ConnectionsService(
-        prismaServiceMock as unknown as PrismaService,
-        recordsServiceMock,
-      );
-    });
+    service = new ConnectionsService(
+      prismaServiceMock as unknown as PrismaService,
+      recordsServiceMock as unknown as RecordsService,
+    );
+
     jest.clearAllMocks();
   });
 
