@@ -37,8 +37,8 @@ export interface RecordConnectionPageProps {
 export interface RecordSelectionHeaderProps {
   departure?: RecordSelection;
   arrival?: RecordSelection;
-  onDepartureClick?: () => void;
-  onArrivalClick?: () => void;
+  onDepartureClick: () => void;
+  onArrivalClick: () => void;
   onDepartureClear?: () => void;
   onArrivalClear?: () => void;
   className?: string;
@@ -92,4 +92,17 @@ export interface RecordConnectionListProps {
   onRecordClick?: (record: RecordConnectionItem) => void;
   emptyMessage?: string;
   className?: string;
+}
+
+/**
+ * 선택 버튼 Props
+ */
+export interface SelectionButtonProps {
+  label: string;
+  placeholder: string;
+  dotClassName: string;
+  selected?: { title?: string } | null;
+  onClick: () => void;
+  onClear?: () => void;
+  clearAriaLabel: string;
 }
