@@ -94,11 +94,10 @@ export class ConnectionsService {
     if (fromRecordPublicId === toRecordPublicId) {
       throw new SameRecordConnectionNotAllowedException(fromRecordPublicId);
     }
-    const fromRecord =
-      await this.recordsService.findOneByPublicId(fromRecordPublicId);
-    const toRecord =
-      await this.recordsService.findOneByPublicId(toRecordPublicId);
-
+    const [fromRecord, toRecord] = await Promise.all([
+      this.recordsService.findOneByPublicId(fromRecordPublicId),
+      this.recordsService.findOneByPublicId(toRecordPublicId),
+    ]);
     return [fromRecord, toRecord];
   }
 
