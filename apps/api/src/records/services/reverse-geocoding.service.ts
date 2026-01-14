@@ -44,7 +44,10 @@ export class ReverseGeocodingService {
 
       return { name, address };
     } catch (error: unknown) {
-      return this.handleError(error);
+      this.logger.error(
+        `Non-Error exception thrown during get Address from coordinates: latitude=${latitude}, longitude=${longitude}, raw=${JSON.stringify(error)}`,
+      );
+      return { name: null, address: null };
     }
   }
 
@@ -96,29 +99,20 @@ export class ReverseGeocodingService {
     region: NaverMapResponse['results'][0]['region'],
     land: NaverMapResponse['results'][0]['land'],
   ): string | null {
-    let address = `${region.area1.name} ${region.area2.name} ${region.area3.name}`;
+    let address = ``;
 
-    if (land) {
-      const number = land.number2
-        ? `${land.number1}-${land.number2}`
-        : land.number1;
-      address += ` ${land.name} ${number}`;
-    }
+    Object.values(region)
+      .slice(1)
+      .forEach((area) => {
+        if (area.name) address += ` ${area.name}`;
+      });
+
+    const number = land.number2
+      ? `${land.number1}-${land.number2}`
+      : land.number1;
+
+    address += ` ${number}`;
 
     return address.trim() || null;
-  }
-
-  private handleError(error: unknown): ReverseGeocodingResult {
-    // TODO: Zod로 구조/네트워크 에러 구분 추가 및 Reverse geocoding 관련 에러코드 추가
-    if (error instanceof Error) {
-      this.logger.error(
-        `Reverse geocoding error: ${error.message}`,
-        error.stack,
-      );
-    } else {
-      this.logger.error(`Reverse geocoding unknown error`, String(error));
-    }
-
-    return { name: null, address: null };
   }
 }
