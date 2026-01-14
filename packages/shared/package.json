@@ -12,7 +12,7 @@
     }
   },
   "scripts": {
-    "build": "tsc",
+    "build": "tsc --declaration --declarationMap",
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
