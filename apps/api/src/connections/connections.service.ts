@@ -7,7 +7,7 @@ import {
   SameRecordConnectionNotAllowedException,
 } from './exceptions/business.exception';
 import { PrismaService } from '@/prisma/prisma.service';
-import { deletedConnectionDto } from './dto/delete-connection.response.dto';
+import { DeletedConnectionDto } from './dto/delete-connection.response.dto';
 import { ConnectionDto } from './dto/create-connection.response.dto';
 
 @Injectable()
@@ -62,7 +62,7 @@ export class ConnectionsService {
   async delete(
     userId: bigint,
     publicId: string,
-  ): Promise<deletedConnectionDto> {
+  ): Promise<DeletedConnectionDto> {
     const [findOne, findPair] = await this.findPairConnections(
       userId,
       publicId,

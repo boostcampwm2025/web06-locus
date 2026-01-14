@@ -1,8 +1,8 @@
 export class DeleteConnectionResponseDto {
-  deleted: deletedConnectionDto;
+  deleted: DeletedConnectionDto;
 }
 
-export interface deletedConnectionDto {
+export interface DeletedConnectionDto {
   publicId: string;
   pairPublicId: string;
 }
