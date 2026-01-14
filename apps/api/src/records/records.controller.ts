@@ -45,7 +45,7 @@ export class RecordsController {
     description: '인증 토큰이 없거나 유효하지 않습니다.',
   })
   async createRecord(
-    @CurrentUser('sub') userId: number,
+    @CurrentUser('sub') userId: bigint,
     @Body() dto: CreateRecordDto,
   ): Promise<RecordResponseDto> {
     return await this.recordsService.createRecord(userId, dto);
