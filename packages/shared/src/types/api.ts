@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import {
-  LocationResponseSchema,
+  LocationSchema,
   ImageResponseSchema,
   RecordResponseSchema,
   RecordWithImagesResponseSchema,
@@ -21,7 +21,7 @@ import {
 /**
  * Zod 스키마에서 타입 추론 - Response 타입 (camelCase)
  */
-export type Location = z.infer<typeof LocationResponseSchema>;
+export type Location = z.infer<typeof LocationSchema>;
 export type Image = z.infer<typeof ImageResponseSchema>;
 export type Record = z.infer<typeof RecordResponseSchema>;
 export type RecordWithImages = z.infer<typeof RecordWithImagesResponseSchema>;

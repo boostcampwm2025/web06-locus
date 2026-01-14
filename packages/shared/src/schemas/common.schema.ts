@@ -1,25 +1,12 @@
 import { z } from 'zod';
 
 /**
- * 위치 정보 스키마 (Request용)
+ * 위치 정보 스키마 (camelCase)
  *
- * @usedIn Request 스키마의 location 필드에서 사용
- * @api POST /records, PATCH /records/{public_id}
+ * @usedIn Request 및 Response 스키마의 location 필드에서 사용
+ * @api GET /records, POST /records, PATCH /records/{public_id}, GET /records/{publicId}/graph/records
  */
 export const LocationSchema = z.object({
-  latitude: z.number().min(-90).max(90),
-  longitude: z.number().min(-180).max(180),
-  address: z.string(),
-  name: z.string().optional(),
-});
-
-/**
- * 위치 정보 스키마 (Response용 - camelCase)
- *
- * @usedIn Response 스키마의 location 필드에서 사용
- * @api GET /records, GET /records/{publicId}/graph/records
- */
-export const LocationResponseSchema = z.object({
   latitude: z.number().min(-90).max(90),
   longitude: z.number().min(-180).max(180),
   address: z.string(),
@@ -66,12 +53,12 @@ export const CursorPaginationResponseSchema = z.object({
 });
 
 /**
- * 페이지네이션 스키마 (offset 기반)
+ * 페이지네이션 스키마 (offset 기반, camelCase)
  *
- * @api GET /records - 응답의 data.total_count 필드
+ * @api GET /records - 응답의 data.totalCount 필드
  */
 export const OffsetPaginationSchema = z.object({
-  total_count: z.number(),
+  totalCount: z.number(),
 });
 
 /**

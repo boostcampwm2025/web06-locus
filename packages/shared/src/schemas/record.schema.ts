@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import {
-  LocationResponseSchema,
+  LocationSchema,
   ImageResponseSchema,
   SuccessResponseSchema,
   FailResponseSchema,
@@ -22,7 +22,7 @@ export const RecordResponseSchema = z.object({
   publicId: z.string(),
   title: z.string(),
   content: z.string().optional(),
-  location: LocationResponseSchema,
+  location: LocationSchema,
   tags: z.array(z.string()),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
@@ -50,13 +50,13 @@ export const RecordWithImagesResponseSchema = RecordResponseSchema.extend({
  * @api GET /records
  */
 export const GetRecordsByBoundsRequestSchema = z.object({
-  ne_lat: z.number().min(-90).max(90),
-  ne_lng: z.number().min(-180).max(180),
-  sw_lat: z.number().min(-90).max(90),
-  sw_lng: z.number().min(-180).max(180),
+  neLat: z.number().min(-90).max(90),
+  neLng: z.number().min(-180).max(180),
+  swLat: z.number().min(-90).max(90),
+  swLng: z.number().min(-180).max(180),
   page: z.number().int().min(1).optional().default(1),
   limit: z.number().int().min(10).max(100).optional().default(10),
-  sort_order: z.enum(['desc', 'asc']).optional().default('desc'),
+  sortOrder: z.enum(['desc', 'asc']).optional().default('desc'),
 });
 
 /**
@@ -67,9 +67,9 @@ export const GetRecordsByBoundsRequestSchema = z.object({
 export const SearchRecordsRequestSchema = z.object({
   keyword: z.string().min(1),
   tags: z.array(z.string()).optional(),
-  sort_order: z.enum(['desc', 'asc']).optional(),
-  has_image: z.boolean().optional(),
-  is_favorite: z.boolean().optional(),
+  sortOrder: z.enum(['desc', 'asc']).optional(),
+  hasImage: z.boolean().optional(),
+  isFavorite: z.boolean().optional(),
   cursor: z.string().optional(),
   size: z.number().int().min(1).optional(),
 });
@@ -104,7 +104,7 @@ export const UpdateRecordRequestSchema = z.object({
     })
     .optional(),
   tags: z.array(z.string()).optional(),
-  is_favorite: z.boolean().optional(),
+  isFavorite: z.boolean().optional(),
 });
 
 /**
@@ -113,7 +113,7 @@ export const UpdateRecordRequestSchema = z.object({
  * @api DELETE /records/{public_id}
  */
 export const DeleteRecordRequestSchema = z.object({
-  public_id: z.string(),
+  publicId: z.string(),
 });
 
 /**
@@ -123,9 +123,9 @@ export const DeleteRecordRequestSchema = z.object({
  */
 export const GetGraphRequestSchema = z.object({
   publicId: z.string(),
-  max_nodes: z.number().int().min(1).max(2000).optional().default(2000),
-  max_edges: z.number().int().min(1).max(4000).optional().default(4000),
-  max_depth: z.number().int().min(1).max(50).optional().default(50),
+  maxNodes: z.number().int().min(1).max(2000).optional().default(2000),
+  maxEdges: z.number().int().min(1).max(4000).optional().default(4000),
+  maxDepth: z.number().int().min(1).max(50).optional().default(50),
 });
 
 /**
@@ -271,7 +271,7 @@ export const ConnectedRecordDetailResponseSchema = z.object({
   publicId: z.string(),
   title: z.string(),
   content: z.string(),
-  location: LocationResponseSchema,
+  location: LocationSchema,
   tags: z.array(z.string()),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
