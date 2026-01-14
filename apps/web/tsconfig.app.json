@@ -9,6 +9,7 @@
     "skipLibCheck": true,
 
     "moduleResolution": "bundler",
+    "resolvePackageJsonExports": true,
     "allowImportingTsExtensions": true,
     "verbatimModuleSyntax": true,
     "moduleDetection": "force",
@@ -26,7 +27,6 @@
     "paths": {
       "@/*": ["./src/*"],
       "@public/*": ["./public/*"],
-      "@locus/shared": ["../../packages/shared/src"],
       "@features/home/*": ["./src/features/home/*"]
     }
   },
