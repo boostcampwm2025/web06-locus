@@ -84,7 +84,7 @@ export class RecordsService {
       );
 
       // 3. 응답 변환
-      return this.toResponseDto(record);
+      return RecordResponseDto.from(record);
     } catch (error: unknown) {
       if (error instanceof Error) {
         this.logger.error(
@@ -101,24 +101,6 @@ export class RecordsService {
     }
   }
 
-  private toResponseDto(record: RecordModel): RecordResponseDto {
-    return {
-      public_id: record.public_id,
-      title: record.title,
-      content: record.content,
-      location: {
-        latitude: record.latitude,
-        longitude: record.longitude,
-        name: record.location_name,
-        address: record.location_address,
-      },
-      // TODO: 태그 관련 중간테이블 및 서비스 추가
-      tags: record.tags,
-      // TODO: 이미지 기능 추가
-      images: [],
-      is_favorite: record.is_favorite,
-      created_at: record.created_at.toISOString(),
-      updated_at: record.updated_at.toISOString(),
-    };
-  }
+  // TODO: 태그 관련 중간테이블 및 서비스 추가
+  // TODO: 이미지 기능 추가
 }

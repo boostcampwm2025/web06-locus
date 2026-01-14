@@ -1,4 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { RecordModel } from '../records.types';
 
 export class ImageSizeDto {
   @ApiProperty({ description: 'URL', example: 'https://...' })
@@ -92,4 +93,23 @@ export class RecordResponseDto {
     example: '2024-01-15T14:30:00Z',
   })
   updated_at: string;
+
+  static from(record: RecordModel): RecordResponseDto {
+    return {
+      public_id: record.public_id,
+      title: record.title,
+      content: record.content,
+      location: {
+        latitude: record.latitude,
+        longitude: record.longitude,
+        name: record.location_name,
+        address: record.location_address,
+      },
+      tags: record.tags,
+      images: [],
+      is_favorite: record.is_favorite,
+      created_at: record.created_at.toISOString(),
+      updated_at: record.updated_at.toISOString(),
+    };
+  }
 }
