@@ -52,6 +52,7 @@ export interface RecordSearchInputProps {
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   placeholder?: string;
   className?: string;
+  autoFocus?: boolean;
 }
 
 /**
