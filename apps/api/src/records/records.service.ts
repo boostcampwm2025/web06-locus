@@ -103,6 +103,23 @@ export class RecordsService {
     }
   }
 
+  async findOneByPublicId(publicId: string) {
+    const record = await this.prisma.record.findUnique({
+      where: { publicId },
+      select: {
+        id: true,
+        userId: true,
+        publicId: true,
+      },
+    });
+
+    if (!record) {
+      throw new RecordNotFoundException(publicId);
+    }
+
+    return record;
+  }
+
   async getGraph(
     startRecordPublicId: string,
     userId: number,
