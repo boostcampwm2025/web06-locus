@@ -15,7 +15,7 @@ export class ConnectionsService {
   constructor(private readonly prismaService: PrismaService) {}
 
   async create(
-    userId: bigint,
+    userId: number,
     createConnectionDto: CreateConnectionRequestDto,
   ): Promise<ConnectionDto> {
     const { fromRecordPublicId, toRecordPublicId } = createConnectionDto;
@@ -60,7 +60,7 @@ export class ConnectionsService {
   }
 
   async delete(
-    userId: bigint,
+    userId: number,
     publicId: string,
   ): Promise<DeletedConnectionDto> {
     const [findOne, findPair] = await this.findPairConnections(
@@ -113,9 +113,9 @@ export class ConnectionsService {
   }
 
   private async validateConnection(
-    fromRecord: { id: bigint; publicId: string; userId: bigint },
-    toRecord: { id: bigint; publicId: string; userId: bigint },
-    userId: bigint,
+    fromRecord: { id: bigint; publicId: string; userId: number },
+    toRecord: { id: bigint; publicId: string; userId: number },
+    userId: number,
   ) {
     //연결 검증
     // (A,B) 또는 (B,A) 중 하나라도 있으면 중복
@@ -138,7 +138,7 @@ export class ConnectionsService {
     }
   }
 
-  private async findPairConnections(userId: bigint, publicId: string) {
+  private async findPairConnections(userId: number, publicId: string) {
     const findOne = await this.prismaService.connection.findFirst({
       where: { userId, publicId },
       select: {

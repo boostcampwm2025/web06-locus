@@ -19,7 +19,7 @@ export class ConnectionsController {
   @Post()
   @UseGuards(JwtAuthGuard)
   async createConnection(
-    @CurrentUser('sub') userId: bigint,
+    @CurrentUser('sub') userId: number,
     @Body() createConnectionDto: CreateConnectionRequestDto,
   ): Promise<CreateConnectionResponseDto> {
     const connection = await this.connectionsService.create(
@@ -40,7 +40,7 @@ export class ConnectionsController {
   @Delete(':publicId')
   @UseGuards(JwtAuthGuard)
   async deleteConnection(
-    @CurrentUser('sub') userId: bigint,
+    @CurrentUser('sub') userId: number,
     @Param('publicId') publicId: string,
   ): Promise<DeleteConnectionResponseDto> {
     const deletedConnectionDto = await this.connectionsService.delete(
