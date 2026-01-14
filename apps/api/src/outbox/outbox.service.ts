@@ -1,10 +1,9 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { Outbox, OutboxStatus } from '@prisma/client';
 
 @Injectable()
 export class OutboxService {
-  private readonly logger = new Logger(OutboxService.name);
   private readonly MAX_RETRY_COUNT = 5;
 
   constructor(private readonly prisma: PrismaService) {}
