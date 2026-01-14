@@ -16,10 +16,10 @@ export type AggregateType =
   (typeof AGGREGATE_TYPE)[keyof typeof AGGREGATE_TYPE];
 
 export interface OutboxEvent<T = any> {
-  eventId: string;
+  eventId?: string;
   eventType: OutboxEventType;
   aggregateId: string;
   aggregateType: AggregateType;
   payload: T;
-  timestamp: string;
+  timestamp?: string;
 }
