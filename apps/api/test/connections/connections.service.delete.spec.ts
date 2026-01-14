@@ -2,6 +2,7 @@ import { ConnectionsService } from '@/connections/connections.service';
 import { PrismaService } from '@/prisma/prisma.service';
 import { PairConnectionNotFoundException } from '@/connections/exceptions/business.exception';
 import { RecordNotFoundException } from '@/records/exceptions/record.exceptions';
+import { RecordsService } from '@/records/records.service';
 
 interface PrismaMock {
   record: { findUnique: jest.Mock };
@@ -28,9 +29,15 @@ describe('ConnectionsService - delete / findPairConnections', () => {
       $transaction: jest.fn(),
     };
 
-    service = new ConnectionsService(
-      prismaServiceMock as unknown as PrismaService,
-    );
+    const recordsServiceMock = {} as unknown as RecordsService;
+
+    beforeEach(() => {
+      jest.clearAllMocks();
+      service = new ConnectionsService(
+        prismaServiceMock as unknown as PrismaService,
+        recordsServiceMock,
+      );
+    });
     jest.clearAllMocks();
   });
 

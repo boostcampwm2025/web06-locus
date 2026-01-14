@@ -6,6 +6,7 @@ import {
   SameRecordConnectionNotAllowedException,
 } from '@/connections/exceptions/business.exception';
 import { RecordNotFoundException } from '@/records/exceptions/record.exceptions';
+import { RecordsService } from '@/records/records.service';
 
 describe('ConnectionsService', () => {
   let service: ConnectionsService;
@@ -21,10 +22,14 @@ describe('ConnectionsService', () => {
     connection: { findFirst: jest.fn(), create: jest.fn() },
     $transaction: jest.fn(),
   };
+
+  const recordsServiceMock = {} as unknown as RecordsService;
+
   beforeEach(() => {
     jest.clearAllMocks();
     service = new ConnectionsService(
       prismaServiceMock as unknown as PrismaService,
+      recordsServiceMock,
     );
   });
 
