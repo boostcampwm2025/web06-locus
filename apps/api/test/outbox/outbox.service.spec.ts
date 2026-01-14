@@ -1,7 +1,11 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { OutboxService } from '../../src/outbox/outbox.service';
 import { PrismaService } from '../../src/prisma/prisma.service';
-import { Outbox, OutboxStatus } from '@prisma/client';
+import { Outbox, OutboxStatus, Prisma } from '@prisma/client';
+import {
+  AGGREGATE_TYPE,
+  OUTBOX_EVENT_TYPE,
+} from '@/common/constants/event-types.constants';
 
 describe('OutboxService', () => {
   let service: OutboxService;
@@ -29,6 +33,204 @@ describe('OutboxService', () => {
     service = module.get<OutboxService>(OutboxService);
   });
 
+  describe('publish', () => {
+    test('트랜잭션 내에서 아웃박스 이벤트를 생성해야 한다', async () => {
+      // given
+      const mockTx = {
+        outbox: {
+          create: jest.fn(),
+        },
+      } as unknown as Prisma.TransactionClient;
+
+      const eventData = {
+        aggregateType: AGGREGATE_TYPE.RECORD,
+        aggregateId: '123',
+        eventType: OUTBOX_EVENT_TYPE.RECORD_CREATED,
+        payload: { title: 'Test Record', content: 'Test Content' },
+      };
+
+      const expectedOutbox: Outbox = {
+        id: 1n,
+        aggregateType: AGGREGATE_TYPE.RECORD,
+        aggregateId: 123n,
+        eventType: OUTBOX_EVENT_TYPE.RECORD_CREATED,
+        payload: { title: 'Test Record', content: 'Test Content' },
+        status: OutboxStatus.PENDING,
+        retryCount: 0,
+        createdAt: new Date('2026-01-01'),
+        processedAt: null,
+      };
+      (mockTx.outbox.create as jest.Mock).mockResolvedValue(expectedOutbox);
+
+      // when
+      const result = await service.publish(mockTx, eventData);
+
+      // then
+      expect(mockTx.outbox.create).toHaveBeenCalledWith({
+        data: {
+          aggregateType: AGGREGATE_TYPE.RECORD,
+          aggregateId: 123n,
+          eventType: OUTBOX_EVENT_TYPE.RECORD_CREATED,
+          status: OutboxStatus.PENDING,
+          payload: { title: 'Test Record', content: 'Test Content' },
+        },
+      });
+      expect(result).toEqual(expectedOutbox);
+    });
+
+    test('aggregateId를 BigInt로 변환하여 저장해야 한다', async () => {
+      // given
+      const mockTx = {
+        outbox: {
+          create: jest.fn(),
+        },
+      } as unknown as Prisma.TransactionClient;
+
+      const eventData = {
+        eventId: '999',
+        eventType: OUTBOX_EVENT_TYPE.RECORD_UPDATED,
+        aggregateId: '456',
+        aggregateType: AGGREGATE_TYPE.RECORD,
+        payload: {},
+        timestamp: '2026-01-01T00:00:00.000Z',
+      };
+
+      (mockTx.outbox.create as jest.Mock).mockResolvedValue({} as Outbox);
+
+      // when
+      await service.publish(mockTx, eventData);
+
+      // then
+      expect(mockTx.outbox.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            aggregateId: 456n,
+          }),
+        }),
+      );
+    });
+
+    test('초기 상태를 PENDING으로 설정해야 한다', async () => {
+      // given
+      const mockTx = {
+        outbox: {
+          create: jest.fn(),
+        },
+      } as unknown as Prisma.TransactionClient;
+
+      const eventData = {
+        eventId: '1',
+        eventType: OUTBOX_EVENT_TYPE.RECORD_CREATED,
+        aggregateId: '123',
+        aggregateType: AGGREGATE_TYPE.RECORD,
+        payload: {},
+        timestamp: '2026-01-01T00:00:00.000Z',
+      };
+
+      (mockTx.outbox.create as jest.Mock).mockResolvedValue({} as Outbox);
+
+      // when
+      await service.publish(mockTx, eventData);
+
+      // then
+      expect(mockTx.outbox.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            status: OutboxStatus.PENDING,
+          }),
+        }),
+      );
+    });
+
+    test('RECORD_DELETED 이벤트를 발행할 수 있어야 한다', async () => {
+      // given
+      const mockTx = {
+        outbox: {
+          create: jest.fn(),
+        },
+      } as unknown as Prisma.TransactionClient;
+
+      const eventData = {
+        eventId: '5',
+        eventType: OUTBOX_EVENT_TYPE.RECORD_DELETED,
+        aggregateId: '789',
+        aggregateType: AGGREGATE_TYPE.RECORD,
+        payload: { deletedAt: '2026-01-15T00:00:00.000Z' },
+        timestamp: '2026-01-15T00:00:00.000Z',
+      };
+
+      (mockTx.outbox.create as jest.Mock).mockResolvedValue({} as Outbox);
+
+      // when
+      await service.publish(mockTx, eventData);
+
+      // then
+      expect(mockTx.outbox.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            eventType: OUTBOX_EVENT_TYPE.RECORD_DELETED,
+          }),
+        }),
+      );
+    });
+
+    test('빈 payload로 이벤트를 발행할 수 있어야 한다', async () => {
+      // given
+      const mockTx = {
+        outbox: {
+          create: jest.fn(),
+        },
+      } as unknown as Prisma.TransactionClient;
+
+      const eventData = {
+        eventId: '10',
+        eventType: OUTBOX_EVENT_TYPE.RECORD_CREATED,
+        aggregateId: '100',
+        aggregateType: AGGREGATE_TYPE.RECORD,
+        payload: {},
+        timestamp: '2026-01-01T00:00:00.000Z',
+      };
+
+      (mockTx.outbox.create as jest.Mock).mockResolvedValue({} as Outbox);
+
+      // when
+      await service.publish(mockTx, eventData);
+
+      // then
+      expect(mockTx.outbox.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            payload: {},
+          }),
+        }),
+      );
+    });
+
+    test('트랜잭션 생성 실패 시 예외를 전파해야 한다', async () => {
+      // given
+      const mockTx = {
+        outbox: {
+          create: jest.fn(),
+        },
+      } as unknown as Prisma.TransactionClient;
+
+      const eventData = {
+        eventId: '1',
+        eventType: OUTBOX_EVENT_TYPE.RECORD_CREATED,
+        aggregateId: '123',
+        aggregateType: AGGREGATE_TYPE.RECORD,
+        payload: {},
+        timestamp: '2026-01-01T00:00:00.000Z',
+      };
+
+      const error = new Error('Transaction failed');
+      (mockTx.outbox.create as jest.Mock).mockRejectedValue(error);
+
+      // when & then
+      await expect(service.publish(mockTx, eventData)).rejects.toThrow(error);
+    });
+  });
+
   describe('getPendingOutboxEvents', () => {
     test('PENDING 상태의 아웃박스 이벤트를 조회해야 한다', async () => {
       // given
@@ -41,7 +243,7 @@ describe('OutboxService', () => {
           payload: { title: 'Test' },
           status: OutboxStatus.PENDING,
           retryCount: 0,
-          createdAt: new Date('2024-01-01'),
+          createdAt: new Date('2026-01-01'),
           processedAt: null,
         },
       ];
@@ -73,7 +275,7 @@ describe('OutboxService', () => {
           payload: { title: 'Updated' },
           status: OutboxStatus.RETRY,
           retryCount: 2,
-          createdAt: new Date('2024-01-02'),
+          createdAt: new Date('2026-01-02'),
           processedAt: null,
         },
       ];
@@ -98,7 +300,7 @@ describe('OutboxService', () => {
           payload: {},
           status: OutboxStatus.RETRY,
           retryCount: 4,
-          createdAt: new Date('2024-01-03'),
+          createdAt: new Date('2026-01-03'),
           processedAt: null,
         },
       ];
@@ -144,7 +346,7 @@ describe('OutboxService', () => {
           payload: {},
           status: OutboxStatus.PENDING,
           retryCount: 0,
-          createdAt: new Date('2024-01-01'),
+          createdAt: new Date('2026-01-01'),
           processedAt: null,
         },
         {
@@ -155,7 +357,7 @@ describe('OutboxService', () => {
           payload: {},
           status: OutboxStatus.PENDING,
           retryCount: 0,
-          createdAt: new Date('2024-01-02'),
+          createdAt: new Date('2026-01-02'),
           processedAt: null,
         },
       ];
@@ -193,7 +395,7 @@ describe('OutboxService', () => {
           payload: {},
           status: OutboxStatus.PENDING,
           retryCount: 0,
-          createdAt: new Date('2024-01-01'),
+          createdAt: new Date('2026-01-01'),
           processedAt: null,
         },
         {
@@ -204,7 +406,7 @@ describe('OutboxService', () => {
           payload: {},
           status: OutboxStatus.RETRY,
           retryCount: 1,
-          createdAt: new Date('2024-01-02'),
+          createdAt: new Date('2026-01-02'),
           processedAt: null,
         },
       ];
