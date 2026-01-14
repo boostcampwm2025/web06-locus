@@ -45,14 +45,14 @@
   },
   "lint-staged": {
     "apps/web/**/*.{js,jsx,ts,tsx}": [
-      "pnpm --filter web lint --fix",
+      "pnpm --filter @locus/web exec eslint --fix",
       "prettier --write"
     ],
     "apps/api/**/*.{js,ts}": [
-      "pnpm --filter api lint --fix",
+      "pnpm --filter @locus/api exec eslint --fix",
       "prettier --write"
     ],
-    "*.{json,css,md,yaml,yml}": [
+    "*.{json,md,yml,yaml,css}": [
       "prettier --write"
     ]
   },

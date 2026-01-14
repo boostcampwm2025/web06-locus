@@ -6,9 +6,9 @@ import { AppService } from './app.service';
 import { PrismaModule } from './prisma/prisma.module';
 import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
+import { RecordsModule } from './records/records.module';
 import { ResponseTransformInterceptor } from './common/interceptors/response-tranform.interceptor';
 import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
-import { RecordModule } from './record/record.module';
 import { OutboxModule } from './outbox/outbox.module';
 import { ScheduleModule } from '@nestjs/schedule';
 import { RabbitMqModule } from './mq/rabbitmq.module';
@@ -26,7 +26,7 @@ import { MailModule } from './mail/mail.module';
     MailModule,
     AuthModule,
     UsersModule,
-    RecordModule,
+    RecordsModule,
   ],
   controllers: [AppController],
   providers: [
