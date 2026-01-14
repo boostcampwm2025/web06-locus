@@ -29,7 +29,7 @@ model User {
 
 model Record {
   id              Int      @id @default(autoincrement())
-  publicId        String   @unique @map("public_id") @default(nanoid(12))
+  publicId        String   @unique @map("public_id") @db.VarChar(12)
   userId          Int      @map("user_id")
   title           String   @db.VarChar(100)
   content         String?  @db.VarChar(500)
