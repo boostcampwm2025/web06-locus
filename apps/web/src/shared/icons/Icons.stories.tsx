@@ -8,6 +8,7 @@ import Logo from './Logo';
 import MapIcon from './MapIcon';
 import SearchIcon from './SearchIcon';
 import BookmarkIcon from './BookmarkIcon';
+import FavoriteIcon from './FavoriteIcon';
 import ArrowLeftIcon from './ArrowLeftIcon';
 import ArrowRightIcon from './ArrowRightIcon';
 import LocationIcon from './LocationIcon';
@@ -105,6 +106,11 @@ export const IconCatalog: Story = {
             name="BookmarkIcon"
             icon={<BookmarkIcon className="w-8 h-8 text-gray-500" />}
             description="북마크 아이콘"
+          />
+          <IconCard
+            name="FavoriteIcon"
+            icon={<FavoriteIcon className="w-8 h-8 text-yellow-500" />}
+            description="즐겨찾기 아이콘"
           />
           <IconCard
             name="ArrowLeftIcon"
@@ -239,6 +245,10 @@ export const AllIcons: Story = {
       <IconCard
         name="BookmarkIcon"
         icon={<BookmarkIcon className="w-8 h-8" />}
+      />
+      <IconCard
+        name="FavoriteIcon"
+        icon={<FavoriteIcon className="w-8 h-8" />}
       />
       <IconCard
         name="ArrowLeftIcon"
