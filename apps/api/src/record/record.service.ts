@@ -10,7 +10,7 @@ export class RecordService {
 
   // Record + Outbox는 반드시 같은 트랜잭션
   // 실패해도 DB 롤백 → 이벤트가 생성되는것을 보장 → 일관성 보장
-  async createRecord(dto: CreateRecordDto, userId: number) {
+  async createRecord(dto: CreateRecordDto, userId: bigint) {
     await this.prisma.$transaction(async (tx) => {
       // NOTE: 기록을 postgresql 에 생성 (실제로는 더 복잡) - 예시 코드
       const record = await tx.record.create({
