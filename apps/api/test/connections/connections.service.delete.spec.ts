@@ -141,7 +141,7 @@ describe('ConnectionsService - delete / findPairConnections', () => {
 
   describe('delete', () => {
     test('publicId에 해당하는 연결이 없으면 RecordNotFoundException을 던지고, 트랜잭션 삭제는 호출하지 않는다', async () => {
-      const userId = 1n;
+      const userId = 1;
       const publicId = 'conn_aaa';
 
       prismaServiceMock.connection.findFirst.mockResolvedValueOnce(null);
@@ -155,7 +155,7 @@ describe('ConnectionsService - delete / findPairConnections', () => {
     });
 
     test('짝(반대방향) 연결이 없으면 PairConnectionNotFoundException을 던지고, 트랜잭션 삭제는 호출하지 않는다', async () => {
-      const userId = 1n;
+      const userId = 1;
       const publicId = 'conn_aaa';
 
       const findOne = {
@@ -178,7 +178,7 @@ describe('ConnectionsService - delete / findPairConnections', () => {
     });
 
     test('연결과 짝 연결이 모두 존재하면 트랜잭션으로 2건 삭제를 수행하고 publicId/pairPublicId를 반환한다', async () => {
-      const userId = 1n;
+      const userId = 1;
       const publicId = 'conn_aaa';
 
       const findOne = {
