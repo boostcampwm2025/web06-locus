@@ -28,7 +28,7 @@ model User {
 }
 
 model Record {
-  id              Int      @id @default(autoincrement())
+  id              BigInt      @id @default(autoincrement())
   publicId        String   @unique @map("public_id") @default(nanoid(12))
   userId          Int      @map("user_id")
   title           String   @db.VarChar(100)
@@ -51,9 +51,9 @@ model Record {
 }
 
 model Image {
-  id              Int      @id @default(autoincrement())
+  id              BigInt      @id @default(autoincrement())
   publicId        String   @unique @map("public_id") @default(nanoid(12))
-  recordId        Int      @map("record_id")
+  recordId        BigInt      @map("record_id")
   order           Int
 
   thumbnailUrl    String @map("thumbnail_url")
