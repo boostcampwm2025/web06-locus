@@ -6,9 +6,6 @@ services:
       - "3000:3000"
     env_file:
       - .env.prod
-    environment:
-      - REDIS_HOST=locus-redis
-      - REDIS_PORT=6379
     depends_on:
       - locus-redis
     networks:
