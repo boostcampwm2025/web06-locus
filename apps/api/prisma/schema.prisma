@@ -46,6 +46,7 @@ model Record {
 
   @@index([userId])
   @@index([createdAt])
+  @@index([location], type: Gist)
   @@map("records")
 }
 
