@@ -1,7 +1,7 @@
 import { RecordsService } from '@/records/records.service';
 import { PrismaService } from '@/prisma/prisma.service';
 import { ReverseGeocodingService } from '@/records/services/reverse-geocoding.service';
-import { RecordNotFoundException } from '@/connections/exceptions/business.exception';
+import { RecordNotFoundException } from '@/records/exceptions/record.exceptions';
 import { GRAPH_ROWS_SQL } from '@/records/sql/graph.row.sql';
 
 interface PrismaMock {

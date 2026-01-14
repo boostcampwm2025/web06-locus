@@ -3,9 +3,9 @@ import { PrismaService } from '@/prisma/prisma.service';
 import { CreateConnectionRequestDto } from '@/connections/dto/create-connection.request.dto';
 import {
   ConnectionAlreadyExistsException,
-  RecordNotFoundException,
   SameRecordConnectionNotAllowedException,
 } from '@/connections/exceptions/business.exception';
+import { RecordNotFoundException } from '@/records/exceptions/record.exceptions';
 
 describe('ConnectionsService', () => {
   let service: ConnectionsService;

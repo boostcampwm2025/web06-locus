@@ -3,12 +3,12 @@ import { CreateConnectionRequestDto } from './dto/create-connection.request.dto'
 import {
   ConnectionAlreadyExistsException,
   PairConnectionNotFoundException,
-  RecordNotFoundException,
   SameRecordConnectionNotAllowedException,
 } from './exceptions/business.exception';
 import { PrismaService } from '@/prisma/prisma.service';
 import { DeletedConnectionDto } from './dto/delete-connection.response.dto';
 import { ConnectionDto } from './dto/create-connection.response.dto';
+import { RecordNotFoundException } from '@/records/exceptions/record.exceptions';
 
 @Injectable()
 export class ConnectionsService {

@@ -4,8 +4,10 @@ import { ReverseGeocodingService } from './services/reverse-geocoding.service';
 import { CreateRecordDto } from './dto/create-record.dto';
 import { RecordResponseDto } from './dto/record-response.dto';
 import { RecordModel } from './records.types';
-import { RecordCreationFailedException } from './exceptions/record.exceptions';
-import { RecordNotFoundException } from '@/connections/exceptions/business.exception';
+import {
+  RecordCreationFailedException,
+  RecordNotFoundException,
+} from './exceptions/record.exceptions';
 import { GRAPH_ROWS_SQL } from './sql/graph.row.sql';
 import { GraphRowType } from './type/graph.type';
 import { GraphEdgeDto, GraphNodeDto } from './dto/graph.dto';

@@ -1,9 +1,7 @@
 import { ConnectionsService } from '@/connections/connections.service';
 import { PrismaService } from '@/prisma/prisma.service';
-import {
-  PairConnectionNotFoundException,
-  RecordNotFoundException,
-} from '@/connections/exceptions/business.exception';
+import { PairConnectionNotFoundException } from '@/connections/exceptions/business.exception';
+import { RecordNotFoundException } from '@/records/exceptions/record.exceptions';
 
 interface PrismaMock {
   record: { findUnique: jest.Mock };
