@@ -1,5 +1,5 @@
 export interface RecordModel {
-  id: number;
+  id: bigint;
   public_id: string;
   title: string;
   content: string | null;
