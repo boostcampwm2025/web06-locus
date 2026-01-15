@@ -20,6 +20,8 @@ import {
   OUTBOX_EVENT_TYPE,
 } from '@/common/constants/event-types.constants';
 import { UPDATE_RECORD_LOCATION_SQL } from './sql/record-raw.query';
+import { ImageProcessingService } from './services/image-processing.service';
+import { ObjectStorageService } from './services/object-storage.service';
 
 @Injectable()
 export class RecordsService {
@@ -29,6 +31,8 @@ export class RecordsService {
     private readonly prisma: PrismaService,
     private readonly reverseGeocodingService: ReverseGeocodingService,
     private readonly outboxService: OutboxService,
+    private readonly imageProcessingService: ImageProcessingService,
+    private readonly objectStorageService: ObjectStorageService,
   ) {}
 
   async createRecord(
