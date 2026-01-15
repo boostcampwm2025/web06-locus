@@ -1,12 +1,26 @@
 import { NestFactory } from '@nestjs/core';
+import { MicroserviceOptions, Transport } from '@nestjs/microservices';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
+import { RABBITMQ_CONSTANTS } from './common/constants/rabbitmq.constants';
 import { ValidationPipe } from '@nestjs/common';
 import { ValidationException } from './common/exceptions/validation.exception';
 import { ValidationError } from 'class-validator';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+
+  app.setGlobalPrefix('api');
+
+  const allowedOrigins = process.env.FRONTEND_URL
+    ? process.env.FRONTEND_URL.split(',').map((origin) => origin.trim())
+    : ['http://localhost:5173'];
+
+  app.enableCors({
+    origin: allowedOrigins,
+    credentials: true,
+  });
+
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true, // DTO에 정의되지 않은 속성 제거
@@ -25,6 +39,20 @@ async function bootstrap() {
     .build();
   const documentFactory = () => SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('docs', app, documentFactory);
+
+  app.connectMicroservice<MicroserviceOptions>({
+    transport: Transport.RMQ,
+    options: {
+      urls: [process.env.RABBITMQ_URL ?? 'amqp://localhost:5672'],
+      queue: RABBITMQ_CONSTANTS.QUEUES.RECORD_SYNC,
+      queueOptions: { durable: true },
+      noAck: false,
+      prefetchCount: 10,
+      globalQos: true,
+    },
+  });
+
+  await app.startAllMicroservices();
 
   app.enableShutdownHooks();
 

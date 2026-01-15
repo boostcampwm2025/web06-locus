@@ -81,7 +81,12 @@ function prepareHeaders(
   return requestHeaders;
 }
 
-function buildApiUrl(endpoint: string): string {
+/**
+ * API URL 생성
+ * @param endpoint - API 엔드포인트
+ * @returns 완전한 API URL
+ */
+export function buildApiUrl(endpoint: string): string {
   return endpoint.startsWith('http') ? endpoint : `${API_BASE_URL}${endpoint}`;
 }
 

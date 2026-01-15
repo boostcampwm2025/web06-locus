@@ -12,19 +12,19 @@ export class JwtProvider {
   ) {}
 
   async generateAccessToken(
-    userId: number,
+    userId: bigint,
     email: string,
     provider: Provider,
   ): Promise<string> {
-    const payload: JwtPayload = { sub: userId, email, provider };
+    const payload: JwtPayload = { sub: userId.toString(), email, provider };
     return await this.jwtService.signAsync(payload, {
       secret: this.configService.get('JWT_ACCESS_SECRET'),
       expiresIn: this.configService.get('JWT_ACCESS_EXPIRES_IN'),
     });
   }
 
-  async generateRefreshToken(userId: number): Promise<string> {
-    const payload = { sub: userId };
+  async generateRefreshToken(userId: bigint): Promise<string> {
+    const payload = { sub: userId.toString() };
     return await this.jwtService.signAsync(payload, {
       secret: this.configService.get('JWT_REFRESH_SECRET'),
       expiresIn: this.configService.get('JWT_REFRESH_EXPIRES_IN'),
@@ -41,9 +41,9 @@ export class JwtProvider {
     }
   }
 
-  async verifyRefreshToken(token: string): Promise<number> {
+  async verifyRefreshToken(token: string): Promise<string> {
     try {
-      const payload = await this.jwtService.verifyAsync<{ sub: number }>(
+      const payload = await this.jwtService.verifyAsync<{ sub: string }>(
         token,
         { secret: this.configService.get('JWT_REFRESH_SECRET') },
       );

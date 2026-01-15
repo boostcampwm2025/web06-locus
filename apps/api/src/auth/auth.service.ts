@@ -136,7 +136,7 @@ export class AuthService {
     try {
       const userId = await this.jwtProvider.verifyRefreshToken(refreshToken);
 
-      const user = await this.usersService.findById(userId);
+      const user = await this.usersService.findById(BigInt(userId));
       const accessToken = await this.jwtProvider.generateAccessToken(
         user.id,
         user.email,

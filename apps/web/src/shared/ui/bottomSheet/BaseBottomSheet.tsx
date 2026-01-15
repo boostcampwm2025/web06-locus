@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useBottomSheet } from '@/shared/hooks/useBottomSheet';
 import type { BaseBottomSheetProps } from '@/shared/types/bottomSheet';
 
 const HEIGHT_MAP: Record<
@@ -8,6 +8,8 @@ const HEIGHT_MAP: Record<
   compact: 'h-auto max-h-[35vh]',
   image: 'h-auto max-h-[37vh]',
   summary: 'h-full min-h-[40vh] max-h-[80vh]',
+  filter: 'h-[62vh]',
+  connection: 'h-[38vh]',
   small: 'h-[50vh]',
   medium: 'h-[70vh]',
   full: 'h-[90vh]',
@@ -21,52 +23,53 @@ export default function BaseBottomSheet({
   showHandle = true,
   className = '',
 }: BaseBottomSheetProps) {
-  const sheetRef = useRef<HTMLDivElement>(null);
-  const overlayRef = useRef<HTMLDivElement>(null);
+  const {
+    sheetRef,
+    overlayRef,
+    shouldRender,
+    isAnimating,
+    handleTouchStart,
+    handleTouchMove,
+    handleTouchEnd,
+    handleMouseDown,
+    handleOverlayClick,
+    overlayClassName,
+    sheetStyle,
+  } = useBottomSheet({
+    isOpen,
+    onClose,
+  });
 
-  useEffect(() => {
-    if (isOpen) {
-      // 바텀시트 열릴 때 body 스크롤 방지
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = '';
-    }
-
-    return () => {
-      document.body.style.overflow = '';
-    };
-  }, [isOpen]);
-
-  const handleOverlayClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (e.target === overlayRef.current) {
-      onClose();
-    }
-  };
-
-  if (!isOpen) return null;
+  if (!shouldRender) return null;
 
   return (
     <div
       ref={overlayRef}
       onClick={handleOverlayClick}
-      className="fixed inset-0 z-50 flex items-end bg-black/40 transition-opacity"
+      className={overlayClassName}
       aria-modal="true"
       role="dialog"
       aria-label="바텀시트"
+      style={{
+        pointerEvents: isOpen ? 'auto' : 'none',
+      }}
     >
       <div
         ref={sheetRef}
         className={`
-            relative flex flex-col w-full bg-white rounded-t-3xl shadow-lg 
-            transition-transform duration-300 ease-out ${HEIGHT_MAP[height]} ${className}
+          relative flex flex-col w-full bg-white rounded-t-3xl shadow-lg 
+          ${HEIGHT_MAP[height]} ${className}
+          ${isAnimating ? 'transition-transform duration-300 ease-out' : ''}
         `}
-        style={{
-          transform: 'translateY(0)',
-        }}
+        style={sheetStyle}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        onMouseDown={handleMouseDown}
       >
         {showHandle && (
           <div
-            className="shrink-0 flex justify-center pt-3 pb-2"
+            className="shrink-0 flex justify-center pt-3 pb-2 cursor-grab active:cursor-grabbing select-none"
             aria-label="바텀시트 핸들러"
           >
             <div
@@ -75,7 +78,10 @@ export default function BaseBottomSheet({
             />
           </div>
         )}
-        <div className="flex-1 min-h-0" aria-label="바텀시트 자식">
+        <div
+          className="flex-1 min-h-0 overflow-y-auto"
+          aria-label="바텀시트 자식"
+        >
           {children}
         </div>
       </div>

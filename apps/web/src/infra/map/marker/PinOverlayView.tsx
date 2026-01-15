@@ -1,7 +1,6 @@
 import { createRoot } from 'react-dom/client';
 import { PinMarker } from '@/shared/ui/marker';
 import type { PinMarkerData } from '@/shared/types/marker';
-import { isNaverMapLoaded } from '@/infra/map/naverMapLoader';
 
 /**
  * 줌 레벨 관련 상수
@@ -25,28 +24,35 @@ function calculateScale(currentZoom: number): number {
   );
 }
 
+// 클래스를 캐싱하기 위한 변수 (싱글톤)
+let PinOverlayViewClassInstance: ReturnType<
+  typeof createPinOverlayViewClass
+> | null = null;
+
 /**
  * OverlayView를 상속받는 커스텀 오버레이 클래스를 동적으로 생성
  * 네이버 맵이 로드된 후에만 클래스를 생성하여 "naver is not defined" 에러 방지
+ *
+ * @see https://navermaps.github.io/maps.js.ncp/docs/tutorial-6-CustomOverlay.html
  */
 function createPinOverlayViewClass() {
-  if (!isNaverMapLoaded()) {
+  // 런타임에 window.naver 확인
+  const naverMaps = window.naver?.maps;
+  if (!naverMaps) {
     throw new Error('Naver Maps API가 로드되지 않았습니다.');
   }
 
   /**
    * OverlayView를 상속받는 커스텀 오버레이 클래스
    * Naver Maps API v3의 OverlayView를 사용하여 React 컴포넌트를 지도에 표시
-   *
-   * @see https://navermaps.github.io/maps.js.ncp/docs/tutorial-6-CustomOverlay.html
    */
-  class PinOverlayView extends naver.maps.OverlayView {
-    private container: HTMLDivElement;
-    private root: ReturnType<typeof createRoot>;
-    private position: naver.maps.LatLng;
-    private pin: PinMarkerData;
-    private isSelected: boolean;
-    private onClick?: (id: string | number) => void;
+  class PinOverlayView extends naverMaps.OverlayView {
+    public container: HTMLDivElement;
+    public root: ReturnType<typeof createRoot>;
+    public position: naver.maps.LatLng;
+    public pin: PinMarkerData;
+    public isSelected: boolean;
+    public onClick?: (id: string | number) => void;
 
     constructor(
       position: naver.maps.LatLng,
@@ -130,27 +136,47 @@ function createPinOverlayViewClass() {
       });
     }
 
+    /**
+     * 오버레이의 위치를 업데이트
+     * @param position 새로운 위치 좌표
+     */
     setPosition(position: naver.maps.LatLng): void {
       this.position = position;
       this.draw();
     }
 
+    /**
+     * 핀 마커 데이터를 업데이트
+     * @param pin 새로운 핀 마커 데이터
+     */
     setPin(pin: PinMarkerData): void {
       this.pin = pin;
       this.renderPin();
     }
 
+    /**
+     * 선택 상태를 업데이트
+     * @param isSelected 선택 여부
+     */
     setIsSelected(isSelected: boolean): void {
       this.isSelected = isSelected;
       this.renderPin();
     }
 
+    /**
+     * 클릭 핸들러를 업데이트
+     * @param onClick 클릭 핸들러 함수
+     */
     setOnClick(onClick?: (id: string | number) => void): void {
       this.onClick = onClick;
       this.renderPin();
     }
 
-    private renderPin(): void {
+    /**
+     * React 컴포넌트를 렌더링
+     * PinMarker 컴포넌트를 root에 렌더링하여 지도에 표시
+     */
+    public renderPin(): void {
       this.root.render(
         <PinMarker
           pin={this.pin}
@@ -164,19 +190,52 @@ function createPinOverlayViewClass() {
   return PinOverlayView;
 }
 
-// 클래스를 lazy하게 생성하기 위한 변수
-let PinOverlayViewClass: ReturnType<typeof createPinOverlayViewClass> | null =
-  null;
+/**
+ * PinOverlayView 클래스를 초기화
+ * 지도가 로드된 확실한 시점(useEffect나 onLoad 콜백)에서만 호출해야 함
+ * @throws Error 네이버 맵이 로드되지 않았을 때
+ */
+export function initializePinOverlayViewClass(): void {
+  // 이미 생성되어 있으면 재생성하지 않음
+  if (PinOverlayViewClassInstance) {
+    return;
+  }
 
-export function getPinOverlayViewClass() {
-  PinOverlayViewClass ??= createPinOverlayViewClass();
-  return PinOverlayViewClass;
+  // 런타임 확인
+  if (!window.naver?.maps) {
+    throw new Error(
+      'Naver Maps API가 로드되지 않았습니다. 지도가 로드된 후에 호출해야 합니다.',
+    );
+  }
+
+  // 클래스 생성 및 캐싱
+  PinOverlayViewClassInstance = createPinOverlayViewClass();
 }
 
 /**
- * PinOverlayView 인스턴스 타입
- * 순환 참조 방지를 위해 타입 선언
+ * PinOverlayView 클래스를 가져옴
+ * initializePinOverlayViewClass()가 먼저 호출되어야 함
+ * @returns PinOverlayView 클래스
+ * @throws Error 클래스가 초기화되지 않았을 때
  */
-export type PinOverlayViewInstance = InstanceType<
-  ReturnType<typeof getPinOverlayViewClass>
->;
+export function getPinOverlayViewClass(): ReturnType<
+  typeof createPinOverlayViewClass
+> {
+  if (!PinOverlayViewClassInstance) {
+    throw new Error(
+      'PinOverlayView 클래스가 초기화되지 않았습니다. 지도가 로드된 후 initializePinOverlayViewClass()를 먼저 호출하세요.',
+    );
+  }
+
+  return PinOverlayViewClassInstance;
+}
+
+/**
+ * PinOverlayView 클래스 타입
+ */
+export type PinOverlayViewClass = ReturnType<typeof createPinOverlayViewClass>;
+
+/**
+ * PinOverlayView 인스턴스 타입
+ */
+export type PinOverlayViewInstance = InstanceType<PinOverlayViewClass>;

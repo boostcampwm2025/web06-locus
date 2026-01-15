@@ -26,7 +26,7 @@ describe('AuthService 테스트', () => {
   let mailService: MailService;
 
   const mockUser: UserWithoutPassword = {
-    id: 1,
+    id: 1n,
     publicId: 'publicId',
     email: 'test@example.com',
     nickname: 'Test User',
@@ -443,7 +443,7 @@ describe('AuthService 테스트', () => {
 
   describe('reissueAccessToken', () => {
     const validRefreshToken = 'valid-refresh-token';
-    const userId = 1;
+    const userId = 1n;
 
     test('유효한 리프레시 토큰으로 새 액세스 토큰을 발급해야 한다', async () => {
       // given

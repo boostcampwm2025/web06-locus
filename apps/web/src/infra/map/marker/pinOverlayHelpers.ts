@@ -1,12 +1,12 @@
 import type { PinMarkerData } from '@/shared/types/marker';
-import { getPinOverlayViewClass } from './PinOverlayView';
+import type { PinOverlayViewClass } from './PinOverlayView';
 import type { PinOverlayViewLike } from '@/infra/types/map';
 
 /**
  * 오버레이 인스턴스 생성
  */
 export function createOverlayInstance(
-  PinOverlayView: ReturnType<typeof getPinOverlayViewClass>,
+  PinOverlayView: PinOverlayViewClass,
   pin: PinMarkerData,
   isSelected: boolean,
   onClick?: (id: string | number) => void,

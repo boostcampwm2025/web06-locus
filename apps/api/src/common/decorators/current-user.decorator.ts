@@ -12,10 +12,8 @@ export const CurrentUser = createParamDecorator(
     const user = request.user;
 
     if (!user) return null;
-    const userInfo = {
-      ...user,
-      sub: typeof user.sub === 'string' ? parseInt(user.sub, 10) : user.sub,
-    };
+
+    const userInfo = { ...user, sub: BigInt(user.sub) };
     return data ? userInfo[data] : userInfo;
   },
 );
