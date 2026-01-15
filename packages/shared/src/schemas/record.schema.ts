@@ -21,7 +21,7 @@ import {
 export const RecordResponseSchema = z.object({
   publicId: z.string(),
   title: z.string(),
-  content: z.string().optional(),
+  content: z.string().nullable().optional(),
   location: LocationSchema,
   tags: z.array(z.string()),
   createdAt: z.string().datetime(),
@@ -193,24 +193,26 @@ export const SearchRecordsResponseSchema = SuccessResponseSchema.extend({
 
 /**
  * 기록 생성 응답 스키마
+ * 실제 API 응답: { status: 'success', data: RecordWithImagesResponseSchema }
+ * data 안에 record 객체가 없고, data 자체가 record 객체임
  *
  * @api POST /records
  */
-export const CreateRecordResponseSchema = SuccessResponseSchema.extend({
-  data: z.object({
-    record: RecordWithImagesResponseSchema,
-  }),
+export const CreateRecordResponseSchema = z.object({
+  status: z.literal('success'),
+  message: z.string().optional(),
+  data: RecordWithImagesResponseSchema,
 });
 
 /**
  * 기록 수정 응답 스키마
+ * 실제 API 응답: { status: 'success', data: RecordWithImagesResponseSchema }
+ * data 안에 record 객체가 없고, data 자체가 record 객체임
  *
  * @api PATCH /records/{public_id}
  */
 export const UpdateRecordResponseSchema = SuccessResponseSchema.extend({
-  data: z.object({
-    record: RecordWithImagesResponseSchema,
-  }),
+  data: RecordWithImagesResponseSchema,
 });
 
 /**
