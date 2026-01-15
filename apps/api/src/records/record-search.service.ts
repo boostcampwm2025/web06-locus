@@ -24,11 +24,6 @@ export class RecordSearchService {
     });
   }
 
-  /**
-   * Elasticsearch 인덱스 생성 (없으면)
-   * - Nori 형태소 분석기 설정 (한글 검색)
-   * - 필드 매핑 정의
-   */
   private async ensureIndexExists() {
     try {
       const exists = await this.elasticsearchService.indices.exists({
@@ -45,6 +40,22 @@ export class RecordSearchService {
       }
     } catch (error) {
       this.logger.error('❌ Elasticsearch index 생성 실패', error);
+      throw error;
+    }
+  }
+
+  async updateRecord(payload: RecordSyncPayload) {
+    try {
+      await this.elasticsearchService.update({
+        index: RECORD_INDEX_NAME,
+        id: String(payload.recordId),
+        doc: payload,
+        doc_as_upsert: true, // 문서가 없으면 생성 (혹시 모를 문제를 예방)
+      });
+
+      this.logger.log(`✅ Record ${payload.recordId} 업데이트 완료`);
+    } catch (error) {
+      this.logger.error(`❌ Record ${payload.recordId} 업데이트 실패`, error);
       throw error;
     }
   }
