@@ -12,6 +12,7 @@ import {
   AGGREGATE_TYPE,
   OUTBOX_EVENT_TYPE,
 } from '@/common/constants/event-types.constants';
+import { UPDATE_RECORD_LOCATION_SQL } from './sql/record-raw.query';
 
 @Injectable()
 export class RecordsService {
@@ -110,28 +111,9 @@ export class RecordsService {
     longitude: number,
     latitude: number,
   ): Promise<RecordModel> {
-    const [updated] = await tx.$queryRaw<RecordModel[]>`
-      UPDATE records
-      SET location = ST_SetSRID(
-        ST_MakePoint(${longitude}, ${latitude}),
-        4326
-      )
-      WHERE id = ${recordId}
-      RETURNING
-        id,
-        public_id AS "publicId", 
-        title,
-        content,
-        ST_X(location) AS longitude,
-        ST_Y(location) AS latitude,
-        location_name AS "locationName",
-        location_address AS "locationAddress",
-        tags,
-        is_favorite AS "isFavorite",
-        created_at AS "createdAt",
-        updated_at AS "updatedAt"
-    `;
-
+    const [updated] = await tx.$queryRaw<RecordModel[]>(
+      UPDATE_RECORD_LOCATION_SQL(recordId, longitude, latitude),
+    );
     return updated;
   }
 }
