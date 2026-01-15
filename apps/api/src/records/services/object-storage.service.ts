@@ -56,8 +56,9 @@ export class ObjectStorageService {
     userPublicId: string,
     recordPublicId: string,
     images: ProcessedImage[],
-  ): Promise<UploadedImage[]> {
+  ): Promise<{ uploadedImages: UploadedImage[]; uploadedKeys: string[] }> {
     const uploadedImages: UploadedImage[] = [];
+    const uploadedKeys: string[] = [];
 
     for (const image of images) {
       const uploadPromises = IMAGE_SIZES.map((size) => {
@@ -67,6 +68,7 @@ export class ObjectStorageService {
           image.imageId,
           size,
         );
+        uploadedKeys.push(key);
         return this.uploadImage(image.variants[size].buffer, key, 'image/jpeg');
       });
 
@@ -82,7 +84,7 @@ export class ObjectStorageService {
       });
     }
 
-    return uploadedImages;
+    return { uploadedImages, uploadedKeys };
   }
 
   async deleteImages(keys: string[]): Promise<void> {
