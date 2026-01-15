@@ -5,7 +5,8 @@ import CategoryChips from '@/shared/ui/category/CategoryChips';
 import MapViewport from './MapViewport';
 import BottomTabBar from '@/shared/ui/navigation/BottomTabBar';
 import RecordSummaryBottomSheet from '@/features/record/ui/RecordSummaryBottomSheet';
-import type { Record } from '@/features/record/types';
+import ToastErrorMessage from '@/shared/ui/alert/ToastErrorMessage';
+import type { Record, Coordinates } from '@/features/record/types';
 import type { MainMapPageLocationState } from '@features/home/types/mainMapPage';
 import { useBottomTabNavigation } from '@/shared/hooks/useBottomTabNavigation';
 import { ROUTES } from '@/router/routes';
@@ -17,6 +18,11 @@ export default function MainMapPage() {
   const [isDetailSheetOpen, setIsDetailSheetOpen] = useState(false);
   const [isSearchActive, setIsSearchActive] = useState(false);
   const [searchValue, setSearchValue] = useState('');
+  const [showSuccessToast, setShowSuccessToast] = useState(false);
+  const [newRecordPin, setNewRecordPin] = useState<{
+    record: Record;
+    coordinates?: Coordinates;
+  } | null>(null);
 
   // location.state에서 저장된 record 확인
   useEffect(() => {
@@ -25,8 +31,21 @@ export default function MainMapPage() {
     if (state?.savedRecord) {
       setSavedRecord(state.savedRecord);
       setIsDetailSheetOpen(true);
+      const pinData = {
+        record: state.savedRecord,
+        coordinates: state.savedRecord.coordinates,
+      };
+      setNewRecordPin(pinData);
+      setShowSuccessToast(true);
       // state를 초기화하여 뒤로가기 시 다시 표시되지 않도록
       void navigate(location.pathname, { replace: true, state: {} });
+
+      // 3초 후 토스트 메시지 자동 닫기
+      const timer = setTimeout(() => {
+        setShowSuccessToast(false);
+      }, 3000);
+
+      return () => clearTimeout(timer);
     }
   }, [location.state, navigate, location.pathname]);
 
@@ -72,8 +91,18 @@ export default function MainMapPage() {
         onSearchCancel={handleSearchCancel}
       />
       <CategoryChips />
-      <MapViewport />
+      <MapViewport newRecordPin={newRecordPin} />
       <BottomTabBar activeTab="home" onTabChange={handleTabChange} />
+
+      {/* 성공 토스트 메시지 */}
+      {showSuccessToast && (
+        <div className="absolute top-20 right-4 z-50 animate-fade-in">
+          <ToastErrorMessage
+            message="기록이 성공적으로 저장되었습니다"
+            variant="success"
+          />
+        </div>
+      )}
 
       {/* 기록 요약 바텀시트 */}
       {savedRecord && (
