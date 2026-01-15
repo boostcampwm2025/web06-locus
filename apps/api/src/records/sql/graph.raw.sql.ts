@@ -1,12 +1,17 @@
-export const GRAPH_ROWS_SQL = `
+import { Prisma } from '@prisma/client';
+
+export const GRAPH_RAWS_SQL = (
+  startRecordId: bigint,
+  userId: bigint,
+): Prisma.Sql => Prisma.sql`
 WITH RECURSIVE reach AS (
-  SELECT $1::bigint AS node_id, ARRAY[$1::bigint] AS visited
+  SELECT ${startRecordId}::bigint AS node_id, ARRAY[${startRecordId}::bigint] AS visited
   UNION ALL
   SELECT c.to_record_id AS node_id, r.visited || c.to_record_id
   FROM reach r
   JOIN connections c
     ON c.from_record_id = r.node_id
-   AND c.user_id = $2
+   AND c.user_id = ${userId}
   WHERE NOT (c.to_record_id = ANY(r.visited))
 ),
 component_nodes AS MATERIALIZED (
@@ -20,7 +25,7 @@ component_edges AS MATERIALIZED (
   FROM connections c
   JOIN component_nodes n1 ON n1.node_id = c.from_record_id
   JOIN component_nodes n2 ON n2.node_id = c.to_record_id
-  WHERE c.user_id = $2
+  WHERE c.user_id = ${userId}
 )
 SELECT
   'node'::text AS row_type,
@@ -31,7 +36,7 @@ SELECT
   NULL::text AS to_public_id
 FROM records r
 JOIN component_nodes cn ON cn.node_id = r.id
-WHERE r.user_id = $2
+WHERE r.user_id = ${userId}
 
 UNION ALL
 

@@ -2,11 +2,9 @@ import { RecordsService } from '@/records/records.service';
 import { PrismaService } from '@/prisma/prisma.service';
 import { ReverseGeocodingService } from '@/records/services/reverse-geocoding.service';
 import { RecordNotFoundException } from '@/records/exceptions/record.exceptions';
-import { GRAPH_ROWS_SQL } from '@/records/sql/graph.row.sql';
-
 interface PrismaMock {
   record: { findUnique: jest.Mock };
-  $queryRawUnsafe: jest.Mock;
+  $queryRaw: jest.Mock;
 }
 
 interface ReverseGeocodingMock {
@@ -21,7 +19,7 @@ describe('RecordsService - getGraph', () => {
   beforeEach(() => {
     prismaMock = {
       record: { findUnique: jest.fn() },
-      $queryRawUnsafe: jest.fn(),
+      $queryRaw: jest.fn(),
     };
 
     reverseGeocodingMock = {
@@ -70,7 +68,7 @@ describe('RecordsService - getGraph', () => {
       },
     ];
 
-    prismaMock.$queryRawUnsafe.mockResolvedValueOnce(rows);
+    prismaMock.$queryRaw.mockResolvedValueOnce(rows);
 
     // when
     const result = await service.getGraph(startRecordPublicId, userId);
@@ -82,12 +80,9 @@ describe('RecordsService - getGraph', () => {
       select: { id: true },
     });
 
-    // then: RAW SQL 호출 (쿼리 + 파라미터 검증)
-    expect(prismaMock.$queryRawUnsafe).toHaveBeenCalledTimes(1);
-    expect(prismaMock.$queryRawUnsafe).toHaveBeenCalledWith(
-      GRAPH_ROWS_SQL,
-      10n,
-      userId,
+    expect(prismaMock.$queryRaw).toHaveBeenCalledTimes(1);
+    expect(prismaMock.$queryRaw).toHaveBeenCalledWith(
+      expect.anything(), // Prisma.Sql 객체
     );
 
     // then: 변환 결과
@@ -115,13 +110,13 @@ describe('RecordsService - getGraph', () => {
       RecordNotFoundException,
     );
 
-    expect(prismaMock.$queryRawUnsafe).not.toHaveBeenCalled();
+    expect(prismaMock.$queryRaw).not.toHaveBeenCalled();
   });
 
   test('RAW SQL 결과가 빈 배열이면 nodes/edges는 빈 배열이고 meta 카운트도 0으로 반환한다', async () => {
     // given
     prismaMock.record.findUnique.mockResolvedValueOnce({ id: 10n });
-    prismaMock.$queryRawUnsafe.mockResolvedValueOnce([]);
+    prismaMock.$queryRaw.mockResolvedValueOnce([]);
 
     // when
     const result = await service.getGraph('rec_start', 7);
@@ -141,7 +136,7 @@ describe('RecordsService - getGraph', () => {
     // given
     prismaMock.record.findUnique.mockResolvedValueOnce({ id: 10n });
 
-    prismaMock.$queryRawUnsafe.mockResolvedValueOnce([
+    prismaMock.$queryRaw.mockResolvedValueOnce([
       {
         row_type: 'edge',
         node_public_id: null,

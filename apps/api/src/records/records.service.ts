@@ -8,7 +8,7 @@ import {
   RecordCreationFailedException,
   RecordNotFoundException,
 } from './exceptions/record.exceptions';
-import { GRAPH_ROWS_SQL } from './sql/graph.row.sql';
+import { GRAPH_RAWS_SQL } from './sql/graph.raw.sql';
 import { GraphRowType } from './type/graph.type';
 import { GraphEdgeDto, GraphNodeDto } from './dto/graph.dto';
 import { GraphResponseDto } from './dto/graph.response.dto';
@@ -127,10 +127,8 @@ export class RecordsService {
     const startRecordId = await this.getRecordIdByPublicId(startRecordPublicId);
 
     // 그래프 탐색 쿼리 실행
-    const rows = await this.prisma.$queryRawUnsafe<GraphRowType[]>(
-      GRAPH_ROWS_SQL,
-      startRecordId,
-      userId,
+    const rows = await this.prisma.$queryRaw<GraphRowType[]>(
+      GRAPH_RAWS_SQL(startRecordId, BigInt(userId)),
     );
 
     const { nodes, edges } = this.buildGraphFromRows(rows);
