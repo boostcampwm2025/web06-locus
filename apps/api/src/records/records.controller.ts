@@ -5,6 +5,8 @@ import {
   UseGuards,
   HttpCode,
   HttpStatus,
+  Get,
+  Param,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -17,6 +19,7 @@ import { CreateRecordDto } from './dto/create-record.dto';
 import { RecordResponseDto } from './dto/record-response.dto';
 import { JwtAuthGuard } from '@/jwt/guard/jwt.auth.guard';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
+import { GraphResponseDto } from './dto/graph.response.dto';
 
 @ApiTags('records')
 @Controller('records')
@@ -49,5 +52,15 @@ export class RecordsController {
     @Body() dto: CreateRecordDto,
   ): Promise<RecordResponseDto> {
     return await this.recordsService.createRecord(userId, dto);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get(':publicId/graph')
+  async getGraph(
+    @CurrentUser('sub') userId: bigint,
+    @Param('publicId') publicId: string,
+  ): Promise<GraphResponseDto> {
+    const graphData = await this.recordsService.getGraph(publicId, userId);
+    return graphData;
   }
 }

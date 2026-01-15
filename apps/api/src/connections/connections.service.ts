@@ -3,16 +3,20 @@ import { CreateConnectionRequestDto } from './dto/create-connection.request.dto'
 import {
   ConnectionAlreadyExistsException,
   PairConnectionNotFoundException,
-  RecordNotFoundException,
   SameRecordConnectionNotAllowedException,
 } from './exceptions/business.exception';
 import { PrismaService } from '@/prisma/prisma.service';
 import { DeletedConnectionDto } from './dto/delete-connection.response.dto';
 import { ConnectionDto } from './dto/create-connection.response.dto';
+import { RecordNotFoundException } from '@/records/exceptions/record.exceptions';
+import { RecordsService } from '@/records/records.service';
 
 @Injectable()
 export class ConnectionsService {
-  constructor(private readonly prismaService: PrismaService) {}
+  constructor(
+    private readonly prismaService: PrismaService,
+    private readonly recordsService: RecordsService,
+  ) {}
 
   async create(
     userId: bigint,
@@ -60,7 +64,7 @@ export class ConnectionsService {
   }
 
   async delete(
-    userId: number,
+    userId: bigint,
     publicId: string,
   ): Promise<DeletedConnectionDto> {
     const [findOne, findPair] = await this.findPairConnections(
@@ -90,25 +94,10 @@ export class ConnectionsService {
     if (fromRecordPublicId === toRecordPublicId) {
       throw new SameRecordConnectionNotAllowedException(fromRecordPublicId);
     }
-    const fromRecord = await this.prismaService.record.findUnique({
-      where: { publicId: fromRecordPublicId },
-      select: { id: true, userId: true, publicId: true },
-    });
-
-    const toRecord = await this.prismaService.record.findUnique({
-      where: { publicId: toRecordPublicId },
-      select: { id: true, userId: true, publicId: true },
-    });
-
-    //레코드 검증 ( 레코드 서비스단 보고 수정 필요 )
-    if (!fromRecord) throw new RecordNotFoundException(fromRecordPublicId);
-    if (!toRecord) throw new RecordNotFoundException(toRecordPublicId);
-
-    // if (fromRecord.userId !== userId)
-    //   throw new RecordAccessDeniedException(fromRecordPublicId);
-    // if (toRecord.userId !== userId)
-    //   throw new RecordAccessDeniedException(toRecordPublicId);
-
+    const [fromRecord, toRecord] = await Promise.all([
+      this.recordsService.findOneByPublicId(fromRecordPublicId),
+      this.recordsService.findOneByPublicId(toRecordPublicId),
+    ]);
     return [fromRecord, toRecord];
   }
 
@@ -138,7 +127,7 @@ export class ConnectionsService {
     }
   }
 
-  private async findPairConnections(userId: number, publicId: string) {
+  private async findPairConnections(userId: bigint, publicId: string) {
     const findOne = await this.prismaService.connection.findFirst({
       where: { userId, publicId },
       select: {

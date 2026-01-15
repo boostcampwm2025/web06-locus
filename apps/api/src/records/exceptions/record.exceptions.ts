@@ -196,3 +196,23 @@ export class RecordCreationFailedException extends BusinessException {
     );
   }
 }
+export class RecordAccessDeniedException extends BusinessException {
+  constructor(recordId: string) {
+    super(
+      403,
+      RecordErrorCode.RECORD_ACCESS_DENIED,
+      '해당 기록에 대한 권한이 없습니다.',
+      {
+        record_id: recordId,
+      },
+    );
+  }
+}
+
+export class RecordNotFoundException extends BusinessException {
+  constructor(recordId: string) {
+    super(404, RecordErrorCode.RECORD_NOT_FOUND, '기록을 찾을 수 없습니다.', {
+      record_id: recordId,
+    });
+  }
+}
