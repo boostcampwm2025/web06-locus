@@ -84,9 +84,7 @@ export class RecordsService {
     }
   }
 
-  // NOTE: 업데이트 로직 대충 작성
-  // NOTE: 함수 분리 같은거 일단 하지 않음.
-  // TODO: 휴고가 로직 작성해주면 수정
+  // NOTE: 업데이트 로직 대충 작성 (todo: 휴고의 로직으로 변경)
   async updateRecord(
     userId: bigint,
     publicId: string,
@@ -99,7 +97,6 @@ export class RecordsService {
       if (existing.userId !== userId)
         throw new RecordAccessDeniedException(publicId);
 
-      // const { latitude, longitude } = dto.location;
       let locationName = existing.locationName;
       let locationAddress = existing.locationAddress;
 
@@ -141,6 +138,30 @@ export class RecordsService {
       return updatedRecord;
     });
     return RecordResponseDto.from(record);
+  }
+
+  // NOTE: 삭제 로직 대충 작성 (todo: 휴고의 로직으로 변경)
+  async deleteRecord(userId: bigint, publicId: string): Promise<void> {
+    await this.prisma.$transaction(async (tx) => {
+      const existing = await tx.record.findFirst({ where: { publicId } });
+
+      if (!existing) throw new RecordNotFoundException(publicId);
+      if (existing.userId !== userId)
+        throw new RecordAccessDeniedException(publicId);
+
+      await tx.record.delete({ where: { id: existing.id } });
+
+      await this.outboxService.publish(tx, {
+        aggregateType: AGGREGATE_TYPE.RECORD,
+        aggregateId: existing.id.toString(),
+        eventType: OUTBOX_EVENT_TYPE.RECORD_DELETED,
+        payload: {
+          recordId: existing.id.toString(),
+          publicId: existing.publicId,
+          userId: userId.toString(),
+        },
+      });
+    });
   }
 
   // TODO: 태그 관련 중간테이블 및 서비스 추가
