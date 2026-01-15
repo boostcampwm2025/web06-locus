@@ -10,8 +10,12 @@ export class UsersController {
   // NOTE: 요 친구는 테스트용이라 추후 수정해야 해요!@!
   @Get('me')
   @UseGuards(JwtAuthGuard)
-  async getMyProfile(@CurrentUser('sub') userId: number) {
+  async getMyProfile(@CurrentUser('sub') userId: bigint) {
     const user = await this.usersService.findById(userId);
-    return user;
+    // return user;
+    return {
+      ...user,
+      id: user.id.toString(),
+    };
   }
 }

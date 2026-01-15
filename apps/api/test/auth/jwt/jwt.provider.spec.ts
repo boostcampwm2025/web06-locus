@@ -43,7 +43,7 @@ describe('JwtProvider 테스트', () => {
   describe('generateAccessToken', () => {
     test('유저 정보로 Access Token을 생성해야 한다', async () => {
       // given
-      const userId = 1;
+      const userId = 1n;
       const email = 'test@example.com';
       const provider = Provider.LOCAL;
       const expectedToken = 'access-token';
@@ -65,7 +65,7 @@ describe('JwtProvider 테스트', () => {
       // then
       expect(result).toBe(expectedToken);
       expect(mockJwtService.signAsync).toHaveBeenCalledWith(
-        { sub: userId, email, provider },
+        { sub: userId.toString(), email, provider },
         { secret: accessSecret, expiresIn },
       );
       expect(mockConfigService.get).toHaveBeenCalledWith('JWT_ACCESS_SECRET');
@@ -76,7 +76,7 @@ describe('JwtProvider 테스트', () => {
 
     test('에러가 발생하면 에러를 전파해야 한다', async () => {
       // given
-      const userId = 1;
+      const userId = 1n;
       const email = 'test@example.com';
       const provider = Provider.LOCAL;
       const error = new Error('JWT signing failed');
@@ -94,7 +94,7 @@ describe('JwtProvider 테스트', () => {
   describe('generateRefreshToken', () => {
     test('유저 ID로 Refresh Token을 생성해야 한다', async () => {
       // given
-      const userId = 1;
+      const userId = 1n;
       const expectedToken = 'refresh-token';
       const refreshSecret = 'refresh-secret';
       const expiresIn = '7d';
@@ -110,7 +110,7 @@ describe('JwtProvider 테스트', () => {
       // then
       expect(result).toBe(expectedToken);
       expect(mockJwtService.signAsync).toHaveBeenCalledWith(
-        { sub: userId },
+        { sub: userId.toString() },
         { secret: refreshSecret, expiresIn },
       );
       expect(mockConfigService.get).toHaveBeenCalledWith('JWT_REFRESH_SECRET');
@@ -121,7 +121,7 @@ describe('JwtProvider 테스트', () => {
 
     test('JWT 서비스에서 에러가 발생하면 에러를 전파해야 한다', async () => {
       // given
-      const userId = 1;
+      const userId = 1n;
       const error = new Error('JWT signing failed');
 
       mockConfigService.get.mockReturnValue('secret');
@@ -140,7 +140,7 @@ describe('JwtProvider 테스트', () => {
       const token = 'valid-access-token';
       const accessSecret = 'access-secret';
       const expectedPayload: JwtPayload = {
-        sub: 1,
+        sub: '1',
         email: 'test@example.com',
         provider: Provider.LOCAL,
       };

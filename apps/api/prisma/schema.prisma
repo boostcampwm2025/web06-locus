@@ -7,7 +7,7 @@ datasource db {
 }
 
 model User {
-  id        Int   @id @default(autoincrement())
+  id        BigInt   @id @default(autoincrement())
   publicId  String   @unique @map("public_id") @default(nanoid(12))
   email     String   @unique
   password  String?  // OAuth 사용자는 null
@@ -52,7 +52,7 @@ model Connection {
 model Record {
   id              BigInt      @id @default(autoincrement())
   publicId        String   @unique @map("public_id") @default(nanoid(12))
-  userId          Int      @map("user_id")
+  userId          BigInt      @map("user_id")
   title           String   @db.VarChar(100)
   content         String?  @db.VarChar(500)
   location        Unsupported("cdb_admin.geometry")?
@@ -105,9 +105,39 @@ model Image {
   @@map("images")
 }
 
+model Outbox {
+  id            BigInt           @id @default(autoincrement())
+  aggregateType String        @map("aggregate_type") @db.VarChar(50)
+  aggregateId   BigInt           @map("aggregate_id")
+  eventType     OutboxEventType  @map("event_type")
+  payload       Json
+  status        OutboxStatus     @default(PENDING)
+  retryCount    Int              @default(0) @map("retry_count")
+  createdAt     DateTime         @default(now()) @map("created_at")
+  processedAt   DateTime?        @map("processed_at")
+
+  @@map("outbox")
+  // @@index([status, createdAt])
+  @@index([status, retryCount, createdAt])
+  @@index([aggregateType, aggregateId])
+}
+
 enum Provider {
   LOCAL   // 이메일/비밀번호
   GOOGLE  
   NAVER   
   KAKAO   
+}
+
+enum OutboxStatus {
+  PENDING
+  RETRY
+  DONE
+  DEAD
+}
+
+enum OutboxEventType {
+  RECORD_CREATED
+  RECORD_UPDATED
+  RECORD_DELETED
 }
