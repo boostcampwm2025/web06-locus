@@ -105,7 +105,7 @@ jobs:
             docker compose pull
             docker compose up -d
             docker image prune -f
-            docker compose exec -T locus-api pnpm --filter @locus/api exec prisma db push --accept-data-loss
+            docker compose exec -T locus-api pnpm --filter @locus/api exec prisma db push --accept-data-loss --force-reset
       - name: Remove Github Action IP from ACG
         if: always()
         run: |
