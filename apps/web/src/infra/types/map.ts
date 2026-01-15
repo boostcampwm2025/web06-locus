@@ -21,3 +21,11 @@ export interface PinOverlayViewLike {
   setIsSelected(v: boolean): void;
   setOnClick(fn?: (id: string | number) => void): void;
 }
+
+/**
+ * waitForNaverMap 함수의 옵션
+ */
+export interface WaitForNaverMapOptions {
+  intervalMs?: number;
+  timeoutMs?: number;
+}

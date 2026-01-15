@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { loadNaverMapScript } from '@/infra/map/naverMapLoader';
 import { useGeolocation } from './useGeolocation';
+import { initializePinOverlayViewClass } from '@/infra/map/marker/PinOverlayView';
 import type { UseMapInstanceOptions } from '@/shared/types';
 
 const DEFAULT_CENTER_LAT = 37.5665;
@@ -89,6 +90,13 @@ export function useMapInstance(options: UseMapInstanceOptions = {}) {
         mapInstanceRef.current = map;
         setIsMapLoaded(true);
         setMapLoadError(null);
+
+        try {
+          // 지도가 로드된 확실한 시점에서 PinOverlayView 클래스 초기화
+          initializePinOverlayViewClass();
+        } catch (error) {
+          console.error('PinOverlayView 클래스 초기화 실패:', error);
+        }
 
         // 지도 로드 후 콜백 실행
         onMapReady?.(map);
