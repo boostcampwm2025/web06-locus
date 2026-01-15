@@ -176,6 +176,70 @@ export class RecordsService {
 
     return { nodes, edges };
   }
+  private async executeRecordTransaction(
+    userId: bigint,
+    dto: CreateRecordDto,
+    locationInfo: { name: string | null; address: string | null },
+    recordPublicId?: string,
+    processedImages?: ProcessedImage[],
+    uploadedImages?: UploadedImage[],
+  ): Promise<RecordModel> {
+    try {
+      const record = await this.prisma.$transaction(async (tx) => {
+        const created = await this.saveRecord(
+          tx,
+          userId,
+          dto,
+          locationInfo.name,
+          locationInfo.address,
+          recordPublicId,
+        );
+
+        const updated = await this.updateLocation(
+          tx,
+          created.id,
+          dto.location.longitude,
+          dto.location.latitude,
+        );
+
+        if (processedImages?.length && uploadedImages?.length) {
+          await this.saveImages(
+            tx,
+            updated.id,
+            processedImages,
+            uploadedImages,
+          );
+        }
+
+        await this.outboxService.publish(tx, {
+          aggregateType: AGGREGATE_TYPE.RECORD,
+          aggregateId: updated.id.toString(),
+          eventType: OUTBOX_EVENT_TYPE.RECORD_CREATED,
+          payload: createRecordSyncPayload(userId, updated),
+        });
+
+        return updated;
+      });
+
+      this.logger.log(
+        `Record created: publicId=${record.publicId}, userId=${userId}, title="${dto.title}"`,
+      );
+
+      return record;
+    } catch (error) {
+      if (error instanceof Error) {
+        this.logger.error(
+          `Failed to create record: userId=${userId}, error=${error.message}`,
+          error.stack,
+        );
+        throw new RecordCreationFailedException(error);
+      }
+      this.logger.error(
+        `Non-Error exception thrown: userId=${userId}, raw=${JSON.stringify(error)}`,
+      );
+      throw new Error('Unexpected non-Error exception thrown');
+    }
+  }
 
   // TODO: 태그 관련 중간테이블 및 서비스 추가
   // TODO: 이미지 기능 추가
