@@ -70,8 +70,12 @@ export interface RecordConnectionCardProps {
 export interface RecommendedRecordsSectionProps {
   title?: string;
   description?: string;
-  children: React.ReactNode;
+  records: RecordConnectionItem[];
+  onRecordClick?: (record: RecordConnectionItem) => void;
+  emptyMessage?: string;
   className?: string;
+  /** 섹션 내부 스크롤 영역의 높이(있으면 스크롤 활성) */
+  scrollHeight?: string; // 예: "h-[420px]" | "max-h-[60vh]" | "h-full"
 }
 
 /**
