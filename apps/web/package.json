@@ -17,6 +17,7 @@
   },
   "dependencies": {
     "@locus/shared": "workspace:*",
+    "@sentry/react": "^10.34.0",
     "@tanstack/react-query": "^5.90.12",
     "idb": "^8.0.3",
     "react": "^19.1.1",
