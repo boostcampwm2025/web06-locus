@@ -15,7 +15,7 @@ export class ConnectionsService {
   constructor(private readonly prismaService: PrismaService) {}
 
   async create(
-    userId: number,
+    userId: bigint,
     createConnectionDto: CreateConnectionRequestDto,
   ): Promise<ConnectionDto> {
     const { fromRecordPublicId, toRecordPublicId } = createConnectionDto;
@@ -113,9 +113,9 @@ export class ConnectionsService {
   }
 
   private async validateConnection(
-    fromRecord: { id: bigint; publicId: string; userId: number },
-    toRecord: { id: bigint; publicId: string; userId: number },
-    userId: number,
+    fromRecord: { id: bigint; publicId: string; userId: bigint },
+    toRecord: { id: bigint; publicId: string; userId: bigint },
+    userId: bigint,
   ) {
     //연결 검증
     // (A,B) 또는 (B,A) 중 하나라도 있으면 중복

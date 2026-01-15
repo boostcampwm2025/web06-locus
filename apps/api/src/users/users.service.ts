@@ -70,7 +70,7 @@ export class UsersService {
     });
   }
 
-  async findById(id: number): Promise<Omit<User, 'password'>> {
+  async findById(id: bigint): Promise<Omit<User, 'password'>> {
     const user = await this.prisma.user.findUnique({ where: { id } });
 
     if (!user) throw new UserNotFoundException();

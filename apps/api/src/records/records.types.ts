@@ -1,14 +1,14 @@
 export interface RecordModel {
   id: bigint;
-  public_id: string;
+  publicId: string;
   title: string;
   content: string | null;
   longitude: number;
   latitude: number;
-  location_name: string;
-  location_address: string;
+  locationName: string;
+  locationAddress: string;
   tags: string[];
-  is_favorite: boolean;
-  created_at: Date;
-  updated_at: Date;
+  isFavorite: boolean;
+  createdAt: Date;
+  updatedAt: Date;
 }
