@@ -25,8 +25,9 @@ export type {
   FormSectionProps,
   TextAreaFieldProps,
   ImageUploadButtonProps,
+  FormInputFieldProps,
 } from './form';
-export type { OptionButtonProps } from './button';
+export type { OptionButtonProps, SocialLoginButtonProps } from './button';
 export type {
   BottomSheetHeight,
   BaseBottomSheetProps,
