@@ -6,6 +6,7 @@ import {
   DeleteObjectsCommand,
 } from '@aws-sdk/client-s3';
 import {
+  IMAGE_SIZES,
   ImageSize,
   ProcessedImage,
   UploadedImage,
@@ -57,10 +58,9 @@ export class ObjectStorageService {
     images: ProcessedImage[],
   ): Promise<UploadedImage[]> {
     const uploadedImages: UploadedImage[] = [];
-    const sizes: ImageSize[] = ['thumbnail', 'medium', 'original'];
 
     for (const image of images) {
-      const uploadPromises = sizes.map((size) => {
+      const uploadPromises = IMAGE_SIZES.map((size) => {
         const key = this.buildKey(
           userPublicId,
           recordPublicId,
