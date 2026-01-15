@@ -128,12 +128,17 @@ export default function RecordListPage({
     handleTabChangeNavigation(tabId);
   };
 
+  const handleTitleClick = () => {
+    void navigate(ROUTES.HOME);
+  };
+
   return (
     <div
       className={`flex flex-col min-h-screen h-full bg-white overflow-hidden ${className}`}
     >
       {/* 헤더 */}
       <AppHeader
+        onTitleClick={handleTitleClick}
         onFilterClick={onFilterClick}
         onSearchClick={handleSearchClick}
         isSearchActive={isSearchActive}
