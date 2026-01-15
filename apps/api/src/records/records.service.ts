@@ -187,9 +187,11 @@ export class RecordsService {
     dto: CreateRecordDto,
     locationName: string | null,
     address: string | null,
+    publicId?: string,
   ) {
     return tx.record.create({
       data: {
+        ...(publicId && { publicId }),
         userId,
         title: dto.title,
         content: dto.content ?? null,
