@@ -210,4 +210,23 @@ export class RecordsService {
     );
     return updated;
   }
+
+  private async getLocationInfo(
+    latitude: number,
+    longitude: number,
+  ): Promise<{ name: string | null; address: string | null }> {
+    const { name, address } =
+      await this.reverseGeocodingService.getAddressFromCoordinates(
+        latitude,
+        longitude,
+      );
+
+    if (!name && !address) {
+      this.logger.warn(
+        `Reverse geocoding failed: lat=${latitude}, lng=${longitude}`,
+      );
+    }
+
+    return { name, address };
+  }
 }
