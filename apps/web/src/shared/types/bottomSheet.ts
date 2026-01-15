@@ -6,6 +6,7 @@ export type BottomSheetHeight =
   | 'image'
   | 'summary'
   | 'filter'
+  | 'connection'
   | 'small'
   | 'medium'
   | 'full';

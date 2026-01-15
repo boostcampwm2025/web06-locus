@@ -188,6 +188,7 @@ export default function MapViewport({ className = '' }: MapViewportProps) {
         {/* Floating Action Button */}
         <button
           type="button"
+          onClick={() => void navigate(ROUTES.CONNECTION)}
           className="absolute bottom-8 left-1/2 -translate-x-1/2 bg-gray-900 text-white px-6 py-3 rounded-full text-sm font-medium shadow-lg hover:bg-gray-800 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900 focus-visible:ring-offset-2 z-10"
           aria-label="연결 모드"
         >

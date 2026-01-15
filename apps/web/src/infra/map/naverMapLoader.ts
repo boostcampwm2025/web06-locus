@@ -1,3 +1,5 @@
+import type { WaitForNaverMapOptions } from '@/infra/types/map';
+
 /**
  * Naver Maps API를 동적으로 로드하는 유틸리티
  *
@@ -122,4 +124,57 @@ export function loadNaverMapScript({
  */
 export function checkNaverMapLoaded(): boolean {
   return isNaverMapLoaded();
+}
+
+/**
+ * Naver Maps API가 로드될 때까지 기다리는 싱글톤 함수
+ * 이미 로드되어 있으면 즉시 resolve, 아니면 polling으로 기다림
+ * @returns Promise<void> naver.maps가 준비될 때까지 기다림
+ */
+let waitPromise: Promise<void> | null = null;
+
+export function waitForNaverMap(
+  options: WaitForNaverMapOptions = {},
+): Promise<void> {
+  const { intervalMs = 50, timeoutMs = 10_000 } = options;
+
+  if (isNaverMapLoaded()) return Promise.resolve();
+  if (waitPromise) return waitPromise;
+
+  waitPromise = new Promise<void>((resolve, reject) => {
+    let intervalId: ReturnType<typeof setInterval> | null = null;
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+
+    const cleanup = () => {
+      if (intervalId) clearInterval(intervalId);
+      if (timeoutId) clearTimeout(timeoutId);
+      intervalId = null;
+      timeoutId = null;
+      waitPromise = null;
+    };
+
+    intervalId = setInterval(() => {
+      if (isNaverMapLoaded()) {
+        cleanup();
+        resolve();
+      }
+    }, intervalMs);
+
+    timeoutId = setTimeout(() => {
+      if (!isNaverMapLoaded()) {
+        cleanup();
+        reject(
+          new Error(
+            'Naver Maps API 로드를 기다리는 중 타임아웃이 발생했습니다.',
+          ),
+        );
+      } else {
+        // 혹시라도 timeout 시점에 로드되어 있으면 그냥 정리만
+        cleanup();
+        resolve();
+      }
+    }, timeoutMs);
+  });
+
+  return waitPromise;
 }
