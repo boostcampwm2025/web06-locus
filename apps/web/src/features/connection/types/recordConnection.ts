@@ -111,3 +111,25 @@ export interface SelectionButtonProps {
   onClear?: () => void;
   clearAriaLabel: string;
 }
+
+/**
+ * 기록 선택 컨텍스트 바텀시트 Props
+ */
+export interface RecordSelectionContextSheetProps {
+  isOpen: boolean;
+  onClose: () => void;
+  record: RecordConnectionItem | null;
+  onSelectDeparture: (record: RecordConnectionItem) => void;
+  onSelectArrival: (record: RecordConnectionItem) => void;
+}
+
+/**
+ * 액션 아이템 Props (내부 사용)
+ */
+export interface ActionItemProps {
+  dotClassName: string;
+  title: string;
+  description: string;
+  onClick: () => void;
+  ariaLabel: string;
+}

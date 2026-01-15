@@ -8,4 +8,5 @@ export type {
   RecommendedRecordsSectionProps,
   ConnectActionButtonProps,
   RecordConnectionListProps,
+  RecordSelectionContextSheetProps,
 } from './recordConnection';
