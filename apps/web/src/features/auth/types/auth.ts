@@ -8,3 +8,9 @@ export interface AuthState {
   accessToken: string | null;
   refreshToken: string | null;
 }
+
+export interface UseEmailVerifyParams {
+  email: string;
+  password?: string;
+  nickname?: string;
+}
