@@ -310,4 +310,32 @@ describe('RecordSearchService', () => {
       );
     });
   });
+
+  describe('deleteRecord', () => {
+    test('기록 정보를 Elasticsearch에서 삭제해야 한다', async () => {
+      // given
+      const recordId = '123';
+      mockElasticsearchService.delete = jest.fn().mockResolvedValue({} as any);
+
+      // when
+      await service.deleteRecord(recordId);
+
+      // then
+      expect(mockElasticsearchService.delete).toHaveBeenCalledWith({
+        index: RECORD_INDEX_NAME,
+        id: recordId,
+      });
+      expect(mockElasticsearchService.delete).toHaveBeenCalledTimes(1);
+    });
+
+    test('404 외의 삭제 실패 시 예외를 던져야 한다', async () => {
+      // given
+      const recordId = '999';
+      const error = new Error('Delete failed');
+      mockElasticsearchService.delete = jest.fn().mockRejectedValue(error);
+
+      // when & then
+      await expect(service.deleteRecord(recordId)).rejects.toThrow(error);
+    });
+  });
 });
