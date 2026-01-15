@@ -215,3 +215,14 @@ export class RecordNotFoundException extends BusinessException {
     });
   }
 }
+
+export class LocationNotFoundException extends BusinessException {
+  constructor(recordId: string) {
+    super(
+      404,
+      RecordErrorCode.LOCATION_NOT_FOUND,
+      '기록의 장소를 찾을 수 없습니다.',
+      { record_id: recordId },
+    );
+  }
+}
