@@ -64,7 +64,7 @@ export class ConnectionsService {
   }
 
   async delete(
-    userId: number,
+    userId: bigint,
     publicId: string,
   ): Promise<DeletedConnectionDto> {
     const [findOne, findPair] = await this.findPairConnections(
@@ -127,7 +127,7 @@ export class ConnectionsService {
     }
   }
 
-  private async findPairConnections(userId: number, publicId: string) {
+  private async findPairConnections(userId: bigint, publicId: string) {
     const findOne = await this.prismaService.connection.findFirst({
       where: { userId, publicId },
       select: {

@@ -54,12 +54,13 @@ export class RecordsController {
     return await this.recordsService.createRecord(userId, dto);
   }
 
-  // todo: 가드 추가 (현재는 임시 userId: 1 사용 중)
+  @UseGuards(JwtAuthGuard)
   @Get(':publicId/graph')
   async getGraph(
+    @CurrentUser('sub') userId: bigint,
     @Param('publicId') publicId: string,
   ): Promise<GraphResponseDto> {
-    const graphData = await this.recordsService.getGraph(publicId, 1); // 임시 userId: 1, 가드 추가 후 수정 필요
+    const graphData = await this.recordsService.getGraph(publicId, userId);
     return graphData;
   }
 }

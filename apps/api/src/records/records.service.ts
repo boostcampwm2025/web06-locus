@@ -107,7 +107,7 @@ export class RecordsService {
 
   async getGraph(
     startRecordPublicId: string,
-    userId: number,
+    userId: bigint,
   ): Promise<GraphResponseDto> {
     const startRecordId = await this.getRecordIdByPublicId(startRecordPublicId);
 
