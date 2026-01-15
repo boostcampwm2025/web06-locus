@@ -13,9 +13,13 @@ describe('RecordSearchService', () => {
 
   const mockElasticsearchService = {
     index: jest.fn(),
+    update: jest.fn(),
+    delete: jest.fn(),
     indices: {
       exists: jest.fn(),
       create: jest.fn(),
+      update: jest.fn(),
+      delete: jest.fn(),
     },
   };
 
@@ -55,7 +59,7 @@ describe('RecordSearchService', () => {
       });
     });
 
-    it('인덱스가 이미 존재하면 생성하지 않아야 한다', async () => {
+    test('인덱스가 이미 존재하면 생성하지 않아야 한다', async () => {
       // given
       mockElasticsearchService.indices.exists.mockResolvedValue(true);
 
@@ -221,6 +225,89 @@ describe('RecordSearchService', () => {
           tags: [],
         }),
       });
+    });
+  });
+
+  describe('updateRecord', () => {
+    test('기록정보를 Elasticsearch에서 부분 업데이트해야 한다', async () => {
+      // given
+      const payload: RecordSyncPayload = {
+        recordId: '123',
+        publicId: 'pub-123',
+        userId: '456',
+        title: '업데이트된 레코드',
+        content: '업데이트된 내용',
+        isFavorite: true,
+        locationName: '서울시 강남구',
+        tags: ['수정', '업데이트'],
+        hasImages: true,
+        thumbnailImage: 'https://example.com/updated.jpg',
+        connectionsCount: 10,
+        createdAt: '2024-01-01T00:00:00.000Z',
+      };
+      mockElasticsearchService.update.mockResolvedValue({} as any);
+
+      // when
+      await service.updateRecord(payload);
+
+      // then
+      expect(mockElasticsearchService.update).toHaveBeenCalledWith({
+        index: RECORD_INDEX_NAME,
+        id: '123',
+        doc: payload,
+        doc_as_upsert: true,
+      });
+      expect(mockElasticsearchService.update).toHaveBeenCalledTimes(1);
+    });
+
+    test('업데이트 실패 시 예외를 던져야 한다', async () => {
+      // given
+      const payload: RecordSyncPayload = {
+        recordId: '999',
+        publicId: 'pub-999',
+        userId: '111',
+        title: '업데이트 실패',
+        content: 'Content',
+        isFavorite: false,
+        locationName: '서울',
+        tags: [],
+        hasImages: false,
+        thumbnailImage: null,
+        connectionsCount: 0,
+        createdAt: '2024-01-01T00:00:00.000Z',
+      };
+      const error = new Error('Update failed');
+      mockElasticsearchService.update.mockRejectedValue(error);
+
+      // when & then
+      await expect(service.updateRecord(payload)).rejects.toThrow(error);
+    });
+
+    test('docs가 없으면 upsert로 생성해야 한다', async () => {
+      // given
+      const payload: RecordSyncPayload = {
+        recordId: '777',
+        publicId: 'pub-777',
+        userId: '888',
+        title: 'New Record',
+        content: 'New Content',
+        isFavorite: false,
+        locationName: '인천',
+        tags: ['신규'],
+        hasImages: false,
+        thumbnailImage: null,
+        connectionsCount: 0,
+        createdAt: '2024-01-01T00:00:00.000Z',
+      };
+      mockElasticsearchService.update.mockResolvedValue({} as any);
+
+      // when
+      await service.updateRecord(payload);
+
+      // then
+      expect(mockElasticsearchService.update).toHaveBeenCalledWith(
+        expect.objectContaining({ doc_as_upsert: true }),
+      );
     });
   });
 });
