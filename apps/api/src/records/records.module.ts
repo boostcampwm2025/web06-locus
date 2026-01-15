@@ -10,6 +10,7 @@ import { RecordSyncConsumer } from './consumer/record-sync.consumer';
 import { OutboxModule } from '@/outbox/outbox.module';
 import { ImageProcessingService } from './services/image-processing.service';
 import { ObjectStorageService } from './services/object-storage.service';
+import { UsersService } from '@/users/users.service';
 
 @Module({
   imports: [PrismaModule, JwtModule, ElasticsearchConfigModule, OutboxModule],
@@ -20,6 +21,7 @@ import { ObjectStorageService } from './services/object-storage.service';
     RecordSearchService,
     ImageProcessingService,
     ObjectStorageService,
+    UsersService,
   ],
   exports: [RecordsService, RecordSearchService],
 })
