@@ -270,4 +270,34 @@ export class RecordsService {
 
     return { uploadedImages, uploadedKeys, processedImages };
   }
+
+  private async saveImages(
+    tx: Prisma.TransactionClient,
+    recordId: bigint,
+    processedImages: ProcessedImage[],
+    uploadedImages: UploadedImage[],
+  ): Promise<void> {
+    const imageData = processedImages.map((processed, index) => {
+      const uploaded = uploadedImages[index];
+      return {
+        publicId: processed.imageId,
+        recordId,
+        order: index,
+        thumbnailUrl: uploaded.urls.thumbnail,
+        thumbnailWidth: processed.variants.thumbnail.width,
+        thumbnailHeight: processed.variants.thumbnail.height,
+        thumbnailSize: processed.variants.thumbnail.size,
+        mediumUrl: uploaded.urls.medium,
+        mediumWidth: processed.variants.medium.width,
+        mediumHeight: processed.variants.medium.height,
+        mediumSize: processed.variants.medium.size,
+        originalUrl: uploaded.urls.original,
+        originalWidth: processed.variants.original.width,
+        originalHeight: processed.variants.original.height,
+        originalSize: processed.variants.original.size,
+      };
+    });
+
+    await tx.image.createMany({ data: imageData });
+  }
 }
