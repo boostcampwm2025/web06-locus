@@ -22,11 +22,7 @@ import {
 import { UPDATE_RECORD_LOCATION_SQL } from './sql/record-raw.query';
 import { ImageProcessingService } from './services/image-processing.service';
 import { ObjectStorageService } from './services/object-storage.service';
-import {
-  IMAGE_SIZES,
-  ProcessedImage,
-  UploadedImage,
-} from './services/object-storage.types';
+import { ProcessedImage, UploadedImage } from './services/object-storage.types';
 import { nanoid } from 'nanoid';
 
 @Injectable()
@@ -253,20 +249,12 @@ export class RecordsService {
       }),
     );
 
-    const uploadedImages = await this.objectStorageService.uploadRecordImages(
-      userPublicId,
-      recordPublicId,
-      processedImages,
-    );
-
-    const uploadedKeys: string[] = [];
-    for (const img of processedImages) {
-      for (const size of IMAGE_SIZES) {
-        uploadedKeys.push(
-          `records/${userPublicId}/${recordPublicId}/${img.imageId}/${size}.jpg`,
-        );
-      }
-    }
+    const { uploadedImages, uploadedKeys } =
+      await this.objectStorageService.uploadRecordImages(
+        userPublicId,
+        recordPublicId,
+        processedImages,
+      );
 
     return { uploadedImages, uploadedKeys, processedImages };
   }
