@@ -40,7 +40,7 @@ export class RecordSyncConsumer {
           await this.recordSearchService.updateRecord(event.payload);
           break;
         case OUTBOX_EVENT_TYPE.RECORD_DELETED:
-          // TODO: await this.deleteRecord(event.aggregateId);
+          await this.recordSearchService.deleteRecord(event.aggregateId);
           break;
       }
 
