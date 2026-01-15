@@ -10,6 +10,7 @@ import AppHeaderTitle from './AppHeaderTitle';
  */
 export default function AppHeaderNormalMode({
   onLogoClick,
+  onTitleClick,
   onSearchClick,
   onFilterClick,
   className = '',
@@ -18,16 +19,22 @@ export default function AppHeaderNormalMode({
     <header
       className={`flex items-center justify-between px-4 py-3 bg-white min-h-[72px] ${className}`}
     >
-      <button
-        type="button"
-        onClick={onLogoClick}
-        aria-label="로고"
-        className="p-1 rounded-full hover:bg-gray-100 transition-colors"
-      >
-        <Logo className="w-10 h-10" />
-      </button>
+      {onLogoClick ? (
+        <button
+          type="button"
+          onClick={onLogoClick}
+          aria-label="로고"
+          className="p-1 rounded-full hover:bg-gray-100 transition-colors"
+        >
+          <Logo className="w-10 h-10" />
+        </button>
+      ) : (
+        <div className="p-1">
+          <Logo className="w-10 h-10" />
+        </div>
+      )}
 
-      <AppHeaderTitle />
+      <AppHeaderTitle onClick={onTitleClick} />
 
       <div className="flex items-center gap-2">
         {onFilterClick && (

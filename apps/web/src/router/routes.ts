@@ -4,6 +4,9 @@
 export const ROUTES = {
   HOME: '/home',
   RECORD: '/record',
+  RECORD_LIST: '/records',
+  RECORD_DETAIL: '/records/:id',
+  CONNECTION: '/connection',
   AUTH_CALLBACK: '/auth/callback',
   LOGIN: '/',
 } as const;

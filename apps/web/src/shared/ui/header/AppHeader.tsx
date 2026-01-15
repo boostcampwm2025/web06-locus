@@ -9,6 +9,7 @@ import AppHeaderNormalMode from './AppHeaderNormalMode';
  */
 export default function AppHeader({
   onLogoClick,
+  onTitleClick,
   onSearchClick,
   onFilterClick,
   isSearchActive = false,
@@ -39,6 +40,7 @@ export default function AppHeader({
   return (
     <AppHeaderNormalMode
       onLogoClick={onLogoClick}
+      onTitleClick={onTitleClick}
       onSearchClick={onSearchClick}
       onFilterClick={onFilterClick}
       className={className}

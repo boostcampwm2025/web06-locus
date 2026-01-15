@@ -1,5 +1,4 @@
 import { useEffect, useRef } from 'react';
-import { isNaverMapLoaded } from '@/infra/map/naverMapLoader';
 import { getPinOverlayViewClass } from './PinOverlayView';
 import {
   createOverlayInstance,
@@ -37,31 +36,31 @@ export default function PinOverlay({
   useEffect(() => {
     if (!map) return;
 
-    if (!isNaverMapLoaded()) {
-      console.warn('Naver Maps API가 아직 로드되지 않았습니다.');
-      return;
-    }
+    try {
+      // 지도가 로드된 후에는 클래스가 이미 초기화되어 있음
+      const PinOverlayView = getPinOverlayViewClass();
 
-    const PinOverlayView = getPinOverlayViewClass();
-
-    if (!overlayRef.current) {
-      overlayRef.current = createOverlayInstance(
-        PinOverlayView,
-        pin,
-        isSelected,
-        onClick,
-      );
-      overlayRef.current.setMap(map);
-    } else {
-      // map이 변경되었으면 재생성
-      overlayRef.current.setMap(null);
-      overlayRef.current = createOverlayInstance(
-        PinOverlayView,
-        pin,
-        isSelected,
-        onClick,
-      );
-      overlayRef.current.setMap(map);
+      if (!overlayRef.current) {
+        overlayRef.current = createOverlayInstance(
+          PinOverlayView,
+          pin,
+          isSelected,
+          onClick,
+        );
+        overlayRef.current.setMap(map);
+      } else {
+        // map이 변경되었으면 재생성
+        overlayRef.current.setMap(null);
+        overlayRef.current = createOverlayInstance(
+          PinOverlayView,
+          pin,
+          isSelected,
+          onClick,
+        );
+        overlayRef.current.setMap(map);
+      }
+    } catch (error) {
+      console.error('PinOverlayView 클래스를 가져오는 중 오류 발생:', error);
     }
 
     return () => {
