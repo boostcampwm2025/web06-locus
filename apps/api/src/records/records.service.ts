@@ -22,6 +22,12 @@ import {
 import { UPDATE_RECORD_LOCATION_SQL } from './sql/record-raw.query';
 import { ImageProcessingService } from './services/image-processing.service';
 import { ObjectStorageService } from './services/object-storage.service';
+import {
+  IMAGE_SIZES,
+  ProcessedImage,
+  UploadedImage,
+} from './services/object-storage.types';
+import { nanoid } from 'nanoid';
 
 @Injectable()
 export class RecordsService {
@@ -228,5 +234,40 @@ export class RecordsService {
     }
 
     return { name, address };
+  }
+
+  private async processAndUploadImages(
+    userPublicId: string,
+    recordPublicId: string,
+    images: Express.Multer.File[],
+  ): Promise<{
+    uploadedImages: UploadedImage[];
+    uploadedKeys: string[];
+    processedImages: ProcessedImage[];
+  }> {
+    const processedImages: ProcessedImage[] = await Promise.all(
+      images.map(async (file) => {
+        const imageId = nanoid(12);
+        const result = await this.imageProcessingService.process(file);
+        return { imageId, variants: result };
+      }),
+    );
+
+    const uploadedImages = await this.objectStorageService.uploadRecordImages(
+      userPublicId,
+      recordPublicId,
+      processedImages,
+    );
+
+    const uploadedKeys: string[] = [];
+    for (const img of processedImages) {
+      for (const size of IMAGE_SIZES) {
+        uploadedKeys.push(
+          `records/${userPublicId}/${recordPublicId}/${img.imageId}/${size}.jpg`,
+        );
+      }
+    }
+
+    return { uploadedImages, uploadedKeys, processedImages };
   }
 }
