@@ -3,7 +3,7 @@ import { Controller, Logger } from '@nestjs/common';
 import { EventPattern, Payload, Ctx, RmqContext } from '@nestjs/microservices';
 import { RABBITMQ_CONSTANTS } from '@/common/constants/rabbitmq.constants';
 import { RecordSyncEvent } from '../type/record-sync.types';
-import { RecordSearchService } from '../record-search.service';
+import { RecordSearchService } from '../records-search.service';
 
 @Controller()
 export class RecordSyncConsumer {
