@@ -35,7 +35,7 @@ describe('ConnectionsService', () => {
 
   describe('create', () => {
     test('fromRecordPublicId와 toRecordPublicId가 동일하면 "같은 기록 연결 금지" 예외를 던진다', async () => {
-      const userId = 1;
+      const userId = 1n;
       const dto: CreateConnectionRequestDto = {
         fromRecordPublicId: 'rec_same',
         toRecordPublicId: 'rec_same',
@@ -52,7 +52,7 @@ describe('ConnectionsService', () => {
     });
 
     test('fromRecordPublicId에 해당하는 레코드가 없으면 "레코드 없음" 예외를 던진다', async () => {
-      const userId = 1;
+      const userId = 1n;
       const dto: CreateConnectionRequestDto = {
         fromRecordPublicId: 'rec_from',
         toRecordPublicId: 'rec_to',
@@ -73,7 +73,7 @@ describe('ConnectionsService', () => {
     });
 
     test('toRecordPublicId에 해당하는 레코드가 없으면 "레코드 없음" 예외를 던진다', async () => {
-      const userId = 1;
+      const userId = 1n;
       const dto: CreateConnectionRequestDto = {
         fromRecordPublicId: 'rec_from',
         toRecordPublicId: 'rec_to',
@@ -93,7 +93,7 @@ describe('ConnectionsService', () => {
     });
 
     test('이미 (A,B) 또는 (B,A) 연결이 존재하면 "연결 중복" 예외를 던진다', async () => {
-      const userId = 1;
+      const userId = 1n;
       const dto: CreateConnectionRequestDto = {
         fromRecordPublicId: 'rec_a',
         toRecordPublicId: 'rec_b',
@@ -120,7 +120,7 @@ describe('ConnectionsService', () => {
     });
 
     test('정상 요청이면 트랜잭션으로 (A->B, B->A) 2건을 생성하고, 첫 번째 생성 결과를 응답 DTO로 변환해 반환한다', async () => {
-      const userId = 1;
+      const userId = 1n;
       const dto: CreateConnectionRequestDto = {
         fromRecordPublicId: 'rec_a',
         toRecordPublicId: 'rec_b',

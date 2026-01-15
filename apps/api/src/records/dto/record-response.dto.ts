@@ -17,7 +17,7 @@ export class ImageSizeDto {
 
 export class ImageResponseDto {
   @ApiProperty({ description: '이미지 공개 ID', example: 'img_3Xk2P9nQ4mL' })
-  public_id: string;
+  publicId: string;
 
   @ApiProperty({ description: '썸네일 정보', type: ImageSizeDto })
   thumbnail: ImageSizeDto;
@@ -51,7 +51,7 @@ export class LocationResponseDto {
 
 export class RecordResponseDto {
   @ApiProperty({ description: '기록 공개 ID', example: 'rec_7K9mP2nQ5xL' })
-  public_id: string;
+  publicId: string;
 
   @ApiProperty({ description: '기록 제목', example: '한강 산책' })
   title: string;
@@ -80,36 +80,36 @@ export class RecordResponseDto {
   images: ImageResponseDto[];
 
   @ApiProperty({ description: '즐겨찾기 여부', example: false })
-  is_favorite: boolean;
+  isFavorite: boolean;
 
   @ApiProperty({
     description: '생성 시간',
     example: '2024-01-15T14:30:00Z',
   })
-  created_at: string;
+  createdAt: string;
 
   @ApiProperty({
     description: '수정 시간',
     example: '2024-01-15T14:30:00Z',
   })
-  updated_at: string;
+  updatedAt: string;
 
   static from(record: RecordModel): RecordResponseDto {
     return {
-      public_id: record.public_id,
+      publicId: record.publicId,
       title: record.title,
       content: record.content,
       location: {
         latitude: record.latitude,
         longitude: record.longitude,
-        name: record.location_name,
-        address: record.location_address,
+        name: record.locationName,
+        address: record.locationAddress,
       },
       tags: record.tags,
       images: [],
-      is_favorite: record.is_favorite,
-      created_at: record.created_at.toISOString(),
-      updated_at: record.updated_at.toISOString(),
+      isFavorite: record.isFavorite,
+      createdAt: record.createdAt.toISOString(),
+      updatedAt: record.updatedAt.toISOString(),
     };
   }
 }

@@ -19,7 +19,7 @@ export class ConnectionsController {
   @Post()
   @UseGuards(JwtAuthGuard)
   async createConnection(
-    @CurrentUser('sub') userId: number,
+    @CurrentUser('sub') userId: bigint,
     @Body() createConnectionDto: CreateConnectionRequestDto,
   ): Promise<CreateConnectionResponseDto> {
     const connection = await this.connectionsService.create(

@@ -14,7 +14,7 @@ describe('UsersService', () => {
   let prismaService: PrismaService;
 
   const mockUser: User = {
-    id: 1,
+    id: 1n,
     publicId: 'publicId',
     email: 'test@example.com',
     nickname: 'Test User',
@@ -27,7 +27,7 @@ describe('UsersService', () => {
   };
 
   const mockLocalUser: User = {
-    id: 2,
+    id: 2n,
     publicId: 'publicId',
     email: 'local@example.com',
     nickname: 'Local User',
@@ -478,7 +478,7 @@ describe('UsersService', () => {
       mockPrismaService.user.findUnique.mockResolvedValue(mockUser);
 
       // when
-      const result = await usersService.findById(1);
+      const result = await usersService.findById(1n);
 
       // then
       expect(result).not.toHaveProperty('password');
@@ -494,7 +494,7 @@ describe('UsersService', () => {
         updatedAt: mockUser.updatedAt,
       });
       expect(prismaService.user.findUnique).toHaveBeenCalledWith({
-        where: { id: 1 },
+        where: { id: 1n },
       });
     });
 
@@ -503,10 +503,10 @@ describe('UsersService', () => {
       mockPrismaService.user.findUnique.mockResolvedValue(null);
 
       // when & then
-      await expect(usersService.findById(999)).rejects.toThrow(
+      await expect(usersService.findById(999n)).rejects.toThrow(
         UserNotFoundException,
       );
-      await expect(usersService.findById(999)).rejects.toThrow(
+      await expect(usersService.findById(999n)).rejects.toThrow(
         '사용자를 찾을 수 없습니다.',
       );
     });
@@ -516,7 +516,7 @@ describe('UsersService', () => {
       mockPrismaService.user.findUnique.mockResolvedValue(null);
 
       // when & then
-      await expect(usersService.findById(-1)).rejects.toThrow(
+      await expect(usersService.findById(-1n)).rejects.toThrow(
         UserNotFoundException,
       );
     });
@@ -526,7 +526,7 @@ describe('UsersService', () => {
       mockPrismaService.user.findUnique.mockResolvedValue(null);
 
       // when & then
-      await expect(usersService.findById(-100)).rejects.toThrow(
+      await expect(usersService.findById(-100n)).rejects.toThrow(
         UserNotFoundException,
       );
     });
@@ -538,7 +538,7 @@ describe('UsersService', () => {
       );
 
       // when & then
-      await expect(usersService.findById(1)).rejects.toThrow(
+      await expect(usersService.findById(1n)).rejects.toThrow(
         'Database connection failed',
       );
     });
