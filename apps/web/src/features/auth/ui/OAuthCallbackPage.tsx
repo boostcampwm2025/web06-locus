@@ -27,7 +27,6 @@ export default function OAuthCallbackPage() {
 
     try {
       const accessToken = searchParams.get('accessToken');
-      const refreshToken = searchParams.get('refreshToken');
       // // const errorParam = searchParams.get('error');
 
       // if (errorParam) {
@@ -36,13 +35,14 @@ export default function OAuthCallbackPage() {
       //   return;
       // }
 
-      if (!accessToken || !refreshToken) {
+      if (!accessToken) {
         setError(new Error('인증 정보가 전달되지 않았습니다.'));
         setStatus('error');
         return;
       }
 
-      setTokens(accessToken, refreshToken);
+      // refreshToken은 /auth/reissue 엔드포인트에서 쿠키로 자동 전송됨
+      setTokens(accessToken, '');
 
       // URL에서 토큰 파라미터 제거
       window.history.replaceState({}, document.title, ROUTES.AUTH_CALLBACK);
