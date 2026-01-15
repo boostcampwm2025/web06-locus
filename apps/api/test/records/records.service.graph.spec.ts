@@ -2,6 +2,7 @@ import { RecordsService } from '@/records/records.service';
 import { PrismaService } from '@/prisma/prisma.service';
 import { ReverseGeocodingService } from '@/records/services/reverse-geocoding.service';
 import { RecordNotFoundException } from '@/records/exceptions/record.exceptions';
+import { OutboxService } from '@/outbox/outbox.service';
 interface PrismaMock {
   record: { findUnique: jest.Mock };
   $queryRaw: jest.Mock;
@@ -11,10 +12,15 @@ interface ReverseGeocodingMock {
   getAddressFromCoordinates: jest.Mock;
 }
 
+interface OutboxMock {
+  publish: jest.Mock;
+}
+
 describe('RecordsService - getGraph', () => {
   let service: RecordsService;
   let prismaMock: PrismaMock;
   let reverseGeocodingMock: ReverseGeocodingMock;
+  let outboxServiceMock: OutboxMock;
 
   beforeEach(() => {
     prismaMock = {
@@ -26,9 +32,14 @@ describe('RecordsService - getGraph', () => {
       getAddressFromCoordinates: jest.fn(),
     };
 
+    outboxServiceMock = {
+      publish: jest.fn(),
+    };
+
     service = new RecordsService(
       prismaMock as unknown as PrismaService,
       reverseGeocodingMock as unknown as ReverseGeocodingService,
+      outboxServiceMock as unknown as OutboxService,
     );
 
     jest.clearAllMocks();
@@ -37,7 +48,7 @@ describe('RecordsService - getGraph', () => {
   test('시작 레코드 publicId로 id를 조회하고, RAW SQL 결과를 nodes/edges로 변환하여 meta와 함께 반환한다', async () => {
     // given
     const startRecordPublicId = 'rec_start';
-    const userId = 7;
+    const userId = 7n;
 
     prismaMock.record.findUnique.mockResolvedValueOnce({ id: 10n });
 
@@ -106,7 +117,7 @@ describe('RecordsService - getGraph', () => {
     prismaMock.record.findUnique.mockResolvedValueOnce(null);
 
     // when & then
-    await expect(service.getGraph('rec_missing', 7)).rejects.toBeInstanceOf(
+    await expect(service.getGraph('rec_missing', 7n)).rejects.toBeInstanceOf(
       RecordNotFoundException,
     );
 
@@ -119,7 +130,7 @@ describe('RecordsService - getGraph', () => {
     prismaMock.$queryRaw.mockResolvedValueOnce([]);
 
     // when
-    const result = await service.getGraph('rec_start', 7);
+    const result = await service.getGraph('rec_start', 7n);
 
     // then
     expect(result.nodes).toEqual([]);
@@ -148,7 +159,7 @@ describe('RecordsService - getGraph', () => {
     ]);
 
     // when
-    const result = await service.getGraph('rec_start', 7);
+    const result = await service.getGraph('rec_start', 7n);
 
     // then
     expect(result.nodes).toEqual([]);
