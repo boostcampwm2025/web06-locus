@@ -246,9 +246,6 @@ export class RecordsService {
     }
   }
 
-  // TODO: 태그 관련 중간테이블 및 서비스 추가
-  // TODO: 이미지 기능 추가
-
   // NOTE: repository 계층으로 분리..?
   private async saveRecord(
     tx: Prisma.TransactionClient,
