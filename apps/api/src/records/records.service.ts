@@ -24,6 +24,7 @@ import { ImageProcessingService } from './services/image-processing.service';
 import { ObjectStorageService } from './services/object-storage.service';
 import { ProcessedImage, UploadedImage } from './services/object-storage.types';
 import { nanoid } from 'nanoid';
+import { UsersService } from '@/users/users.service';
 
 @Injectable()
 export class RecordsService {
@@ -35,6 +36,7 @@ export class RecordsService {
     private readonly outboxService: OutboxService,
     private readonly imageProcessingService: ImageProcessingService,
     private readonly objectStorageService: ObjectStorageService,
+    private readonly usersService: UsersService,
   ) {}
 
   async createRecord(
@@ -176,6 +178,55 @@ export class RecordsService {
 
     return { nodes, edges };
   }
+  private async createRecordWithImages(
+    userId: bigint,
+    dto: CreateRecordDto,
+    images: Express.Multer.File[],
+  ): Promise<RecordResponseDto> {
+    const userPublicId = (await this.usersService.findById(userId)).publicId;
+    const recordPublicId = nanoid(12);
+    const locationInfo = await this.getLocationInfo(
+      dto.location.latitude,
+      dto.location.longitude,
+    );
+
+    const { uploadedImages, uploadedKeys, processedImages } =
+      await this.processAndUploadImages(userPublicId, recordPublicId, images);
+
+    try {
+      const record = await this.executeRecordTransaction(
+        userId,
+        dto,
+        locationInfo,
+        recordPublicId,
+        processedImages,
+        uploadedImages,
+      );
+      return RecordResponseDto.from(record);
+    } catch (error) {
+      await this.objectStorageService.deleteImages(uploadedKeys);
+      throw error;
+    }
+  }
+
+  private async createRecordWithoutImages(
+    userId: bigint,
+    dto: CreateRecordDto,
+  ): Promise<RecordResponseDto> {
+    const locationInfo = await this.getLocationInfo(
+      dto.location.latitude,
+      dto.location.longitude,
+    );
+
+    const record = await this.executeRecordTransaction(
+      userId,
+      dto,
+      locationInfo,
+    );
+
+    return RecordResponseDto.from(record);
+  }
+
   private async executeRecordTransaction(
     userId: bigint,
     dto: CreateRecordDto,
