@@ -1,9 +1,20 @@
 import { BrowserRouter } from 'react-router-dom';
 import { useEffect, useRef } from 'react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useAuthStore } from './features/auth/domain/authStore';
 import LoadingPage from './shared/ui/loading/LoadingPage';
 import { getRandomLoadingVersion } from './shared/utils/loadingUtils';
 import { AppRoutes } from './router';
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false,
+      retry: 1,
+      staleTime: 5 * 60 * 1000, // 5분
+    },
+  },
+});
 
 function App() {
   const initialize = useAuthStore((state) => state.initialize);
@@ -21,9 +32,11 @@ function App() {
   }
 
   return (
-    <BrowserRouter>
-      <AppRoutes />
-    </BrowserRouter>
+    <QueryClientProvider client={queryClient}>
+      <BrowserRouter>
+        <AppRoutes />
+      </BrowserRouter>
+    </QueryClientProvider>
   );
 }
 
