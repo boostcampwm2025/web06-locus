@@ -5,6 +5,8 @@ import {
   UseGuards,
   HttpCode,
   HttpStatus,
+  Patch,
+  Param,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -17,6 +19,7 @@ import { CreateRecordDto } from './dto/create-record.dto';
 import { RecordResponseDto } from './dto/record-response.dto';
 import { JwtAuthGuard } from '@/jwt/guard/jwt.auth.guard';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
+import { UpdateRecordDto } from './dto/update-record.dto';
 
 @ApiTags('records')
 @Controller('records')
@@ -49,5 +52,20 @@ export class RecordsController {
     @Body() dto: CreateRecordDto,
   ): Promise<RecordResponseDto> {
     return await this.recordsService.createRecord(userId, dto);
+  }
+
+  @Patch(':publicId')
+  @ApiOperation({ summary: '기록 수정' })
+  // @ApiConsumes('multipart/form-data')
+  // @UseInterceptors(FilesInterceptor('images', 10))
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  async updateRecord(
+    @CurrentUser('sub') userId: bigint,
+    @Param('publicId') publicId: string,
+    @Body() dto: UpdateRecordDto,
+    // @UploadedFiles() files?: Array<Express.Multer.File>,
+  ): Promise<RecordResponseDto> {
+    return this.recordsService.updateRecord(userId, publicId, dto);
   }
 }
