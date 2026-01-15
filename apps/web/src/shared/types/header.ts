@@ -57,3 +57,11 @@ export interface AppHeaderNormalModeProps {
   onFilterClick?: () => void;
   className?: string;
 }
+
+/**
+ * 인증 페이지 헤더 컴포넌트 Props
+ */
+export interface AuthPageHeaderProps {
+  title?: string;
+  subtitle?: React.ReactNode;
+}
