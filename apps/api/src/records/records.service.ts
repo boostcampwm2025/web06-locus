@@ -39,6 +39,12 @@ export class RecordsService {
     private readonly usersService: UsersService,
   ) {}
 
+  /**
+   * 기록을 생성합니다.
+   * @param userId - 사용자 ID
+   * @param dto - 기록 생성 데이터
+   * @param images - 첨부 이미지 (선택, 최대 5개)
+   */
   async createRecord(
     userId: bigint,
     dto: CreateRecordDto,
@@ -181,6 +187,12 @@ export class RecordsService {
     return RecordResponseDto.from(record);
   }
 
+  /**
+   * Record와 Image를 DB에 저장하는 트랜잭션을 실행합니다.
+   * @param recordPublicId - 이미지가 있는 경우 미리 생성된 ID, 없으면 자동 생성
+   * @param processedImages - 이미지가 있는 경우에만 전달
+   * @param uploadedImages - 이미지가 있는 경우에만 전달
+   */
   private async executeRecordTransaction(
     userId: bigint,
     dto: CreateRecordDto,
@@ -300,6 +312,12 @@ export class RecordsService {
     return { name, address };
   }
 
+  /**
+   * 이미지를 처리(리사이징)하고 스토리지에 업로드합니다.
+   * @returns uploadedImages - DB 저장용 URL 정보
+   * @returns uploadedKeys - 롤백용 스토리지 키 목록
+   * @returns processedImages - DB 저장용 메타데이터
+   */
   private async processAndUploadImages(
     userPublicId: string,
     recordPublicId: string,
