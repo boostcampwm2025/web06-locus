@@ -42,58 +42,12 @@ export class RecordsService {
   async createRecord(
     userId: bigint,
     dto: CreateRecordDto,
+    images?: Express.Multer.File[],
   ): Promise<RecordResponseDto> {
-    const { name, address } =
-      await this.reverseGeocodingService.getAddressFromCoordinates(
-        dto.location.latitude,
-        dto.location.longitude,
-      );
-
-    if (!name && !address) {
-      this.logger.warn(
-        `Reverse geocoding failed: lat=${dto.location.latitude}, lng=${dto.location.longitude}`,
-      );
+    if (images?.length) {
+      return this.createRecordWithImages(userId, dto, images);
     }
-
-    try {
-      const record = await this.prisma.$transaction(async (tx) => {
-        const created = await this.saveRecord(tx, userId, dto, name, address);
-        const updated = await this.updateLocation(
-          tx,
-          created.id,
-          dto.location.longitude,
-          dto.location.latitude,
-        );
-
-        await this.outboxService.publish(tx, {
-          aggregateType: AGGREGATE_TYPE.RECORD,
-          aggregateId: updated.id.toString(),
-          eventType: OUTBOX_EVENT_TYPE.RECORD_CREATED,
-          payload: createRecordSyncPayload(userId, updated),
-        });
-
-        return updated;
-      });
-
-      this.logger.log(
-        `Record created: publicId=${record.publicId}, userId=${userId}, title="${dto.title}"`,
-      );
-
-      return RecordResponseDto.from(record);
-    } catch (error: unknown) {
-      if (error instanceof Error) {
-        this.logger.error(
-          `Failed to create record: userId=${userId}, error=${error.message}`,
-          error.stack,
-        );
-        throw new RecordCreationFailedException(error);
-      } else {
-        this.logger.error(
-          `Non-Error exception thrown during record creation: userId=${userId}, raw=${JSON.stringify(error)}`,
-        );
-        throw new Error('Unexpected non-Error exception thrown');
-      }
-    }
+    return this.createRecordWithoutImages(userId, dto);
   }
 
   async findOneByPublicId(publicId: string) {
