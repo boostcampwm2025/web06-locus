@@ -7,6 +7,7 @@ import BottomTabBar from '@/shared/ui/navigation/BottomTabBar';
 import RecordSummaryBottomSheet from '@/features/record/ui/RecordSummaryBottomSheet';
 import type { Record } from '@/features/record/types';
 import type { MainMapPageLocationState } from '@features/home/types/mainMapPage';
+import { useBottomTabNavigation } from '@/shared/hooks/useBottomTabNavigation';
 
 export default function MainMapPage() {
   const location = useLocation();
@@ -42,12 +43,14 @@ export default function MainMapPage() {
     setSavedRecord(null);
   };
 
+  const { handleTabChange } = useBottomTabNavigation();
+
   return (
     <div className="flex flex-col h-screen bg-white relative">
       <AppHeader />
       <CategoryChips />
       <MapViewport />
-      <BottomTabBar activeTab="home" />
+      <BottomTabBar activeTab="home" onTabChange={handleTabChange} />
 
       {/* 기록 요약 바텀시트 */}
       {savedRecord && (

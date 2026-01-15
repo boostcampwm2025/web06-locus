@@ -1,10 +1,13 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import AppHeader from '@/shared/ui/header/AppHeader';
 import CategoryChips from '@/shared/ui/category/CategoryChips';
 import { RecordCard } from '@/shared/ui/record';
 import BottomTabBar from '@/shared/ui/navigation/BottomTabBar';
 import type { Location } from '@/features/record/types';
 import type { Category } from '@/shared/types/category';
+import { ROUTES } from '@/router/routes';
+import { useBottomTabNavigation } from '@/shared/hooks/useBottomTabNavigation';
 
 export interface RecordListItem {
   id: string;
@@ -97,6 +100,7 @@ export default function RecordListPage({
   onTabChange,
   className = '',
 }: RecordListPageProps) {
+  const navigate = useNavigate();
   const [isSearchActive, setIsSearchActive] = useState(false);
   const [searchValue, setSearchValue] = useState('');
 
@@ -109,6 +113,19 @@ export default function RecordListPage({
     setIsSearchActive(false);
     setSearchValue('');
     onSearchCancel?.();
+  };
+
+  const handleRecordClick = (recordId: string) => {
+    onRecordClick?.(recordId);
+    void navigate(ROUTES.RECORD_DETAIL.replace(':id', recordId));
+  };
+
+  const { handleTabChange: handleTabChangeNavigation } =
+    useBottomTabNavigation();
+
+  const handleTabChange = (tabId: 'home' | 'record') => {
+    onTabChange?.(tabId);
+    handleTabChangeNavigation(tabId);
   };
 
   return (
@@ -146,7 +163,7 @@ export default function RecordListPage({
                 tags={record.tags}
                 connectionCount={record.connectionCount}
                 imageUrl={record.imageUrl}
-                onClick={() => onRecordClick?.(record.id)}
+                onClick={() => handleRecordClick(record.id)}
               />
             ))}
           </div>
@@ -154,7 +171,7 @@ export default function RecordListPage({
       </div>
 
       {/* 바텀 탭 */}
-      <BottomTabBar activeTab="record" onTabChange={onTabChange} />
+      <BottomTabBar activeTab="record" onTabChange={handleTabChange} />
     </div>
   );
 }
