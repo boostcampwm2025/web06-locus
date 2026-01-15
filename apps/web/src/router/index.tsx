@@ -7,6 +7,9 @@ import {
 } from 'react-router-dom';
 import OAuthLoginPage from '@/features/auth/ui/OAuthLoginPage';
 import OAuthCallbackPage from '@/features/auth/ui/OAuthCallbackPage';
+import EmailLoginPage from '@/features/auth/ui/EmailLoginPage';
+import EmailSignupPage from '@/features/auth/ui/EmailSignupPage';
+import EmailVerifyPage from '@/features/auth/ui/EmailVerifyPage';
 import MainMapPage from '@/features/home/ui/MainMapPage';
 import RecordListPage from '@/features/record/ui/RecordListPage';
 import RecordDetailPage from '@/features/record/ui/RecordDetailPage';
@@ -96,6 +99,30 @@ export function AppRoutes() {
         }
       />
       <Route path={ROUTES.AUTH_CALLBACK} element={<OAuthCallbackPage />} />
+      <Route
+        path={ROUTES.EMAIL_LOGIN}
+        element={
+          <PublicRoute>
+            <EmailLoginPage />
+          </PublicRoute>
+        }
+      />
+      <Route
+        path={ROUTES.EMAIL_SIGNUP}
+        element={
+          <PublicRoute>
+            <EmailSignupPage />
+          </PublicRoute>
+        }
+      />
+      <Route
+        path={ROUTES.EMAIL_VERIFY}
+        element={
+          <PublicRoute>
+            <EmailVerifyPage />
+          </PublicRoute>
+        }
+      />
       <Route
         path={ROUTES.HOME}
         element={

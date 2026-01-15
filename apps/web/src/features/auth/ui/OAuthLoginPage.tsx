@@ -1,6 +1,8 @@
+import { useNavigate } from 'react-router-dom';
 import Logo from '@/shared/icons/Logo';
 import OAuthLoginButton from '@/shared/ui/button/OAuthLoginButton';
 import { handleOAuthLogin } from '../data/oauthLogin';
+import { ROUTES } from '@/router/routes';
 
 function LoginHeader() {
   return (
@@ -26,10 +28,24 @@ function OAuthLoginSection() {
 }
 
 export default function OAuthLoginPage() {
+  const navigate = useNavigate();
+
   return (
     <div className="min-h-screen bg-white flex flex-col items-center justify-center px-4 py-8 sm:py-12">
       <div className="w-full max-w-md space-y-6 sm:space-y-8">
         <LoginHeader />
+
+        {/* 이메일로 시작하기 버튼 */}
+        <button
+          type="button"
+          onClick={() => {
+            void navigate(ROUTES.EMAIL_LOGIN);
+          }}
+          className="w-full flex items-center justify-center gap-3 px-4 py-3 rounded-lg bg-gray-900 text-white hover:bg-gray-800 transition-colors font-extralight"
+        >
+          <span>이메일로 시작하기</span>
+        </button>
+
         <OAuthLoginSection />
 
         {/* OAuth Login Buttons */}
