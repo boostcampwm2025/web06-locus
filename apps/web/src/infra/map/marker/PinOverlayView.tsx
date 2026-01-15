@@ -47,12 +47,12 @@ function createPinOverlayViewClass() {
    * Naver Maps API v3의 OverlayView를 사용하여 React 컴포넌트를 지도에 표시
    */
   class PinOverlayView extends naverMaps.OverlayView {
-    private container: HTMLDivElement;
-    private root: ReturnType<typeof createRoot>;
-    private position: naver.maps.LatLng;
-    private pin: PinMarkerData;
-    private isSelected: boolean;
-    private onClick?: (id: string | number) => void;
+    public container: HTMLDivElement;
+    public root: ReturnType<typeof createRoot>;
+    public position: naver.maps.LatLng;
+    public pin: PinMarkerData;
+    public isSelected: boolean;
+    public onClick?: (id: string | number) => void;
 
     constructor(
       position: naver.maps.LatLng,
@@ -176,7 +176,7 @@ function createPinOverlayViewClass() {
      * React 컴포넌트를 렌더링
      * PinMarker 컴포넌트를 root에 렌더링하여 지도에 표시
      */
-    private renderPin(): void {
+    public renderPin(): void {
       this.root.render(
         <PinMarker
           pin={this.pin}
