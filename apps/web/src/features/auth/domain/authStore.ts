@@ -5,11 +5,13 @@ import {
   getTokens,
   clearTokens,
 } from '@/infra/storage/tokenStorage';
+import { logout as logoutApi } from '@/infra/api/services/authService';
 
 interface AuthStore extends AuthState {
   isInitialized: boolean;
   setTokens: (accessToken: string, refreshToken: string) => void;
   clearAuth: () => void;
+  logout: () => Promise<void>;
   initialize: () => void;
 }
 
@@ -35,6 +37,17 @@ export const useAuthStore = create<AuthStore>((set) => ({
   clearAuth: () => {
     clearTokens();
     set({ ...initialState, isInitialized: true });
+  },
+
+  logout: async () => {
+    try {
+      await logoutApi();
+    } catch (error) {
+      console.error('Logout API call failed:', error);
+    } finally {
+      clearTokens();
+      set({ ...initialState, isInitialized: true });
+    }
   },
 
   initialize: () => {

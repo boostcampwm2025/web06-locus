@@ -1,6 +1,7 @@
-export const API_BASE_URL =
-  (import.meta.env.VITE_API_BASE_URL as string | undefined) ??
-  'http://localhost:3000';
+// 개발/프로덕션 모두 /api prefix 사용
+export const API_BASE_URL = import.meta.env.DEV
+  ? '/api' // 개발 환경: Vite 프록시 사용
+  : ((import.meta.env.VITE_API_BASE_URL as string | undefined) ?? '/api'); // 프로덕션: nginx 프록시 사용 (상대 경로)
 
 /**
  * API 엔드포인트 상수
@@ -8,6 +9,10 @@ export const API_BASE_URL =
 export const API_ENDPOINTS = {
   // Auth
   AUTH_OAUTH2: (provider: string) => `/auth/oauth2/${provider}`,
+  AUTH_SIGNUP: '/auth/signup/request',
+  AUTH_SIGNUP_VERIFY: '/auth/signup/confirm',
+  AUTH_LOGIN: '/auth/login',
+  AUTH_LOGOUT: '/auth/logout',
 
   // Records
   RECORDS: '/records',
