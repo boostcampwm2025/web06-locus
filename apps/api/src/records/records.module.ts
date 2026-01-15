@@ -8,11 +8,19 @@ import { RecordSearchService } from './record-search.service';
 import { ElasticsearchConfigModule } from '@/elasticsearch/elasticsearch.module';
 import { RecordSyncConsumer } from './consumer/record-sync.consumer';
 import { OutboxModule } from '@/outbox/outbox.module';
+import { ImageProcessingService } from './services/image-processing.service';
+import { ObjectStorageService } from './services/object-storage.service';
 
 @Module({
   imports: [PrismaModule, JwtModule, ElasticsearchConfigModule, OutboxModule],
   controllers: [RecordsController, RecordSyncConsumer],
-  providers: [RecordsService, ReverseGeocodingService, RecordSearchService],
+  providers: [
+    RecordsService,
+    ReverseGeocodingService,
+    RecordSearchService,
+    ImageProcessingService,
+    ObjectStorageService,
+  ],
   exports: [RecordsService, RecordSearchService],
 })
 export class RecordsModule {}
