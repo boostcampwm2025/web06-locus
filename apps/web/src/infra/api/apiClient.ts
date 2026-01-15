@@ -1,5 +1,8 @@
 import { getAccessToken } from '../storage/tokenStorage';
-import { API_BASE_URL } from './constants';
+
+export const API_BASE_URL =
+  (import.meta.env.VITE_API_BASE_URL as string | undefined) ??
+  'http://localhost:3000';
 
 export interface ApiClientOptions extends RequestInit {
   requireAuth?: boolean;
