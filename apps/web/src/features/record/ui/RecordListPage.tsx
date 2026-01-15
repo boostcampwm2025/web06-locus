@@ -149,7 +149,7 @@ export default function RecordListPage({
       />
 
       {/* 필터 바 */}
-      {!isSearchActive && <CategoryChips categories={categories} />}
+      <CategoryChips categories={categories} />
 
       {/* 리스트 */}
       <div className="flex-1 overflow-y-auto flex flex-col">
