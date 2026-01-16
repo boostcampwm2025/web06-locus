@@ -7,3 +7,9 @@ export interface OptionButtonProps
   description: string;
   onClick: () => void;
 }
+
+export interface SocialLoginButtonProps {
+  onClick?: () => void;
+  className?: string;
+  text?: string;
+}

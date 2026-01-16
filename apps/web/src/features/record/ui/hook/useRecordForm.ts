@@ -3,11 +3,16 @@ import type { RecordFormData } from '../../types';
 
 export function useRecordForm(availableTags: string[]) {
   const [formData, setFormData] = useState<RecordFormData>({
+    title: '',
     text: '',
     tags: [],
   });
   const [isAddingTag, setIsAddingTag] = useState(false);
   const [newTagInput, setNewTagInput] = useState('');
+
+  const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData((prev) => ({ ...prev, title: e.target.value }));
+  };
 
   const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setFormData((prev) => ({ ...prev, text: e.target.value }));
@@ -52,11 +57,16 @@ export function useRecordForm(availableTags: string[]) {
     isAddingTag,
     newTagInput,
     setNewTagInput,
+    handleTitleChange,
     handleTextChange,
     handleTagToggle,
     startAddTag,
     cancelAddTag,
     confirmAddTag,
-    canSave: !!formData.text.trim(),
+    canSave:
+      typeof formData.title === 'string' &&
+      typeof formData.text === 'string' &&
+      !!formData.title.trim() &&
+      !!formData.text.trim(),
   };
 }

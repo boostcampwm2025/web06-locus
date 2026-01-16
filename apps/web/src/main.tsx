@@ -4,7 +4,7 @@ import App from './App.tsx';
 import './index.css';
 import AppErrorBoundary from './shared/ui/error/ErrorBoundary';
 import * as Sentry from '@sentry/react';
-import { API_BASE_URL } from './infra/api/apiClient';
+import { API_BASE_URL } from './infra/api/constants';
 
 // tracePropagationTargets를 동적으로 생성
 const tracePropagationTargets: (string | RegExp)[] = ['localhost'];

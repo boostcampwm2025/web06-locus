@@ -10,20 +10,22 @@ import {
   TextAreaField,
   ImageUploadButton,
   FormSection,
+  FormInputField,
 } from '@/shared/ui/form';
 import ImageSelectBottomSheet from './ImageSelectBottomSheet';
 import RecordSummaryBottomSheet from './RecordSummaryBottomSheet';
 import { useRecordForm } from './hook/useRecordForm';
 import { useRecordMap } from './hook/useRecordMap';
-import { PinOverlay } from '@/infra/map/marker';
+import { useCreateRecord } from '../hooks/useCreateRecord';
+import DraggablePinOverlay from '@/infra/map/marker/DraggablePinOverlay';
 import type {
   RecordWritePageProps,
   Record,
   RecordWriteHeaderProps,
   RecordWriteFormProps,
   RecordWriteMapProps,
+  Coordinates,
 } from '../types';
-import { createMockRecord } from '../domain/record.mock';
 
 export default function RecordWritePage({
   initialLocation,
@@ -41,6 +43,7 @@ export default function RecordWritePage({
     isAddingTag,
     newTagInput,
     setNewTagInput,
+    handleTitleChange,
     handleTextChange,
     handleTagToggle,
     startAddTag,
@@ -52,6 +55,13 @@ export default function RecordWritePage({
   const [isImageSelectSheetOpen, setIsImageSelectSheetOpen] = useState(false);
   const [savedRecord, setSavedRecord] = useState<Record | null>(null);
   const [isDetailSheetOpen, setIsDetailSheetOpen] = useState(false);
+
+  // 핀 위치를 state로 관리 (드래그로 조정 가능)
+  const [currentCoordinates, setCurrentCoordinates] = useState<
+    Coordinates | undefined
+  >(initialCoordinates);
+
+  const createRecordMutation = useCreateRecord();
 
   const handleAddImage = () => {
     setIsImageSelectSheetOpen(true);
@@ -67,16 +77,52 @@ export default function RecordWritePage({
     onSelectFromLibrary?.();
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!canSave) {
       // TODO: 에러 처리 (텍스트 필수)
       return;
     }
 
-    const record = createMockRecord(formData, initialLocation);
-    setSavedRecord(record);
-    setIsDetailSheetOpen(true);
-    onSave(record);
+    if (!currentCoordinates) {
+      // TODO: 좌표가 없으면 에러 처리
+      console.error('좌표 정보가 없습니다.');
+      return;
+    }
+
+    try {
+      // API 호출
+      const response = await createRecordMutation.mutateAsync({
+        request: {
+          title: formData.title.trim(),
+          content: formData.text.trim(),
+          location: {
+            latitude: currentCoordinates.lat,
+            longitude: currentCoordinates.lng,
+          },
+          tags: formData.tags,
+        },
+        images: [], // TODO: 이미지 기능 구현 후 추가
+      });
+
+      // API 응답을 Record 타입으로 변환
+      const record: Record = {
+        id: response.publicId,
+        text: response.title,
+        tags: response.tags,
+        location: {
+          name: response.location.name ?? initialLocation.name,
+          address: response.location.address ?? initialLocation.address,
+        },
+        createdAt: new Date(response.createdAt),
+      };
+
+      // 홈으로 라우팅하면서 record와 coordinates 전달
+      // MainMapPage에서 토스트와 핀 표시 처리
+      onSave(record, currentCoordinates);
+    } catch (error) {
+      console.error('기록 생성 실패:', error);
+      // TODO: 에러 토스트 표시
+    }
   };
 
   const handleDetailSheetClose = () => {
@@ -98,12 +144,17 @@ export default function RecordWritePage({
   return (
     <div className="flex flex-col h-screen bg-white">
       <RecordWriteHeader location={initialLocation} onCancel={onCancel} />
-      <RecordWriteMap initialCoordinates={initialCoordinates} />
+      <RecordWriteMap
+        initialCoordinates={initialCoordinates}
+        currentCoordinates={currentCoordinates}
+        onCoordinatesChange={setCurrentCoordinates}
+      />
       <RecordWriteForm
         formData={formData}
         availableTags={availableTags}
         isAddingTag={isAddingTag}
         newTagInput={newTagInput}
+        onTitleChange={handleTitleChange}
         onTextChange={handleTextChange}
         onTagToggle={handleTagToggle}
         onAddTagClick={startAddTag}
@@ -113,9 +164,10 @@ export default function RecordWritePage({
         onConfirmAddTag={confirmAddTag}
         onCancelAddTag={cancelAddTag}
         onAddImage={handleAddImage}
-        onSave={handleSave}
+        onSave={() => void handleSave()}
         onCancel={onCancel}
         canSave={canSave}
+        isSaving={createRecordMutation.isPending}
       />
 
       {/* 이미지 선택 바텀시트 */}
@@ -161,7 +213,11 @@ function RecordWriteHeader({ location, onCancel }: RecordWriteHeaderProps) {
   );
 }
 
-function RecordWriteMap({ initialCoordinates }: RecordWriteMapProps) {
+function RecordWriteMap({
+  initialCoordinates,
+  currentCoordinates,
+  onCoordinatesChange,
+}: RecordWriteMapProps) {
   const {
     mapContainerRef,
     mapInstanceRef,
@@ -170,10 +226,26 @@ function RecordWriteMap({ initialCoordinates }: RecordWriteMapProps) {
     handleZoomIn,
     handleZoomOut,
   } = useRecordMap({
-    initialCoordinates,
+    initialCoordinates: currentCoordinates ?? initialCoordinates,
     zoom: 16,
     zoomControl: false,
   });
+
+  // 핀 위치 (드래그 가능)
+  const pinCoordinates = currentCoordinates ?? initialCoordinates;
+
+  // 핀 드래그 핸들러
+  const handlePinDrag = (newPosition: Coordinates) => {
+    if (onCoordinatesChange) {
+      onCoordinatesChange(newPosition);
+    }
+    // 지도 중심도 함께 이동
+    if (mapInstanceRef.current) {
+      mapInstanceRef.current.setCenter(
+        new naver.maps.LatLng(newPosition.lat, newPosition.lng),
+      );
+    }
+  };
 
   return (
     <div className="relative flex-[0.4] bg-gray-100">
@@ -191,17 +263,17 @@ function RecordWriteMap({ initialCoordinates }: RecordWriteMapProps) {
         </div>
       ) : null}
 
-      {/* 커스텀 오버레이 핀 마커 */}
-      {isMapLoaded && mapInstanceRef.current && initialCoordinates && (
-        <PinOverlay
+      {/* 커스텀 오버레이 핀 마커 (드래그 가능) */}
+      {isMapLoaded && mapInstanceRef.current && pinCoordinates && (
+        <DraggablePinOverlay
           map={mapInstanceRef.current}
           pin={{
             id: 'record-location',
-
-            position: initialCoordinates,
+            position: pinCoordinates,
             variant: 'current',
           }}
           isSelected={false}
+          onDragEnd={handlePinDrag}
         />
       )}
 
@@ -235,6 +307,7 @@ function RecordWriteForm({
   availableTags,
   isAddingTag,
   newTagInput,
+  onTitleChange,
   onTextChange,
   onTagToggle,
   onAddTagClick,
@@ -245,10 +318,21 @@ function RecordWriteForm({
   onSave,
   onCancel,
   canSave,
+  isSaving = false,
 }: RecordWriteFormProps) {
   return (
     <div className="flex-[0.6] bg-white rounded-t-3xl shadow-lg overflow-y-auto">
       <div className="px-6 py-6 space-y-6">
+        {/* 제목 섹션 */}
+        <FormInputField
+          label="제목"
+          type="text"
+          value={formData.title}
+          onChange={onTitleChange}
+          placeholder="기록의 제목을 입력하세요"
+          required
+        />
+
         {/* 메모 섹션 */}
         <TextAreaField
           label="메모"
@@ -336,10 +420,18 @@ function RecordWriteForm({
 
         {/* 액션 버튼 */}
         <div className="pt-4 space-y-2.5">
-          <ActionButton variant="primary" onClick={onSave} disabled={!canSave}>
-            저장하기
+          <ActionButton
+            variant="primary"
+            onClick={onSave}
+            disabled={!canSave || isSaving}
+          >
+            {isSaving ? '저장 중...' : '기록 작성하기'}
           </ActionButton>
-          <ActionButton variant="secondary" onClick={onCancel}>
+          <ActionButton
+            variant="secondary"
+            onClick={onCancel}
+            disabled={isSaving}
+          >
             취소
           </ActionButton>
         </div>

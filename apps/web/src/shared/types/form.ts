@@ -19,3 +19,16 @@ export interface ImageUploadButtonProps {
   onClick: () => void;
   className?: string;
 }
+
+export interface FormInputFieldProps
+  extends Omit<
+    React.InputHTMLAttributes<HTMLInputElement>,
+    'label' | 'className'
+  > {
+  label: React.ReactNode;
+  labelClassName?: string;
+  helperText?: string;
+  error?: string;
+  required?: boolean;
+  className?: string;
+}
