@@ -8,9 +8,10 @@ export interface Location {
 
 /**
  * 기록 데이터
+ * @property id - 기록의 publicId (API 응답의 publicId와 동일)
  */
 export interface Record {
-  id: string;
+  id: string; // publicId
   text: string;
   tags: string[];
   location: Location;

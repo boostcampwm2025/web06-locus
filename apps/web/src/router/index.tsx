@@ -75,10 +75,16 @@ function RecordConnectionPageRoute() {
   return (
     <RecordConnectionPage
       onBack={() => void navigate(-1)}
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      onConnect={(_departureId, _arrivalId) => {
-        // TODO: 연결 완료 후 처리
-        void navigate(ROUTES.HOME);
+      onConnect={(departureId, arrivalId) => {
+        // 연결 완료 후 홈으로 이동하며 연결된 기록 ID 전달
+        void navigate(ROUTES.HOME, {
+          state: {
+            connectedRecords: {
+              fromId: departureId,
+              toId: arrivalId,
+            },
+          },
+        });
       }}
     />
   );

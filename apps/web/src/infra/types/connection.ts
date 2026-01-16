@@ -86,3 +86,27 @@ export interface StoredConnection {
   toRecordPublicId: string;
   createdAt: string;
 }
+
+/**
+ * 저장소 기반 그래프 노드
+ */
+export interface StoredGraphNode {
+  publicId: string;
+  location: { latitude: number; longitude: number };
+}
+
+/**
+ * 저장소 기반 그래프 엣지
+ */
+export interface StoredGraphEdge {
+  fromRecordPublicId: string;
+  toRecordPublicId: string;
+}
+
+/**
+ * 저장소 기반 그래프 데이터
+ */
+export interface StoredGraph {
+  nodes: StoredGraphNode[];
+  edges: StoredGraphEdge[];
+}
