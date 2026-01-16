@@ -17,14 +17,13 @@ const queryClient = new QueryClient({
 });
 
 function App() {
-  const initialize = useAuthStore((state) => state.initialize);
   const isInitialized = useAuthStore((state) => state.isInitialized);
   const loadingVersionRef = useRef(getRandomLoadingVersion());
 
   // 앱 시작 시 저장된 토큰으로 인증 상태 초기화
   useEffect(() => {
-    initialize();
-  }, [initialize]);
+    useAuthStore.getState().initialize();
+  }, []);
 
   // 초기화가 완료될 때까지 로딩 화면 표시
   if (!isInitialized) {
