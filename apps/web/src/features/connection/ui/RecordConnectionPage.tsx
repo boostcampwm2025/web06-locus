@@ -5,54 +5,14 @@ import type {
   RecordConnectionItem,
 } from '../types/recordConnection';
 import { useRecordConnection } from '../domain/useRecordConnection';
+import { useCreateConnection } from '../hooks/useCreateConnection';
+import { convertMockRecordsToConnectionItems } from '@/features/record/domain/record.mock';
 import RecordSelectionHeader from './RecordSelectionHeader';
 import RecordSearchInput from './RecordSearchInput';
 import RecommendedRecordsSection from './RecommendedRecordsSection';
 import ConnectActionButton from './ConnectActionButton';
 import RecordSelectionContextSheet from './RecordSelectionContextSheet';
 
-// TODO: 실제 API로 교체 필요
-const mockRecommendedRecords: RecordConnectionItem[] = [
-  {
-    id: '1',
-    title: '남산타워 전망',
-    location: { name: '남산', address: '서울특별시 용산구 남산공원길' },
-    date: new Date('2025-12-15'),
-    tags: ['명소', '자연'],
-    imageUrl: 'https://placehold.co/80',
-    isRelated: false,
-  },
-  {
-    id: '2',
-    title: '강남 카페거리',
-    location: { name: '강남역', address: '서울특별시 강남구 강남대로' },
-    date: new Date('2025-12-14'),
-    tags: ['쇼핑', '음식'],
-    imageUrl: 'https://placehold.co/80',
-    isRelated: false,
-  },
-  {
-    id: '3',
-    title: '광화문 광장',
-    location: { name: '광화문', address: '서울특별시 종로구 세종대로' },
-    date: new Date('2025-12-13'),
-    tags: ['역사', '문화'],
-    isRelated: false,
-  },
-  {
-    id: '4',
-    title: '이태원 맛집',
-    location: { name: '이태원', address: '서울특별시 용산구 이태원로' },
-    date: new Date('2025-12-12'),
-    tags: ['음식', '문화'],
-    imageUrl: 'https://placehold.co/80',
-    isRelated: false,
-  },
-];
-
-/**
- * 기록 연결 페이지 컴포넌트
- */
 export default function RecordConnectionPage({
   onBack,
   onConnect,
@@ -74,40 +34,62 @@ export default function RecordConnectionPage({
     connect,
   } = useRecordConnection();
 
-  /**
-   * 검색 결과 필터링 + related 플래그
-   * - 데이터가 커질 수 있으니 useMemo로 감싸서 불필요 연산 방지
-   */
-  const recordsWithRelatedTag = useMemo(() => {
-    const trimmed = searchQuery.trim();
-    if (!trimmed) return mockRecommendedRecords;
+  // 연결 생성 mutation
+  const createConnectionMutation = useCreateConnection();
 
-    const query = trimmed.toLowerCase();
-    const filtered = mockRecommendedRecords.filter((record) => {
-      return (
-        record.title.toLowerCase().includes(query) ||
-        record.location.name.toLowerCase().includes(query) ||
-        record.tags.some((tag) => tag.toLowerCase().includes(query))
-      );
-    });
+  // mock 데이터 사용 (기록 조회 API가 없으므로)
+  const trimmedQuery = searchQuery.trim();
+  const recordsWithRelatedTag = useMemo<RecordConnectionItem[]>(() => {
+    return convertMockRecordsToConnectionItems(trimmedQuery || undefined);
+  }, [trimmedQuery]);
 
-    return filtered.map((record) => ({
-      ...record,
-      isRelated: true,
-    }));
-  }, [searchQuery]);
-
-  const emptyMessage = searchQuery.trim()
+  const emptyMessage = trimmedQuery
     ? '검색 결과가 없습니다'
     : '추천 기록이 없습니다';
 
-  const handleConnect = () => {
+  const handleConnect = async () => {
     if (!isConnectEnabled) return;
 
     const result = connect();
     if (!result) return;
 
-    onConnect?.(result.departureId, result.arrivalId);
+    try {
+      // API로 연결 생성
+      const response = await createConnectionMutation.mutateAsync({
+        fromRecordPublicId: result.departureId,
+        toRecordPublicId: result.arrivalId,
+      });
+
+      // 성공 시 localStorage에도 저장
+      const { addStoredConnection } = await import(
+        '@/infra/storage/connectionStorage'
+      );
+      addStoredConnection({
+        publicId: response.data.connection.publicId,
+        fromRecordPublicId: result.departureId,
+        toRecordPublicId: result.arrivalId,
+        createdAt: response.data.connection.createdAt,
+      });
+
+      // 성공 시 콜백 호출
+      onConnect?.(result.departureId, result.arrivalId);
+    } catch (error) {
+      // API 실패 시에도 localStorage에 저장하여 시연 가능하도록
+      console.error('연결 생성 실패 (로컬 저장으로 대체):', error);
+
+      const { addStoredConnection } = await import(
+        '@/infra/storage/connectionStorage'
+      );
+      addStoredConnection({
+        publicId: `local_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        fromRecordPublicId: result.departureId,
+        toRecordPublicId: result.arrivalId,
+        createdAt: new Date().toISOString(),
+      });
+
+      // 시각적으로 연결 표시를 위해 콜백 호출
+      onConnect?.(result.departureId, result.arrivalId);
+    }
   };
 
   return (
@@ -132,11 +114,11 @@ export default function RecordConnectionPage({
         departure={departure}
         arrival={arrival}
         onDepartureClick={() => {
-          // ✅ 재선택 UX: 현재 선택 상태가 있으면 컨텍스트 시트를 열도록 유도
+          // 재선택 UX: 현재 선택 상태가 있으면 컨텍스트 시트를 열도록 유도
           // - 실제로는 “출발만 다시 고르기 모드” 같은 UX로 확장 가능
         }}
         onArrivalClick={() => {
-          // ✅ 재선택 UX: 필요하면 여기에 “도착 재선택” 모드 구현
+          // 재선택 UX: 필요하면 여기에 “도착 재선택” 모드 구현
         }}
         onDepartureClear={clearDeparture}
         onArrivalClear={clearArrival}
@@ -166,8 +148,10 @@ export default function RecordConnectionPage({
 
       {/* 연결하기 버튼 */}
       <ConnectActionButton
-        isEnabled={isConnectEnabled}
-        onClick={handleConnect}
+        isEnabled={isConnectEnabled && !createConnectionMutation.isPending}
+        onClick={() => {
+          void handleConnect();
+        }}
       />
 
       {/* 기록 선택 컨텍스트 메뉴 */}

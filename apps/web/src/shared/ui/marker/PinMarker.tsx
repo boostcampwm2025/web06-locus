@@ -14,7 +14,10 @@ export default function PinMarker({
   const isCurrent = pin.variant === 'current';
   const isRecord = pin.variant === 'record';
 
-  const handleClick = () => onClick?.(pin.id);
+  const handleClick = (e: React.MouseEvent) => {
+    e.stopPropagation(); // 지도 클릭 이벤트 전파 방지
+    onClick?.(pin.id);
+  };
 
   const rootClassName = useMemo(() => {
     const classes = [
