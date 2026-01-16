@@ -7,4 +7,8 @@ import type { Coordinates } from '@/features/record/types';
  */
 export interface MainMapPageLocationState {
   savedRecord?: Record & { coordinates?: Coordinates };
+  connectedRecords?: {
+    fromId: string;
+    toId: string;
+  };
 }

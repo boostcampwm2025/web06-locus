@@ -3,8 +3,12 @@ import type { Coordinates } from '@/features/record/types';
 
 export interface MapViewportProps {
   className?: string;
-  newRecordPin?: {
+  createdRecordPins?: {
     record: Record;
     coordinates?: Coordinates;
+  }[];
+  connectedRecords?: {
+    fromId: string;
+    toId: string;
   } | null;
 }
