@@ -21,4 +21,8 @@ export const API_ENDPOINTS = {
   RECORDS_GRAPH: (publicId: string) => `/records/${publicId}/graph`,
   RECORDS_GRAPH_RECORDS: (publicId: string) =>
     `/records/${publicId}/graph/records`,
+
+  // Connections
+  CONNECTIONS: '/connections',
+  CONNECTIONS_BY_ID: (publicId: string) => `/connections/${publicId}`,
 } as const;
