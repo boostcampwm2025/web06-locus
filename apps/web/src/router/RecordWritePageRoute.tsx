@@ -75,11 +75,13 @@ export default function RecordWritePageRoute() {
   const initialCoordinates: Coordinates | undefined =
     coordinatesFromState ?? coordinatesFromQuery ?? undefined;
 
-  const handleSave = (record: Record) => {
+  const handleSave = (record: Record, coordinates?: Coordinates) => {
     // 저장 후 메인 페이지로 이동 (저장된 record를 state로 전달)
+    const stateToPass = { savedRecord: { ...record, coordinates } };
+
     void navigate(ROUTES.HOME, {
       replace: true,
-      state: { savedRecord: record },
+      state: stateToPass,
     });
   };
 

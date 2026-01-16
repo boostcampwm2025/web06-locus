@@ -8,9 +8,10 @@ export interface Location {
 
 /**
  * 기록 데이터
+ * @property id - 기록의 publicId (API 응답의 publicId와 동일)
  */
 export interface Record {
-  id: string;
+  id: string; // publicId
   text: string;
   tags: string[];
   location: Location;
@@ -21,6 +22,7 @@ export interface Record {
  * 기록 작성 폼 데이터
  */
 export interface RecordFormData {
+  title: string;
   text: string;
   tags: string[];
 }
@@ -39,7 +41,7 @@ export interface Coordinates {
 export interface RecordWritePageProps {
   initialLocation: Location;
   initialCoordinates?: Coordinates;
-  onSave: (record: Record) => void;
+  onSave: (record: Record, coordinates?: Coordinates) => void;
   onCancel: () => void;
   onTakePhoto?: () => void;
   onSelectFromLibrary?: () => void;
@@ -107,6 +109,7 @@ export interface RecordWriteFormProps {
   availableTags: string[];
   isAddingTag: boolean;
   newTagInput: string;
+  onTitleChange: (e: ChangeEvent<HTMLInputElement>) => void;
   onTextChange: (e: ChangeEvent<HTMLTextAreaElement>) => void;
   onTagToggle: (tag: string) => void;
   onAddTagClick: () => void;
@@ -117,6 +120,7 @@ export interface RecordWriteFormProps {
   onSave: () => void;
   onCancel: () => void;
   canSave: boolean;
+  isSaving?: boolean;
 }
 
 /**
@@ -124,6 +128,8 @@ export interface RecordWriteFormProps {
  */
 export interface RecordWriteMapProps {
   initialCoordinates?: Coordinates;
+  currentCoordinates?: Coordinates;
+  onCoordinatesChange?: (coordinates: Coordinates) => void;
 }
 
 /**
