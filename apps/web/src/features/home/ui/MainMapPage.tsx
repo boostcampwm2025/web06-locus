@@ -10,6 +10,11 @@ import type { Record, Coordinates } from '@/features/record/types';
 import type { MainMapPageLocationState } from '@features/home/types/mainMapPage';
 import { useBottomTabNavigation } from '@/shared/hooks/useBottomTabNavigation';
 import { ROUTES } from '@/router/routes';
+import {
+  getStoredRecordPins,
+  addStoredRecordPin,
+} from '@/infra/storage/recordStorage';
+import type { StoredRecordPin } from '@/infra/types/storage';
 
 export default function MainMapPage() {
   const location = useLocation();
@@ -19,23 +24,55 @@ export default function MainMapPage() {
   const [isSearchActive, setIsSearchActive] = useState(false);
   const [searchValue, setSearchValue] = useState('');
   const [showSuccessToast, setShowSuccessToast] = useState(false);
-  const [newRecordPin, setNewRecordPin] = useState<{
-    record: Record;
-    coordinates?: Coordinates;
+  // 생성된 기록들을 누적해서 관리 (조회 API가 없으므로)
+  // localStorage에서 초기 로드
+  const [createdRecordPins, setCreatedRecordPins] = useState<
+    {
+      record: Record;
+      coordinates?: Coordinates;
+    }[]
+  >(() => {
+    // localStorage에서 불러오기
+    const stored = getStoredRecordPins();
+    return stored.map((storedPin) => ({
+      record: storedPin.record,
+      coordinates: storedPin.coordinates,
+    }));
+  });
+  const [connectedRecords, setConnectedRecords] = useState<{
+    fromId: string;
+    toId: string;
   } | null>(null);
 
-  // location.state에서 저장된 record 확인
+  // location.state에서 저장된 record 또는 연결된 기록 확인
   useEffect(() => {
     const state = location.state as MainMapPageLocationState | null;
 
     if (state?.savedRecord) {
-      setSavedRecord(state.savedRecord);
+      const savedRecord: Record = {
+        id: state.savedRecord.id,
+        text: state.savedRecord.text,
+        tags: state.savedRecord.tags,
+        location: state.savedRecord.location,
+        createdAt: state.savedRecord.createdAt,
+      };
+      setSavedRecord(savedRecord);
       setIsDetailSheetOpen(true);
       const pinData = {
-        record: state.savedRecord,
+        record: savedRecord,
         coordinates: state.savedRecord.coordinates,
       };
-      setNewRecordPin(pinData);
+      // 생성된 기록을 배열에 추가 (기존 기록 유지)
+      setCreatedRecordPins((prev) => [...prev, pinData]);
+
+      // localStorage에 저장 (publicId 명시적으로 저장)
+      const storedPin: StoredRecordPin = {
+        record: savedRecord,
+        coordinates: state.savedRecord.coordinates,
+        publicId: savedRecord.id, // record.id가 publicId
+      };
+      addStoredRecordPin(storedPin);
+
       setShowSuccessToast(true);
       // state를 초기화하여 뒤로가기 시 다시 표시되지 않도록
       void navigate(location.pathname, { replace: true, state: {} });
@@ -43,6 +80,23 @@ export default function MainMapPage() {
       // 3초 후 토스트 메시지 자동 닫기
       const timer = setTimeout(() => {
         setShowSuccessToast(false);
+      }, 3000);
+
+      return () => clearTimeout(timer);
+    }
+
+    if (state?.connectedRecords) {
+      const connectedRecords = {
+        fromId: state.connectedRecords.fromId,
+        toId: state.connectedRecords.toId,
+      };
+      setConnectedRecords(connectedRecords);
+      // state를 초기화하여 뒤로가기 시 다시 표시되지 않도록
+      void navigate(location.pathname, { replace: true, state: {} });
+
+      // 3초 후 연결 표시 제거
+      const timer = setTimeout(() => {
+        setConnectedRecords(null);
       }, 3000);
 
       return () => clearTimeout(timer);
@@ -91,7 +145,10 @@ export default function MainMapPage() {
         onSearchCancel={handleSearchCancel}
       />
       <CategoryChips />
-      <MapViewport newRecordPin={newRecordPin} />
+      <MapViewport
+        createdRecordPins={createdRecordPins}
+        connectedRecords={connectedRecords}
+      />
       <BottomTabBar activeTab="home" onTabChange={handleTabChange} />
 
       {/* 성공 토스트 메시지 */}
