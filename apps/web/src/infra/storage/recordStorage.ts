@@ -1,4 +1,4 @@
-import type { StoredRecordPin } from '../types/storage';
+import type { StoredRecordPin } from '@/infra/types/storage';
 
 const STORAGE_KEY = 'locus_created_records';
 
