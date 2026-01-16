@@ -3,23 +3,24 @@ import {
   Post,
   Body,
   UseGuards,
+  UseInterceptors,
+  UploadedFiles,
   HttpCode,
   HttpStatus,
   Get,
   Param,
 } from '@nestjs/common';
-import {
-  ApiTags,
-  ApiOperation,
-  ApiResponse,
-  ApiBearerAuth,
-} from '@nestjs/swagger';
+import { FilesInterceptor } from '@nestjs/platform-express';
+import { ApiTags } from '@nestjs/swagger';
 import { RecordsService } from './records.service';
 import { CreateRecordDto } from './dto/create-record.dto';
 import { RecordResponseDto } from './dto/record-response.dto';
 import { JwtAuthGuard } from '@/jwt/guard/jwt.auth.guard';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
 import { GraphResponseDto } from './dto/graph.response.dto';
+import { ParseJsonPipe } from '@/common/pipes/parse-json.pipe';
+import { MAX_FILE_COUNT, multerOptions } from './config/multer.config';
+import { CreateRecordSwagger } from './swagger/records.swagger';
 
 @ApiTags('records')
 @Controller('records')
@@ -29,29 +30,14 @@ export class RecordsController {
   @Post()
   @HttpCode(HttpStatus.CREATED)
   @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
-  @ApiOperation({
-    summary: '기록 생성',
-    description: '새로운 위치 기반 기록을 생성합니다.',
-  })
-  @ApiResponse({
-    status: 201,
-    description: '기록이 성공적으로 생성되었습니다.',
-    type: RecordResponseDto,
-  })
-  @ApiResponse({
-    status: 400,
-    description: '잘못된 요청 (필수 필드 누락, 유효성 검증 실패)',
-  })
-  @ApiResponse({
-    status: 401,
-    description: '인증 토큰이 없거나 유효하지 않습니다.',
-  })
+  @UseInterceptors(FilesInterceptor('images', MAX_FILE_COUNT, multerOptions))
+  @CreateRecordSwagger()
   async createRecord(
     @CurrentUser('sub') userId: bigint,
-    @Body() dto: CreateRecordDto,
+    @Body('data', ParseJsonPipe) dto: CreateRecordDto,
+    @UploadedFiles() images?: Express.Multer.File[],
   ): Promise<RecordResponseDto> {
-    return await this.recordsService.createRecord(userId, dto);
+    return await this.recordsService.createRecord(userId, dto, images);
   }
 
   @UseGuards(JwtAuthGuard)

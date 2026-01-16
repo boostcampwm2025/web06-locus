@@ -5,7 +5,7 @@ import {
   RECORD_INDEX_NAME,
   RECORD_INDEX_SETTINGS,
   RECORD_SEARCH_MAPPING,
-} from '../records/constants/record-search.constant';
+} from './constants/record-search.constant';
 
 @Injectable()
 export class RecordSearchService {
