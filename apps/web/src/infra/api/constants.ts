@@ -7,7 +7,7 @@ export const API_BASE_URL =
  */
 export const API_ENDPOINTS = {
   // Auth
-  AUTH_OAUTH2: (provider: string) => `/auth/oauth2/${provider}`,
+  AUTH_OAUTH2: (provider: string) => `/api/auth/oauth2/${provider}`,
 
   // Records
   RECORDS: '/records',
