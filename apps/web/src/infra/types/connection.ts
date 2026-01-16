@@ -76,3 +76,13 @@ export interface ConnectedRecordsResponse {
     };
   };
 }
+
+/**
+ * localStorage에 저장된 연결 정보
+ */
+export interface StoredConnection {
+  publicId: string;
+  fromRecordPublicId: string;
+  toRecordPublicId: string;
+  createdAt: string;
+}
