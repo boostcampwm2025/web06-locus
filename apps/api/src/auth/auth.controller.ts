@@ -27,10 +27,12 @@ import {
   LoginSwagger,
   NaverCallbackSwagger,
   NaverLoginSwagger,
+  ReissueTokenSwagger,
   RequestSignupSwagger,
   SignupVerifySwagger,
 } from './swagger/auth.swagger';
 import { TokenResponse } from './dto/auth-response.dto';
+import { InvalidRefreshTokenException } from './exception';
 
 @Controller('auth')
 export class AuthController {
@@ -70,6 +72,24 @@ export class AuthController {
       await this.authService.login(loginRequest);
 
     this.setRefreshTokenCookie(res, refreshToken);
+    return { accessToken };
+  }
+
+  @Post('reissue')
+  @HttpCode(HttpStatus.OK)
+  @ReissueTokenSwagger()
+  async reissue(
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<TokenResponse> {
+    const refreshToken = (req.cookies as Record<string, string | undefined>)
+      .refreshToken;
+    if (!refreshToken) throw new InvalidRefreshTokenException();
+
+    const { accessToken, refreshToken: newRefreshToken } =
+      await this.authService.reissueTokens(refreshToken);
+
+    this.setRefreshTokenCookie(res, newRefreshToken);
     return { accessToken };
   }
 
@@ -115,8 +135,6 @@ export class AuthController {
     await this.handleOAuthCallback(req, res);
   }
 
-  // TODO: POST /auth/reissue
-
   private async handleOAuthCallback(req: Request, res: Response) {
     const user = req.user as User;
 
@@ -137,7 +155,7 @@ export class AuthController {
       secure: process.env.NODE_ENV === 'production', // 프로덕션 환경(HTTPS)에서만 전송
       sameSite: 'lax', // CSRF 방지
       maxAge: this.REFRESH_TOKEN_MAX_AGE,
-      path: '/auth/reissue', // 오직 재발급 경로에서만 전송
+      path: '/api/auth/reissue', // 오직 재발급 경로에서만 전송
     });
   }
 

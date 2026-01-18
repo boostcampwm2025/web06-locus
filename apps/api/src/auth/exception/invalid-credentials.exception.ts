@@ -11,3 +11,23 @@ export class InvalidCredentialsException extends BusinessException {
     );
   }
 }
+
+export class InvalidAccessTokenException extends BusinessException {
+  constructor() {
+    super(
+      HttpStatus.UNAUTHORIZED,
+      AuthErrorCode.INVALID_ACCESS_TOKEN,
+      '유효하지 않은 Access Token입니다',
+    );
+  }
+}
+
+export class InvalidRefreshTokenException extends BusinessException {
+  constructor() {
+    super(
+      HttpStatus.UNAUTHORIZED,
+      AuthErrorCode.INVALID_REFRESH_TOKEN,
+      '유효하지 않은 Refresh Token입니다',
+    );
+  }
+}

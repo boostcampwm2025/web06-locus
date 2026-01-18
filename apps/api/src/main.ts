@@ -1,6 +1,7 @@
 import { NestFactory } from '@nestjs/core';
 import { MicroserviceOptions, Transport } from '@nestjs/microservices';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
+import cookieParser from 'cookie-parser';
 import { AppModule } from './app.module';
 import { RABBITMQ_CONSTANTS } from './common/constants/rabbitmq.constants';
 import { ValidationPipe } from '@nestjs/common';
@@ -55,6 +56,7 @@ async function bootstrap() {
   await app.startAllMicroservices();
 
   app.enableShutdownHooks();
+  app.use(cookieParser());
 
   await app.listen(process.env.PORT ?? 3000);
 }

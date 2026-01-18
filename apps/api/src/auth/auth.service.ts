@@ -1,8 +1,5 @@
-import {
-  Injectable,
-  NotFoundException,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { UsersService } from '../users/users.service';
 import { UserWithoutPassword } from '../common/type/user.types';
 import { JwtProvider } from '../jwt/jwt.provider';
@@ -21,22 +18,33 @@ import {
   EmailVerificationFailedException,
   EmailVerificationTooManyTriesException,
   InvalidCredentialsException,
+  InvalidRefreshTokenException,
   SocialAlreadyLoginException,
 } from './exception';
+import { UserNotFoundException } from '@/users/exception';
 
 @Injectable()
 export class AuthService {
   private readonly PENDING_USER_PREFIX = 'PENDING_USER:';
+  private readonly REFRESH_TOKEN_PREFIX = 'REFRESH_TOKEN:';
   private readonly CODE_LENGTH = 6;
   private readonly VALIDATE_EMAIL_TTL = 600;
   private readonly MAX_RETRY = 3;
+
+  private readonly REFRESH_TOKEN_TTL: number;
 
   constructor(
     private readonly usersService: UsersService,
     private readonly jwtProvider: JwtProvider,
     private readonly redisService: RedisService,
     private readonly mailService: MailService,
-  ) {}
+    private configService: ConfigService,
+  ) {
+    this.REFRESH_TOKEN_TTL = this.configService.get<number>(
+      'REFRESH_TOKEN_TTL',
+      604800,
+    );
+  }
 
   async requestSignup(request: SignUpRequest): Promise<void> {
     const { email, password, nickname } = request;
@@ -122,32 +130,48 @@ export class AuthService {
   }
 
   async generateTokens(user: UserWithoutPassword) {
-    return {
-      accessToken: await this.jwtProvider.generateAccessToken(
-        user.id,
-        user.email,
-        user.provider,
-      ),
-      refreshToken: await this.jwtProvider.generateRefreshToken(user.id),
-    };
+    const accessToken = await this.jwtProvider.generateAccessToken(
+      user.id,
+      user.email,
+      user.provider,
+    );
+    const refreshToken = await this.jwtProvider.generateRefreshToken(user.id);
+
+    await this.saveRefreshToken(user.id, refreshToken);
+
+    return { accessToken, refreshToken };
   }
 
-  async reissueAccessToken(refreshToken: string) {
+  async reissueTokens(refreshToken: string) {
     try {
       const userId = await this.jwtProvider.verifyRefreshToken(refreshToken);
 
+      const storedToken = await this.getRefreshToken(BigInt(userId));
+      if (!storedToken || storedToken !== refreshToken) {
+        throw new InvalidRefreshTokenException();
+      }
+
       const user = await this.usersService.findById(BigInt(userId));
-      const accessToken = await this.jwtProvider.generateAccessToken(
-        user.id,
-        user.email,
-        user.provider,
-      );
-      return { accessToken };
+      return await this.generateTokens(user);
     } catch (error) {
-      if (error instanceof NotFoundException) throw error;
+      if (error instanceof UserNotFoundException) throw error;
+      if (error instanceof InvalidRefreshTokenException) throw error;
       if (error instanceof UnauthorizedException) throw error;
       throw new UnauthorizedException('토큰 갱신에 실패했습니다');
     }
+  }
+
+  private async saveRefreshToken(
+    userId: bigint,
+    refreshToken: string,
+  ): Promise<void> {
+    const key = this.getRefreshTokenRedisKey(userId);
+    await this.redisService.set(key, refreshToken, this.REFRESH_TOKEN_TTL);
+  }
+
+  private async getRefreshToken(userId: bigint): Promise<string | null> {
+    const key = this.getRefreshTokenRedisKey(userId);
+    return await this.redisService.get(key);
   }
 
   private generateVerificationCode(): string {
@@ -158,5 +182,9 @@ export class AuthService {
 
   private getPendingUserRedisKey(email: string): string {
     return `${this.PENDING_USER_PREFIX}${email}`;
+  }
+
+  private getRefreshTokenRedisKey(userId: bigint): string {
+    return `${this.REFRESH_TOKEN_PREFIX}${userId}`;
   }
 }

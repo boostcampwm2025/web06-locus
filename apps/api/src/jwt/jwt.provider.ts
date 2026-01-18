@@ -1,8 +1,12 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { Provider } from '@prisma/client';
 import { JwtPayload } from './jwt-payload.interface';
+import {
+  InvalidAccessTokenException,
+  InvalidRefreshTokenException,
+} from '@/auth/exception';
 
 @Injectable()
 export class JwtProvider {
@@ -37,7 +41,7 @@ export class JwtProvider {
         secret: this.configService.get('JWT_ACCESS_SECRET'),
       });
     } catch {
-      throw new UnauthorizedException('유효하지 않은 Access Token입니다');
+      throw new InvalidAccessTokenException();
     }
   }
 
@@ -49,7 +53,7 @@ export class JwtProvider {
       );
       return payload.sub;
     } catch {
-      throw new UnauthorizedException('유효하지 않은 Refresh Token입니다');
+      throw new InvalidRefreshTokenException();
     }
   }
 }
