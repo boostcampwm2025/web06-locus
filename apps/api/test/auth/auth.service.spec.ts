@@ -19,6 +19,7 @@ import {
   SocialAlreadyLoginException,
 } from '@/auth/exception';
 import { UserNotFoundException } from '@/users/exception';
+import { REDIS_KEY_PREFIX } from '@/redis/redis.constants';
 
 describe('AuthService 테스트', () => {
   let authService: AuthService;
@@ -55,6 +56,7 @@ describe('AuthService 테스트', () => {
   const mockJwtProvider = {
     generateAccessToken: jest.fn(),
     generateRefreshToken: jest.fn(),
+    verifyAccessToken: jest.fn(),
     verifyRefreshToken: jest.fn(),
   };
 
@@ -416,7 +418,7 @@ describe('AuthService 테스트', () => {
 
       // then
       expect(redisService.set).toHaveBeenCalledWith(
-        `REFRESH_TOKEN:${mockUser.id}`,
+        `${REDIS_KEY_PREFIX.REFRESH_TOKEN}${mockUser.id}`,
         refreshToken,
         expect.any(Number),
       );
@@ -532,7 +534,9 @@ describe('AuthService 테스트', () => {
       await authService.reissueTokens(validRefreshToken);
 
       // then
-      expect(redisService.get).toHaveBeenCalledWith(`REFRESH_TOKEN:${userId}`);
+      expect(redisService.get).toHaveBeenCalledWith(
+        `${REDIS_KEY_PREFIX.REFRESH_TOKEN}${userId}`,
+      );
     });
 
     test('Redis에 토큰이 없으면 InvalidRefreshTokenException을 던져야 한다', async () => {
@@ -578,7 +582,7 @@ describe('AuthService 테스트', () => {
 
       // then
       expect(redisService.set).toHaveBeenCalledWith(
-        `REFRESH_TOKEN:${mockUser.id}`,
+        `${REDIS_KEY_PREFIX.REFRESH_TOKEN}${mockUser.id}`,
         newRefreshToken,
         expect.any(Number),
       );
@@ -609,6 +613,88 @@ describe('AuthService 테스트', () => {
       await expect(
         authService.reissueTokens(validRefreshToken),
       ).rejects.toThrow(InvalidRefreshTokenException);
+    });
+  });
+
+  describe('logout', () => {
+    const userId = 1n;
+    const accessToken = 'valid-access-token';
+    const decodedToken = {
+      sub: '1',
+      email: 'test@example.com',
+      provider: 'LOCAL',
+      iat: Math.floor(Date.now() / 1000),
+      exp: Math.floor(Date.now() / 1000) + 900, // 15분 후 만료
+    };
+
+    test('Redis에서 Refresh Token을 삭제해야 한다', async () => {
+      // given
+      mockJwtProvider.verifyAccessToken.mockReturnValue(decodedToken);
+      mockRedisService.del.mockResolvedValue(1);
+      mockRedisService.set.mockResolvedValue('OK');
+
+      // when
+      await authService.logout(userId, accessToken);
+
+      // then
+      expect(redisService.del).toHaveBeenCalledWith(
+        `${REDIS_KEY_PREFIX.REFRESH_TOKEN}${userId}`,
+      );
+    });
+
+    test('Access Token을 블랙리스트에 추가해야 한다', async () => {
+      // given
+      mockJwtProvider.verifyAccessToken.mockReturnValue(decodedToken);
+      mockRedisService.del.mockResolvedValue(1);
+      mockRedisService.set.mockResolvedValue('OK');
+
+      // when
+      await authService.logout(userId, accessToken);
+
+      // then
+      expect(jwtProvider.verifyAccessToken).toHaveBeenCalledWith(accessToken);
+      expect(redisService.set).toHaveBeenCalledWith(
+        `${REDIS_KEY_PREFIX.BLACKLIST}${accessToken}`,
+        'true',
+        expect.any(Number),
+      );
+    });
+
+    test('토큰 만료 시간만큼만 블랙리스트에 저장해야 한다', async () => {
+      // given
+      mockJwtProvider.verifyAccessToken.mockReturnValue(decodedToken);
+      mockRedisService.del.mockResolvedValue(1);
+      mockRedisService.set.mockResolvedValue('OK');
+
+      // when
+      await authService.logout(userId, accessToken);
+
+      // then
+      const ttl = mockRedisService.set.mock.calls.find((call) =>
+        call[0].startsWith(REDIS_KEY_PREFIX.BLACKLIST),
+      )?.[2];
+      expect(ttl).toBeGreaterThan(0);
+      expect(ttl).toBeLessThanOrEqual(900); // 15분 이하
+    });
+
+    test('이미 만료된 토큰은 블랙리스트에 추가하지 않아야 한다', async () => {
+      // given
+      const expiredToken = {
+        ...decodedToken,
+        exp: Math.floor(Date.now() / 1000) - 100, // 이미 만료됨
+      };
+      mockJwtProvider.verifyAccessToken.mockReturnValue(expiredToken);
+      mockRedisService.del.mockResolvedValue(1);
+
+      // when
+      await authService.logout(userId, accessToken);
+
+      // then
+      expect(redisService.del).toHaveBeenCalled(); // Refresh Token 삭제는 호출됨
+      const blacklistCalls = mockRedisService.set.mock.calls.filter((call) =>
+        call[0].startsWith(REDIS_KEY_PREFIX.BLACKLIST),
+      );
+      expect(blacklistCalls).toHaveLength(0); // 블랙리스트에는 추가 안 됨
     });
   });
 });

@@ -22,11 +22,10 @@ import {
   SocialAlreadyLoginException,
 } from './exception';
 import { UserNotFoundException } from '@/users/exception';
+import { REDIS_KEY_PREFIX } from '@/redis/redis.constants';
 
 @Injectable()
 export class AuthService {
-  private readonly PENDING_USER_PREFIX = 'PENDING_USER:';
-  private readonly REFRESH_TOKEN_PREFIX = 'REFRESH_TOKEN:';
   private readonly CODE_LENGTH = 6;
   private readonly VALIDATE_EMAIL_TTL = 600;
   private readonly MAX_RETRY = 3;
@@ -161,6 +160,11 @@ export class AuthService {
     }
   }
 
+  async logout(userId: bigint, accessToken: string): Promise<void> {
+    await this.blacklistAccessToken(accessToken);
+    await this.deleteRefreshToken(userId);
+  }
+
   private async saveRefreshToken(
     userId: bigint,
     refreshToken: string,
@@ -169,9 +173,26 @@ export class AuthService {
     await this.redisService.set(key, refreshToken, this.REFRESH_TOKEN_TTL);
   }
 
+  private async deleteRefreshToken(userId: bigint): Promise<void> {
+    const key = this.getRefreshTokenRedisKey(userId);
+    await this.redisService.del(key);
+  }
+
   private async getRefreshToken(userId: bigint): Promise<string | null> {
     const key = this.getRefreshTokenRedisKey(userId);
     return await this.redisService.get(key);
+  }
+
+  private async blacklistAccessToken(accessToken: string): Promise<void> {
+    const decoded = await this.jwtProvider.verifyAccessToken(accessToken);
+    if (decoded?.exp) {
+      const expiresIn = decoded.exp - Math.floor(Date.now() / 1000);
+
+      if (expiresIn > 0) {
+        const key = this.getBlacklistKey(accessToken);
+        await this.redisService.set(key, 'true', expiresIn);
+      }
+    }
   }
 
   private generateVerificationCode(): string {
@@ -181,10 +202,14 @@ export class AuthService {
   }
 
   private getPendingUserRedisKey(email: string): string {
-    return `${this.PENDING_USER_PREFIX}${email}`;
+    return `${REDIS_KEY_PREFIX.PENDING_USER}${email}`;
   }
 
   private getRefreshTokenRedisKey(userId: bigint): string {
-    return `${this.REFRESH_TOKEN_PREFIX}${userId}`;
+    return `${REDIS_KEY_PREFIX.REFRESH_TOKEN}${userId}`;
+  }
+
+  private getBlacklistKey(accessToken: string): string {
+    return `${REDIS_KEY_PREFIX.BLACKLIST}${accessToken}`;
   }
 }
