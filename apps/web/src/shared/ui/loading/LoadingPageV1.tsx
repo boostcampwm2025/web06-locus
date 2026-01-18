@@ -14,6 +14,7 @@ function LoadingBrand() {
           alt="character"
           className="relative h-28 w-28 select-none animate-[float_1.6s_ease-in-out_infinite]"
           draggable={false}
+          fetchPriority="high"
         />
       </div>
 

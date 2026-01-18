@@ -7,6 +7,10 @@
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>Locus</title>
+        <!-- 로딩 이미지 preload (LCP 최적화) -->
+        <link rel="preload" as="image" href="/src/assets/images/loading-duck-1.webp" fetchpriority="high" />
+        <link rel="preload" as="image" href="/src/assets/images/loading-duck-2.webp" fetchpriority="high" />
+        <link rel="preload" as="image" href="/src/assets/images/loading-duck-3.webp" fetchpriority="high" />
     </head>
     <body>
         <div id="root"></div>
