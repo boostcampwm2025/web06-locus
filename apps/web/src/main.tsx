@@ -4,17 +4,12 @@ import App from './App.tsx';
 import './index.css';
 import AppErrorBoundary from './shared/ui/error/ErrorBoundary';
 import * as Sentry from '@sentry/react';
-import { API_BASE_URL } from './infra/api/constants';
 
 // tracePropagationTargets를 동적으로 생성
-const tracePropagationTargets: (string | RegExp)[] = ['localhost'];
-
-// API 베이스 URL이 있으면 정규식으로 추가
-if (API_BASE_URL) {
-  // URL을 정규식으로 변환 (특수 문자 이스케이프)
-  const escapedUrl = API_BASE_URL.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  tracePropagationTargets.push(new RegExp(`^${escapedUrl}`));
-}
+const tracePropagationTargets: (string | RegExp)[] = [
+  'localhost',
+  /^\/api/, // API 호출 추적
+];
 
 Sentry.init({
   dsn: (import.meta.env.VITE_SENTRY_DSN as string | undefined) ?? '',

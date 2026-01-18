@@ -89,10 +89,20 @@ function prepareHeaders(
 /**
  * API URL 생성
  * @param endpoint - API 엔드포인트
+ * @param absolute - 절대 URL로 반환할지 여부 (기본값: false, 상대 경로)
  * @returns 완전한 API URL
  */
-export function buildApiUrl(endpoint: string): string {
-  return endpoint.startsWith('http') ? endpoint : `${API_BASE_URL}${endpoint}`;
+export function buildApiUrl(endpoint: string, absolute = false): string {
+  // 이미 절대 URL인 경우 그대로 반환
+  if (endpoint.startsWith('http')) {
+    return endpoint;
+  }
+
+  // 상대 경로로 API_BASE_URL prefix 추가
+  const relativeUrl = `${API_BASE_URL}${endpoint}`;
+
+  // 절대 URL이 필요한 경우 (예: window.location.href)
+  return absolute ? `${window.location.origin}${relativeUrl}` : relativeUrl;
 }
 
 async function handleUnauthorized(): Promise<void> {
