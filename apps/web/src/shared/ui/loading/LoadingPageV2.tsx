@@ -1,6 +1,7 @@
-import logo from '@/assets/images/loading-duck-2.webp';
 import './animations.css';
 import './LoadingPageV2.css';
+
+const logo = '/loading-duck-2.webp';
 
 function Background() {
   return (

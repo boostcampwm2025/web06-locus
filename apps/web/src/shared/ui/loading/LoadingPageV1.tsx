@@ -1,6 +1,7 @@
-import logo from '@/assets/images/loading-duck-1.webp';
 import './animations.css';
 import './LoadingPageV1.css';
+
+const logo = '/loading-duck-1.webp';
 
 const DOT_DELAYS = [0, 0.15, 0.3] as const;
 

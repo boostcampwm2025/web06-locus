@@ -1,6 +1,7 @@
-import logo from '@/assets/images/loading-duck-3.webp';
 import './animations.css';
 import './LoadingPageV3.css';
+
+const logo = '/loading-duck-3.webp';
 
 const BAR_COUNT = 5;
 const BAR_DELAYS = [0, 0.12, 0.24, 0.36, 0.48] as const;
