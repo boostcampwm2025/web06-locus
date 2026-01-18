@@ -4,6 +4,7 @@ import {
   ApiResponse,
   ApiBody,
   ApiExtraModels,
+  ApiCookieAuth,
 } from '@nestjs/swagger';
 import { SignUpRequest } from '../dto/sign-up-request.dto';
 import { VerifyEmailRequest } from '../dto/verify-email-request.dto';
@@ -122,6 +123,27 @@ export const LoginSwagger = () =>
     ApiErrorResponse(),
   );
 
+export const ReissueTokenSwagger = () =>
+  applyDecorators(
+    ApiOperation({
+      summary: '토큰 재발급',
+      description:
+        'Refresh Token을 사용하여 새로운 Access Token과 Refresh Token을 발급합니다. 기존 Refresh Token은 무효화됩니다.',
+    }),
+    ApiCookieAuth('refreshToken'),
+    ApiSuccessResponse(TokenResponse),
+    ApiFailResponse(401, [
+      {
+        code: AuthErrorCode.INVALID_REFRESH_TOKEN,
+        message: '유효하지 않은 Refresh Token입니다',
+      },
+    ]),
+    ApiFailResponse(404, [
+      { code: 'USER_NOT_FOUND', message: '사용자를 찾을 수 없습니다' },
+    ]),
+    ApiErrorResponse(),
+  );
+
 export const GoogleLoginSwagger = () =>
   applyDecorators(
     ApiOperation({
@@ -208,5 +230,3 @@ export const KakaoCallbackSwagger = () =>
       message: 'OAuth 인증에 실패했습니다',
     }),
   );
-
-// TODO: 토큰 재발급
