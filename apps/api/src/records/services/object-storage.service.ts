@@ -133,4 +133,18 @@ export class ObjectStorageService {
   ): string {
     return `records/${userPublicId}/${recordPublicId}/${imageId}/${size}.jpg`;
   }
+
+  /**
+   * 저장된 URL에서 S3 키를 추출합니다.
+   * URL 형식: ${publicUrl}/${key}
+   */
+  extractKeyFromUrl(url: string): string {
+    // publicUrl 부분을 제거하고 키만 추출
+    if (url.startsWith(this.publicUrl)) {
+      return url.slice(this.publicUrl.length + 1); // publicUrl + '/' 제거
+    }
+    // fallback: pathname에서 추출 시도
+    const urlObj = new URL(url);
+    return urlObj.pathname.slice(1);
+  }
 }
