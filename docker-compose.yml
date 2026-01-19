@@ -24,7 +24,9 @@ services:
     restart: always
 
   locus-elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch-wolfi:9.2.4
+    build:
+      context: .
+      dockerfile: ./apps/api/Dockerfile-es 
     container_name: locus-elasticsearch
     ports:
       - '9200:9200'
