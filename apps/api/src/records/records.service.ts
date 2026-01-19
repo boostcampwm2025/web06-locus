@@ -3,7 +3,7 @@ import { PrismaService } from '@/prisma/prisma.service';
 import { ReverseGeocodingService } from './services/reverse-geocoding.service';
 import { CreateRecordDto } from './dto/create-record.dto';
 import { RecordResponseDto } from './dto/record-response.dto';
-import { RecordModel } from './records.types';
+import { LocationInfo, RecordModel } from './records.types';
 import {
   RecordCreationFailedException,
   RecordNotFoundException,
@@ -196,7 +196,7 @@ export class RecordsService {
   private async executeRecordTransaction(
     userId: bigint,
     dto: CreateRecordDto,
-    locationInfo: { name: string | null; address: string | null },
+    locationInfo: LocationInfo,
     recordPublicId?: string,
     processedImages?: ProcessedImage[],
     uploadedImages?: UploadedImage[],
@@ -296,7 +296,7 @@ export class RecordsService {
   private async getLocationInfo(
     latitude: number,
     longitude: number,
-  ): Promise<{ name: string | null; address: string | null }> {
+  ): Promise<LocationInfo> {
     const { name, address } =
       await this.reverseGeocodingService.getAddressFromCoordinates(
         latitude,
