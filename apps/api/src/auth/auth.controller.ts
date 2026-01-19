@@ -25,6 +25,7 @@ import {
   KakaoCallbackSwagger,
   KakaoLoginSwagger,
   LoginSwagger,
+  LogoutSwagger,
   NaverCallbackSwagger,
   NaverLoginSwagger,
   ReissueTokenSwagger,
@@ -33,6 +34,9 @@ import {
 } from './swagger/auth.swagger';
 import { TokenResponse } from './dto/auth-response.dto';
 import { InvalidRefreshTokenException } from './exception';
+import { CurrentUser } from '@/common/decorators/current-user.decorator';
+import { JwtAuthGuard } from '@/jwt/guard/jwt.auth.guard';
+import { AccessToken } from '@/common/decorators/access-token.decorator';
 
 @Controller('auth')
 export class AuthController {
@@ -91,6 +95,19 @@ export class AuthController {
 
     this.setRefreshTokenCookie(res, newRefreshToken);
     return { accessToken };
+  }
+
+  @Post('logout')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @UseGuards(JwtAuthGuard)
+  @LogoutSwagger()
+  async logout(
+    @CurrentUser('sub') userId: bigint,
+    @AccessToken() token: string,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<void> {
+    await this.authService.logout(userId, token);
+    this.clearRefreshTokenCookie(res);
   }
 
   @Get('oauth2/google')
@@ -156,6 +173,15 @@ export class AuthController {
       sameSite: 'lax', // CSRF 방지
       maxAge: this.REFRESH_TOKEN_MAX_AGE,
       path: '/api/auth/reissue', // 오직 재발급 경로에서만 전송
+    });
+  }
+
+  private clearRefreshTokenCookie(res: Response) {
+    res.clearCookie('refreshToken', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/api/auth/reissue',
     });
   }
 
