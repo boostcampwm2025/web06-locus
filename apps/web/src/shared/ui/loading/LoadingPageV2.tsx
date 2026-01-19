@@ -24,9 +24,13 @@ function LoadingBrand() {
         <img
           src={logo}
           alt="loading character"
+          width={96}
+          height={96}
           className="relative h-24 w-24 select-none animate-[walk_2.2s_ease-in-out_infinite,microRotate_2.8s_ease-in-out_infinite,breathe_2.4s_ease-in-out_infinite]"
           draggable={false}
           fetchPriority="high"
+          loading="eager"
+          decoding="async"
         />
 
         {/* 그림자도 같이 움직이면 더 생동감 */}

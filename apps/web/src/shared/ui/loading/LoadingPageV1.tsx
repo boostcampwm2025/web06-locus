@@ -13,9 +13,13 @@ function LoadingBrand() {
         <img
           src={logo}
           alt="character"
+          width={112}
+          height={112}
           className="relative h-28 w-28 select-none animate-[float_1.6s_ease-in-out_infinite]"
           draggable={false}
           fetchPriority="high"
+          loading="eager"
+          decoding="async"
         />
       </div>
 

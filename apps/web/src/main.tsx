@@ -62,6 +62,18 @@ const setupSentryContext = () => {
 
 setupSentryContext();
 
+// 마운트 후 초기 로딩 페이지 제거
+const removeInitialLoading = () => {
+  const initialLoading = document.getElementById('initial-loading');
+  if (initialLoading) {
+    initialLoading.classList.add('hidden');
+    // DOM에서 제거 후 페이드 아웃 효과를 위해 대기
+    setTimeout(() => {
+      initialLoading.remove();
+    }, 100);
+  }
+};
+
 const rootElement = document.getElementById('root');
 if (rootElement) {
   createRoot(rootElement).render(
@@ -71,4 +83,9 @@ if (rootElement) {
       </AppErrorBoundary>
     </StrictMode>,
   );
+
+  // 브라우저가 첫 프레임을 그린 후 지연 후 로딩 페이지 제거
+  requestAnimationFrame(() => {
+    removeInitialLoading();
+  });
 }

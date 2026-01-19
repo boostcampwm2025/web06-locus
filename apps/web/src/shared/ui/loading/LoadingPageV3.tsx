@@ -22,9 +22,13 @@ function LoadingBrand() {
         <img
           src={logo}
           alt="loading character"
+          width={96}
+          height={96}
           className="relative h-24 w-24 select-none animate-[float_3.4s_ease-in-out_infinite,breathe_3.8s_ease-in-out_infinite,microRotate_6s_ease-in-out_infinite]"
           draggable={false}
           fetchPriority="high"
+          loading="eager"
+          decoding="async"
         />
 
         {/* 섀도우도 함께 호흡 */}
