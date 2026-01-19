@@ -84,6 +84,9 @@ export default defineConfig({
     // 타겟을 모던 브라우저로 설정하여 불필요한 폴리필(Legacy JS) 제거
     target: 'esnext',
 
+    // 배포 환경에서 소스맵 비활성화 (보안 및 빌드 크기 최적화)
+    sourcemap: false,
+
     // 압축 엔진 설정 (terser는 esbuild보다 압축률이 미세하게 더 좋음)
     minify: 'terser',
     terserOptions: {
