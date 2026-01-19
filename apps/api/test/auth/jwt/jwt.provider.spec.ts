@@ -1,10 +1,13 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
-import { UnauthorizedException } from '@nestjs/common';
 import { Provider } from '@prisma/client';
 import { JwtProvider } from '../../../src/jwt/jwt.provider';
 import { JwtPayload } from '../../../src/jwt/jwt-payload.interface';
+import {
+  InvalidAccessTokenException,
+  InvalidRefreshTokenException,
+} from '@/auth/exception';
 
 describe('JwtProvider 테스트', () => {
   let jwtProvider: JwtProvider;
@@ -171,7 +174,7 @@ describe('JwtProvider 테스트', () => {
 
       // when & then
       await expect(jwtProvider.verifyAccessToken(token)).rejects.toThrow(
-        new UnauthorizedException('유효하지 않은 Access Token입니다'),
+        new InvalidAccessTokenException(),
       );
     });
 
@@ -185,7 +188,7 @@ describe('JwtProvider 테스트', () => {
 
       // when & then
       await expect(jwtProvider.verifyAccessToken(token)).rejects.toThrow(
-        UnauthorizedException,
+        InvalidAccessTokenException,
       );
     });
 
@@ -199,7 +202,7 @@ describe('JwtProvider 테스트', () => {
 
       // when & then
       await expect(jwtProvider.verifyAccessToken(token)).rejects.toThrow(
-        UnauthorizedException,
+        InvalidAccessTokenException,
       );
     });
   });
@@ -237,7 +240,7 @@ describe('JwtProvider 테스트', () => {
 
       // when & then
       await expect(jwtProvider.verifyRefreshToken(token)).rejects.toThrow(
-        new UnauthorizedException('유효하지 않은 Refresh Token입니다'),
+        new InvalidRefreshTokenException(),
       );
     });
 
@@ -251,7 +254,7 @@ describe('JwtProvider 테스트', () => {
 
       // when & then
       await expect(jwtProvider.verifyRefreshToken(token)).rejects.toThrow(
-        UnauthorizedException,
+        InvalidRefreshTokenException,
       );
     });
 
@@ -265,7 +268,7 @@ describe('JwtProvider 테스트', () => {
 
       // when & then
       await expect(jwtProvider.verifyRefreshToken(token)).rejects.toThrow(
-        UnauthorizedException,
+        InvalidRefreshTokenException,
       );
     });
 
@@ -281,7 +284,7 @@ describe('JwtProvider 테스트', () => {
 
       // when & then
       await expect(jwtProvider.verifyRefreshToken(token)).rejects.toThrow(
-        UnauthorizedException,
+        InvalidRefreshTokenException,
       );
     });
   });
