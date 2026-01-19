@@ -216,3 +216,14 @@ export class RecordNotFoundException extends BusinessException {
     });
   }
 }
+
+export class RecordDeletionFailedException extends BusinessException {
+  constructor(error: Error) {
+    super(
+      HttpStatus.INTERNAL_SERVER_ERROR,
+      RecordErrorCode.RECORD_DELETION_FAILED,
+      '기록 삭제에 실패했습니다.',
+      { error: error.message },
+    );
+  }
+}
