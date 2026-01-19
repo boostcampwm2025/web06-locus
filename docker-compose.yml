@@ -8,6 +8,7 @@ services:
       - .env.prod
     depends_on:
       - locus-redis
+      - locus-rabbitmq
       - locus-elasticsearch
     networks:
       - locus-network
@@ -47,6 +48,19 @@ services:
       - I18N_LOCALE=ko-KR
     depends_on:
       - locus-elasticsearch
+    networks:
+      - locus-network
+    restart: always
+
+  locus-rabbitmq:
+    image: rabbitmq:4-management
+    container_name: locus-rabbitmq
+    ports:
+      - '5672:5672'
+      - '15672:15672'
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS}
     networks:
       - locus-network
     restart: always
