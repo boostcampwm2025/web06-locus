@@ -1,7 +1,6 @@
 import {
   Controller,
   Post,
-  Body,
   UseGuards,
   UseInterceptors,
   UploadedFiles,
@@ -18,9 +17,9 @@ import { RecordResponseDto } from './dto/record-response.dto';
 import { JwtAuthGuard } from '@/jwt/guard/jwt.auth.guard';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
 import { GraphResponseDto } from './dto/graph.response.dto';
-import { ParseJsonPipe } from '@/common/pipes/parse-json.pipe';
 import { MAX_FILE_COUNT, multerOptions } from './config/multer.config';
 import { CreateRecordSwagger } from './swagger/records.swagger';
+import { JsonBody } from '@/common/decorators/json-body.decorator';
 
 @ApiTags('records')
 @Controller('records')
@@ -34,7 +33,7 @@ export class RecordsController {
   @CreateRecordSwagger()
   async createRecord(
     @CurrentUser('sub') userId: bigint,
-    @Body('data', new ParseJsonPipe(CreateRecordDto)) dto,
+    @JsonBody(CreateRecordDto) dto: CreateRecordDto,
     @UploadedFiles() images?: Express.Multer.File[],
   ): Promise<RecordResponseDto> {
     return await this.recordsService.createRecord(userId, dto, images);
