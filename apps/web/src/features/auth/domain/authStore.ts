@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import * as Sentry from '@sentry/react';
+import { sentry } from '@/shared/utils/sentryWrapper';
 import type { AuthState } from '../types/auth';
 import {
   saveTokens,
@@ -37,7 +37,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
 
     // 사용자 컨텍스트 설정 (토큰에서 사용자 ID 추출 가능한 경우)
     // TODO: 실제 사용자 정보를 가져올 수 있으면 id, username 등 추가
-    Sentry.setUser({
+    void sentry.setUser({
       // id: userId, // 사용자 ID가 있다면 추가
       // username: username, // 사용자명이 있다면 추가
     });
@@ -48,7 +48,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
     set({ ...initialState, isInitialized: true });
 
     // 사용자 컨텍스트 제거
-    Sentry.setUser(null);
+    void sentry.setUser(null);
   },
 
   logout: async () => {
@@ -72,7 +72,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
       set({ ...initialState, isInitialized: true });
 
       // 사용자 컨텍스트 제거
-      Sentry.setUser(null);
+      void sentry.setUser(null);
     }
   },
 

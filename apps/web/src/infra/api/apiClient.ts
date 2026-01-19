@@ -1,6 +1,6 @@
 import { getAccessToken } from '../storage/tokenStorage';
 import { API_BASE_URL } from './constants';
-import * as Sentry from '@sentry/react';
+import { sentry } from '@/shared/utils/sentryWrapper';
 
 export interface ApiClientOptions extends RequestInit {
   requireAuth?: boolean;
@@ -20,7 +20,7 @@ export const apiClient = async <T = unknown>(
   const startTime = Date.now();
 
   // API 요청 Breadcrumb 추가
-  Sentry.addBreadcrumb({
+  void sentry.addBreadcrumb({
     category: 'api',
     message: `API ${method} ${endpoint}`,
     level: 'info',
@@ -38,7 +38,7 @@ export const apiClient = async <T = unknown>(
   const duration = Date.now() - startTime;
 
   // API 응답 Breadcrumb 추가
-  Sentry.addBreadcrumb({
+  void sentry.addBreadcrumb({
     category: 'api',
     message: `API ${method} ${endpoint} - ${response.status}`,
     level: response.ok ? 'info' : 'error',
@@ -157,26 +157,29 @@ async function handleErrorResponse(
     // - 토큰이 있는데도 401 발생
     // - 인증이 필요한 요청인데 401 발생
     if (accessToken && requireAuth) {
-      Sentry.captureException(new Error('유효한 토큰이 있는데도 401 발생'), {
-        tags: {
-          error_type: 'api_error',
-          http_status: 401,
-          endpoint: endpoint,
-          auth_status: 'has_token',
+      void sentry.captureException(
+        new Error('유효한 토큰이 있는데도 401 발생'),
+        {
+          tags: {
+            error_type: 'api_error',
+            http_status: 401,
+            endpoint: endpoint,
+            auth_status: 'has_token',
+          },
+          extra: {
+            status_text: statusText,
+            response_body: errorText.substring(0, 1000),
+            request_url: url,
+            request_method: options.method ?? 'GET',
+          },
+          level: 'warning',
         },
-        extra: {
-          status_text: statusText,
-          response_body: errorText.substring(0, 1000),
-          request_url: url,
-          request_method: options.method ?? 'GET',
-        },
-        level: 'warning',
-      });
+      );
     }
     // 정상적인 401은 Sentry 전송 안 함 (로그인 안 한 사용자 등)
   } else {
     // 401이 아닌 다른 에러는 모두 전송
-    Sentry.captureException(new Error(`API ${response.status}`), {
+    void sentry.captureException(new Error(`API ${response.status}`), {
       tags: {
         error_type: 'api_error',
         http_status: response.status,

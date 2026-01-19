@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import App from './App.tsx';
 import './index.css';
 import AppErrorBoundary from './shared/ui/error/ErrorBoundary';
+import { initSentry } from './shared/utils/sentryWrapper';
 
 /**
  * Sentry 지연 로딩 로직
@@ -13,18 +14,17 @@ const initializeSentry = () => {
   const SENTRY_DSN = import.meta.env.VITE_SENTRY_DSN as string | undefined;
   if (!SENTRY_DSN) return;
 
-  const loadSentry = async () => {
+  const loadAndInitSentry = async () => {
     try {
       // 필요한 라이브러리들을 비동기로 한꺼번에 불러옴
-      const [Sentry, routerHooks] = await Promise.all([
-        import('@sentry/react'),
-        import('react-router-dom'),
-      ]);
+      const [routerHooks] = await Promise.all([import('react-router-dom')]);
 
-      Sentry.init({
+      await initSentry({
         dsn: SENTRY_DSN,
         integrations: [
-          Sentry.reactRouterV6BrowserTracingIntegration({
+          (
+            await import('@sentry/react')
+          ).reactRouterV6BrowserTracingIntegration({
             useEffect, // 리액트에서 이미 가져온 useEffect 사용
             useLocation: routerHooks.useLocation,
             useNavigationType: routerHooks.useNavigationType,
@@ -56,6 +56,8 @@ const initializeSentry = () => {
         '(display-mode: standalone)',
       ).matches;
 
+      // Sentry가 로드된 후 setTags 호출
+      const Sentry = await import('@sentry/react');
       Sentry.setTags({
         os_group: osGroup,
         pwa_mode: isStandalone ? 'standalone' : 'browser',
@@ -72,17 +74,17 @@ const initializeSentry = () => {
     }
   };
 
-  // 브라우저가 한가할 때(Idle) 로드하여 메인 스레드 차단을 방지.
+  // 브라우저가 Idle 상태일 때 로드하여 메인 스레드 차단을 방지.
   if ('requestIdleCallback' in window) {
     window.requestIdleCallback(
       () => {
-        void loadSentry();
+        void loadAndInitSentry();
       },
       { timeout: 2000 },
     );
   } else {
     setTimeout(() => {
-      void loadSentry();
+      void loadAndInitSentry();
     }, 2000);
   }
 };
