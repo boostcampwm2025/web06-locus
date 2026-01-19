@@ -9,12 +9,15 @@ import {
   Get,
   Param,
   Delete,
+  Query,
 } from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express';
 import { ApiTags } from '@nestjs/swagger';
 import { RecordsService } from './records.service';
 import { CreateRecordDto } from './dto/create-record.dto';
+import { GetRecordsQueryDto } from './dto/get-records-query.dto';
 import { RecordResponseDto } from './dto/record-response.dto';
+import { RecordsListResponseDto } from './dto/records-list-reponse.dto';
 import { JwtAuthGuard } from '@/jwt/guard/jwt.auth.guard';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
 import { GraphResponseDto } from './dto/graph.response.dto';
@@ -29,6 +32,15 @@ import { JsonBody } from '@/common/decorators/json-body.decorator';
 @Controller('records')
 export class RecordsController {
   constructor(private readonly recordsService: RecordsService) {}
+
+  @Get()
+  @UseGuards(JwtAuthGuard)
+  async getRecordsInBounds(
+    @CurrentUser('sub') userId: bigint,
+    @Query() query: GetRecordsQueryDto,
+  ): Promise<RecordsListResponseDto> {
+    return await this.recordsService.getRecordsInBounds(userId, query);
+  }
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
