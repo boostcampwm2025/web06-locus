@@ -12,3 +12,8 @@ export interface RecordModel {
   createdAt: Date;
   updatedAt: Date;
 }
+
+export interface LocationInfo {
+  name: string | null;
+  address: string | null;
+}
