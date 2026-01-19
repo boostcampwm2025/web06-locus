@@ -34,12 +34,14 @@ export interface ProcessedImage {
   };
 }
 
+export interface ImageUrls {
+  thumbnail: string;
+  medium: string;
+  original: string;
+}
+
 // ObjectStorageService가 반환하는 타입
 export interface UploadedImage {
   imageId: string;
-  urls: {
-    thumbnail: string;
-    medium: string;
-    original: string;
-  };
+  urls: ImageUrls;
 }
