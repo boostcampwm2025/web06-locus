@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { RecordsController } from './records.controller';
 import { RecordsService } from './records.service';
-import { MapsService } from '../maps/reverse-geocoding.service';
+import { MapsService } from '../maps/maps.service';
 import { PrismaModule } from '@/prisma/prisma.module';
 import { JwtModule } from '@/jwt/jwt.module';
 import { RecordSearchService } from './record-search.service';

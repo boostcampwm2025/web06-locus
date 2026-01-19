@@ -1,6 +1,6 @@
 import { RecordsService } from '@/records/records.service';
 import { PrismaService } from '@/prisma/prisma.service';
-import { MapsService } from '@/maps/reverse-geocoding.service';
+import { MapsService } from '@/maps/maps.service';
 import { RecordNotFoundException } from '@/records/exceptions/record.exceptions';
 import { OutboxService } from '@/outbox/outbox.service';
 interface PrismaMock {

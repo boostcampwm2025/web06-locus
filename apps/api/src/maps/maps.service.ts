@@ -8,12 +8,12 @@ import { GeocodingResult } from './type/geocoding.type';
 import { NotFoundAddressException } from './exception/geocode.exception';
 
 const GEOCODE_API_URL = 'https://maps.apigw.ntruss.com/map-geocode/v2/geocode';
+const REVERSE_GEOCODE_API_URL =
+  'https://maps.apigw.ntruss.com/map-reversegeocode/v2/gc';
 
 @Injectable()
 export class MapsService {
   private readonly logger = new Logger(MapsService.name);
-  private readonly apiUrl =
-    'https://maps.apigw.ntruss.com/map-reversegeocode/v2/gc';
   private readonly clientId: string;
   private readonly clientSecret: string;
 
@@ -71,7 +71,7 @@ export class MapsService {
     // Naver Map API는 경도, 위도 순서 (longitude, latitude)
     const coords = `${longitude},${latitude}`;
 
-    return `${this.apiUrl}?coords=${coords}&orders=roadaddr&output=json`;
+    return `${REVERSE_GEOCODE_API_URL}?coords=${coords}&orders=roadaddr&output=json`;
   }
 
   private async callNaverMapApi(url: string) {
