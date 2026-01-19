@@ -25,6 +25,7 @@ import { MAX_FILE_COUNT, multerOptions } from './config/multer.config';
 import {
   CreateRecordSwagger,
   DeleteRecordSwagger,
+  GetRecordsSwagger,
 } from './swagger/records.swagger';
 import { JsonBody } from '@/common/decorators/json-body.decorator';
 
@@ -35,6 +36,7 @@ export class RecordsController {
 
   @Get()
   @UseGuards(JwtAuthGuard)
+  @GetRecordsSwagger()
   async getRecordsInBounds(
     @CurrentUser('sub') userId: bigint,
     @Query() query: GetRecordsQueryDto,
