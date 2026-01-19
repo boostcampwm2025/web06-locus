@@ -4,7 +4,7 @@ import {
   MoreVerticalIcon,
   CalendarIcon,
   LocationIcon,
-} from '@/shared/icons';
+} from '@/shared/icons/Icons';
 import type { RecordDetailPageProps } from '@/features/record/types';
 import { formatDateShort } from '@/shared/utils/dateUtils';
 import { getDisplayTags } from '@/shared/utils/tagUtils';

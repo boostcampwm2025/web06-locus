@@ -1,4 +1,4 @@
-import { XIcon } from '@/shared/icons';
+import { XIcon } from '@/shared/icons/Icons';
 import type {
   RecordSelectionHeaderProps,
   SelectionButtonProps,

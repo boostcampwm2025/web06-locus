@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { ArrowLeftIcon } from '@/shared/icons';
+import { ArrowLeftIcon } from '@/shared/icons/Icons';
 import type {
   RecordConnectionPageProps,
   RecordConnectionItem,

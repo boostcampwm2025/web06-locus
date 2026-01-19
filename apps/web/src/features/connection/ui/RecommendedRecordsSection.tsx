@@ -1,4 +1,4 @@
-import { LocationIcon } from '@/shared/icons';
+import { LocationIcon } from '@/shared/icons/Icons';
 import type {
   RecommendedRecordsSectionProps,
   RecordConnectionItem,

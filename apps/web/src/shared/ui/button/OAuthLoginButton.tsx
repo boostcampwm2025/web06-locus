@@ -1,6 +1,4 @@
-import GoogleIcon from '@/shared/icons/GoogleIcon';
-import NaverIcon from '@/shared/icons/NaverIcon';
-import KakaoIcon from '@/shared/icons/KakaoIcon';
+import { GoogleIcon, NaverIcon, KakaoIcon } from '@/shared/icons/Icons';
 import type { OAuthProvider } from '@/shared/types';
 
 interface OAuthLoginButtonProps {

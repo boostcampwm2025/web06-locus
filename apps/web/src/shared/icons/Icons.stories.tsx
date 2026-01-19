@@ -1,31 +1,33 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import ErrorIcon from './ErrorIcon';
-import RefreshIcon from './RefreshIcon';
-import GoogleIcon from './GoogleIcon';
-import NaverIcon from './NaverIcon';
-import KakaoIcon from './KakaoIcon';
-import Logo from './Logo';
-import MapIcon from './MapIcon';
-import SearchIcon from './SearchIcon';
-import BookmarkIcon from './BookmarkIcon';
-import FavoriteIcon from './FavoriteIcon';
-import ArrowLeftIcon from './ArrowLeftIcon';
-import ArrowRightIcon from './ArrowRightIcon';
-import LocationIcon from './LocationIcon';
-import LinkIcon from './LinkIcon';
-import ImageIcon from './ImageIcon';
-import CameraIcon from './CameraIcon';
-import PlusIcon from './PlusIcon';
-import XIcon from './XIcon';
-import ZoomInIcon from './ZoomInIcon';
-import ZoomOutIcon from './ZoomOutIcon';
-import TagIcon from './TagIcon';
-import CalendarIcon from './CalendarIcon';
-import EditIcon from './EditIcon';
-import TrashIcon from './TrashIcon';
-import FilterIcon from './FilterIcon';
-import CheckIcon from './CheckIcon';
-import MoreVerticalIcon from './MoreVerticalIcon';
+import {
+  ErrorIcon,
+  RefreshIcon,
+  GoogleIcon,
+  NaverIcon,
+  KakaoIcon,
+  Logo,
+  MapIcon,
+  SearchIcon,
+  BookmarkIcon,
+  FavoriteIcon,
+  ArrowLeftIcon,
+  ArrowRightIcon,
+  LocationIcon,
+  LinkIcon,
+  ImageIcon,
+  CameraIcon,
+  PlusIcon,
+  XIcon,
+  ZoomInIcon,
+  ZoomOutIcon,
+  TagIcon,
+  CalendarIcon,
+  EditIcon,
+  TrashIcon,
+  FilterIcon,
+  CheckIcon,
+  MoreVerticalIcon,
+} from './Icons';
 
 const meta = {
   title: 'Shared/Icons',

@@ -1,4 +1,4 @@
-import Logo from '@/shared/icons/Logo';
+import { Logo } from '@/shared/icons/Icons';
 import type { AuthPageHeaderProps } from '@/shared/types';
 
 export function AuthPageHeader({ title, subtitle }: AuthPageHeaderProps) {

@@ -1,5 +1,5 @@
 import type { FallbackProps } from 'react-error-boundary';
-import { ErrorIcon, RefreshIcon } from '../../icons';
+import { ErrorIcon, RefreshIcon } from '@/shared/icons/Icons';
 
 function ErrorFallback({ error, resetErrorBoundary }: FallbackProps) {
   return (

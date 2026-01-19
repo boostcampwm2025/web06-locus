@@ -1,5 +1,4 @@
-import MapIcon from '@/shared/icons/MapIcon';
-import BookmarkIcon from '@/shared/icons/BookmarkIcon';
+import { MapIcon, BookmarkIcon } from '@/shared/icons/Icons';
 import type { BottomTabBarProps, TabId } from '@/shared/types/navigation';
 
 const tabs: {

@@ -1,9 +1,11 @@
 import { useState } from 'react';
-import ArrowLeftIcon from '@/shared/icons/ArrowLeftIcon';
-import PlusIcon from '@/shared/icons/PlusIcon';
-import XIcon from '@/shared/icons/XIcon';
-import ZoomInIcon from '@/shared/icons/ZoomInIcon';
-import ZoomOutIcon from '@/shared/icons/ZoomOutIcon';
+import {
+  ArrowLeftIcon,
+  PlusIcon,
+  XIcon,
+  ZoomInIcon,
+  ZoomOutIcon,
+} from '@/shared/icons/Icons';
 import ActionButton from '@/shared/ui/button/ActionButton';
 import CategoryChip from '@/shared/ui/category/CategoryChip';
 import {

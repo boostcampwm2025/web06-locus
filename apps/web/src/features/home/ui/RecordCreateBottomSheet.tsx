@@ -1,6 +1,6 @@
 import { BaseBottomSheet } from '@/shared/ui/bottomSheet';
 import { ActionButton } from '@/shared/ui/button';
-import LocationIcon from '@/shared/icons/LocationIcon';
+import { LocationIcon } from '@/shared/icons/Icons';
 import type { RecordCreateBottomSheetProps } from '../types/recordCreateBottomSheet';
 
 export default function RecordCreateBottomSheet({

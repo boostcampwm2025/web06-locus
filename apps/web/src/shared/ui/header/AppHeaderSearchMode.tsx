@@ -1,4 +1,4 @@
-import SearchIcon from '@/shared/icons/SearchIcon';
+import { SearchIcon } from '@/shared/icons/Icons';
 import type { AppHeaderSearchModeProps } from '@/shared/types/header';
 
 /**

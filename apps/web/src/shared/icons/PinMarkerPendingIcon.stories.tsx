@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import PinMarkerPendingIcon from './PinMarkerPendingIcon';
+import { PinMarkerPendingIcon } from './Icons';
 
 const meta = {
   title: 'Shared/Icons/PinMarkerPendingIcon',
