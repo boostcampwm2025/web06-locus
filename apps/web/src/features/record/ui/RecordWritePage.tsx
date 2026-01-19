@@ -1,11 +1,9 @@
 import { useState } from 'react';
-import {
-  ArrowLeftIcon,
-  PlusIcon,
-  XIcon,
-  ZoomInIcon,
-  ZoomOutIcon,
-} from '@/shared/icons/Icons';
+import { ArrowLeftIcon } from '@/shared/ui/icons/ArrowLeftIcon';
+import { PlusIcon } from '@/shared/ui/icons/PlusIcon';
+import { XIcon } from '@/shared/ui/icons/XIcon';
+import { ZoomInIcon } from '@/shared/ui/icons/ZoomInIcon';
+import { ZoomOutIcon } from '@/shared/ui/icons/ZoomOutIcon';
 import ActionButton from '@/shared/ui/button/ActionButton';
 import CategoryChip from '@/shared/ui/category/CategoryChip';
 import {

@@ -1,4 +1,6 @@
-import { LinkIcon, LocationIcon, ArrowRightIcon } from '@/shared/icons/Icons';
+import { LinkIcon } from '@/shared/ui/icons/LinkIcon';
+import { LocationIcon } from '@/shared/ui/icons/LocationIcon';
+import { ArrowRightIcon } from '@/shared/ui/icons/ArrowRightIcon';
 import type { RecordCardProps } from './RecordCard.types';
 import { formatDateShort } from '@/shared/utils/dateUtils';
 import { getDisplayTags } from '@/shared/utils/tagUtils';

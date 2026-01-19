@@ -1,33 +1,31 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import {
-  ErrorIcon,
-  RefreshIcon,
-  GoogleIcon,
-  NaverIcon,
-  KakaoIcon,
-  Logo,
-  MapIcon,
-  SearchIcon,
-  BookmarkIcon,
-  FavoriteIcon,
-  ArrowLeftIcon,
-  ArrowRightIcon,
-  LocationIcon,
-  LinkIcon,
-  ImageIcon,
-  CameraIcon,
-  PlusIcon,
-  XIcon,
-  ZoomInIcon,
-  ZoomOutIcon,
-  TagIcon,
-  CalendarIcon,
-  EditIcon,
-  TrashIcon,
-  FilterIcon,
-  CheckIcon,
-  MoreVerticalIcon,
-} from './Icons';
+import { ErrorIcon } from '../ui/icons/ErrorIcon';
+import { RefreshIcon } from '../ui/icons/RefreshIcon';
+import { GoogleIcon } from '../ui/icons/GoogleIcon';
+import { NaverIcon } from '../ui/icons/NaverIcon';
+import { KakaoIcon } from '../ui/icons/KakaoIcon';
+import { Logo } from '../ui/icons/Logo';
+import { MapIcon } from '../ui/icons/MapIcon';
+import { SearchIcon } from '../ui/icons/SearchIcon';
+import { BookmarkIcon } from '../ui/icons/BookmarkIcon';
+import { FavoriteIcon } from '../ui/icons/FavoriteIcon';
+import { ArrowLeftIcon } from '../ui/icons/ArrowLeftIcon';
+import { ArrowRightIcon } from '../ui/icons/ArrowRightIcon';
+import { LocationIcon } from '../ui/icons/LocationIcon';
+import { LinkIcon } from '../ui/icons/LinkIcon';
+import { ImageIcon } from '../ui/icons/ImageIcon';
+import { CameraIcon } from '../ui/icons/CameraIcon';
+import { PlusIcon } from '../ui/icons/PlusIcon';
+import { XIcon } from '../ui/icons/XIcon';
+import { ZoomInIcon } from '../ui/icons/ZoomInIcon';
+import { ZoomOutIcon } from '../ui/icons/ZoomOutIcon';
+import { TagIcon } from '../ui/icons/TagIcon';
+import { CalendarIcon } from '../ui/icons/CalendarIcon';
+import { EditIcon } from '../ui/icons/EditIcon';
+import { TrashIcon } from '../ui/icons/TrashIcon';
+import { FilterIcon } from '../ui/icons/FilterIcon';
+import { CheckIcon } from '../ui/icons/CheckIcon';
+import { MoreVerticalIcon } from '../ui/icons/MoreVerticalIcon';
 
 const meta = {
   title: 'Shared/Icons',

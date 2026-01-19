@@ -1,10 +1,8 @@
-import {
-  ArrowLeftIcon,
-  FavoriteIcon,
-  MoreVerticalIcon,
-  CalendarIcon,
-  LocationIcon,
-} from '@/shared/icons/Icons';
+import { ArrowLeftIcon } from '@/shared/ui/icons/ArrowLeftIcon';
+import { FavoriteIcon } from '@/shared/ui/icons/FavoriteIcon';
+import { MoreVerticalIcon } from '@/shared/ui/icons/MoreVerticalIcon';
+import { CalendarIcon } from '@/shared/ui/icons/CalendarIcon';
+import { LocationIcon } from '@/shared/ui/icons/LocationIcon';
 import type { RecordDetailPageProps } from '@/features/record/types';
 import { formatDateShort } from '@/shared/utils/dateUtils';
 import { getDisplayTags } from '@/shared/utils/tagUtils';

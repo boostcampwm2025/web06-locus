@@ -1,4 +1,6 @@
-import { Logo, SearchIcon, FilterIcon } from '@/shared/icons/Icons';
+import { Logo } from '@/shared/ui/icons/Logo';
+import { SearchIcon } from '@/shared/ui/icons/SearchIcon';
+import { FilterIcon } from '@/shared/ui/icons/FilterIcon';
 import type { AppHeaderNormalModeProps } from '@/shared/types/header';
 import AppHeaderTitle from './AppHeaderTitle';
 

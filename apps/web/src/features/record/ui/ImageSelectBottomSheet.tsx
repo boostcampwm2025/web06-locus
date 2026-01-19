@@ -1,5 +1,6 @@
 import BaseBottomSheet from '@/shared/ui/bottomSheet/BaseBottomSheet';
-import { CameraIcon, ImageIcon } from '@/shared/icons/Icons';
+import { CameraIcon } from '@/shared/ui/icons/CameraIcon';
+import { ImageIcon } from '@/shared/ui/icons/ImageIcon';
 import { ActionButton, OptionButton } from '@/shared/ui/button';
 import type { ImageSelectBottomSheetProps } from '../types';
 

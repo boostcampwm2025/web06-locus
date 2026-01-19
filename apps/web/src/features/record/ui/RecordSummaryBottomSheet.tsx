@@ -1,12 +1,10 @@
 import BaseBottomSheet from '@/shared/ui/bottomSheet/BaseBottomSheet';
-import {
-  CalendarIcon,
-  TagIcon,
-  EditIcon,
-  TrashIcon,
-  LocationIcon,
-  XIcon,
-} from '@/shared/icons/Icons';
+import { CalendarIcon } from '@/shared/ui/icons/CalendarIcon';
+import { TagIcon } from '@/shared/ui/icons/TagIcon';
+import { EditIcon } from '@/shared/ui/icons/EditIcon';
+import { TrashIcon } from '@/shared/ui/icons/TrashIcon';
+import { LocationIcon } from '@/shared/ui/icons/LocationIcon';
+import { XIcon } from '@/shared/ui/icons/XIcon';
 import ActionButton from '@/shared/ui/button/ActionButton';
 import type {
   RecordSummaryBottomSheetProps,
