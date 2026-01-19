@@ -8,6 +8,7 @@ import {
   HttpStatus,
   Get,
   Param,
+  Delete,
 } from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express';
 import { ApiTags } from '@nestjs/swagger';
@@ -37,6 +38,17 @@ export class RecordsController {
     @UploadedFiles() images?: Express.Multer.File[],
   ): Promise<RecordResponseDto> {
     return await this.recordsService.createRecord(userId, dto, images);
+  }
+
+  @Delete(':publicId')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @UseGuards(JwtAuthGuard)
+  // @DeleteRecordSwagger()
+  async deleteRecord(
+    @CurrentUser('sub') userId: bigint,
+    @Param('publicId') publicId: string,
+  ): Promise<void> {
+    await this.recordsService.deleteRecord(userId, publicId);
   }
 
   @UseGuards(JwtAuthGuard)
