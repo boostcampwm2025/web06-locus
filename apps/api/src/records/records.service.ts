@@ -5,6 +5,7 @@ import { CreateRecordDto } from './dto/create-record.dto';
 import { RecordResponseDto } from './dto/record-response.dto';
 import { LocationInfo, RecordModel } from './records.types';
 import {
+  ImageDeletionFailedException,
   RecordAccessDeniedException,
   RecordCreationFailedException,
   RecordDeletionFailedException,
@@ -430,12 +431,25 @@ export class RecordsService {
         });
       });
     } catch (error) {
-      throw new RecordDeletionFailedException(error);
+      if (error instanceof RecordDeletionFailedException) {
+        throw new RecordDeletionFailedException(error);
+      }
     }
 
     // 6. Object Storage 이미지 삭제 (트랜잭션 성공 후)
     if (imageKeys.length > 0) {
-      await this.objectStorageService.deleteImages(imageKeys);
+      try {
+        await this.objectStorageService.deleteImages(imageKeys);
+      } catch (error) {
+        if (error instanceof ImageDeletionFailedException) {
+          this.logger.error(
+            `Failed to delete images in object storage for record ${publicId}: ${error.message}`,
+          );
+          // TODO: Object Stoage에서 삭제 실패 시 처리 로직 추가
+        } else {
+          throw error;
+        }
+      }
     }
 
     this.logger.log(`Record deleted: publicId=${publicId}, userId=${userId}`);
