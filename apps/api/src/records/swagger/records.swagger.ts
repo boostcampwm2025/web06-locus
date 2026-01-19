@@ -4,6 +4,8 @@ import {
   ApiBearerAuth,
   ApiConsumes,
   ApiExtraModels,
+  ApiNoContentResponse,
+  ApiParam,
 } from '@nestjs/swagger';
 import {
   ApiSuccessResponse,
@@ -57,6 +59,36 @@ export const CreateRecordSwagger = () =>
     ApiFailResponse(HttpStatus.UNAUTHORIZED, {
       code: 'AUTH_TOKEN_MISSING',
       message: '인증 토큰이 없거나 유효하지 않습니다.',
+    }),
+    ApiErrorResponse(),
+  );
+
+export const DeleteRecordSwagger = () =>
+  applyDecorators(
+    ApiBearerAuth(),
+    ApiOperation({
+      summary: '기록 삭제',
+      description: '기록을 삭제합니다. 연결된 이미지도 함께 삭제됩니다.',
+    }),
+    ApiParam({
+      name: 'publicId',
+      description: '삭제할 기록의 공개 ID',
+      example: 'abc123xyz789',
+    }),
+    ApiNoContentResponse({
+      description: '기록 삭제 성공',
+    }),
+    ApiFailResponse(HttpStatus.UNAUTHORIZED, {
+      code: 'AUTH_TOKEN_MISSING',
+      message: '인증 토큰이 없거나 유효하지 않습니다.',
+    }),
+    ApiFailResponse(HttpStatus.FORBIDDEN, {
+      code: RecordErrorCode.RECORD_ACCESS_DENIED,
+      message: '해당 기록에 대한 권한이 없습니다.',
+    }),
+    ApiFailResponse(HttpStatus.NOT_FOUND, {
+      code: RecordErrorCode.RECORD_NOT_FOUND,
+      message: '기록을 찾을 수 없습니다.',
     }),
     ApiErrorResponse(),
   );

@@ -19,7 +19,10 @@ import { JwtAuthGuard } from '@/jwt/guard/jwt.auth.guard';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
 import { GraphResponseDto } from './dto/graph.response.dto';
 import { MAX_FILE_COUNT, multerOptions } from './config/multer.config';
-import { CreateRecordSwagger } from './swagger/records.swagger';
+import {
+  CreateRecordSwagger,
+  DeleteRecordSwagger,
+} from './swagger/records.swagger';
 import { JsonBody } from '@/common/decorators/json-body.decorator';
 
 @ApiTags('records')
@@ -43,7 +46,7 @@ export class RecordsController {
   @Delete(':publicId')
   @HttpCode(HttpStatus.NO_CONTENT)
   @UseGuards(JwtAuthGuard)
-  // @DeleteRecordSwagger()
+  @DeleteRecordSwagger()
   async deleteRecord(
     @CurrentUser('sub') userId: bigint,
     @Param('publicId') publicId: string,
