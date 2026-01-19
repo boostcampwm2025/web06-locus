@@ -2,10 +2,12 @@ import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '@/prisma/prisma.service';
 import { ReverseGeocodingService } from './services/reverse-geocoding.service';
 import { CreateRecordDto } from './dto/create-record.dto';
+import { GetRecordsQueryDto } from './dto/get-records-query.dto';
 import { RecordResponseDto } from './dto/record-response.dto';
 import { LocationInfo, RecordModel } from './records.types';
 import {
   ImageDeletionFailedException,
+  InvalidBoundsException,
   RecordAccessDeniedException,
   RecordCreationFailedException,
   RecordDeletionFailedException,
@@ -22,7 +24,11 @@ import {
   AGGREGATE_TYPE,
   OUTBOX_EVENT_TYPE,
 } from '@/common/constants/event-types.constants';
-import { UPDATE_RECORD_LOCATION_SQL } from './sql/record-raw.query';
+import {
+  COUNT_RECORDS_IN_BOUNDS_SQL,
+  SELECT_RECORDS_IN_BOUNDS_SQL,
+  UPDATE_RECORD_LOCATION_SQL,
+} from './sql/record-raw.query';
 import { ImageProcessingService } from './services/image-processing.service';
 import { ObjectStorageService } from './services/object-storage.service';
 import {
@@ -32,6 +38,7 @@ import {
 } from './services/object-storage.types';
 import { nanoid } from 'nanoid';
 import { UsersService } from '@/users/users.service';
+import { RecordsListResponseDto } from './dto/records-list-reponse.dto';
 
 @Injectable()
 export class RecordsService {
@@ -78,6 +85,45 @@ export class RecordsService {
     }
 
     return record;
+  }
+
+  async getRecordsInBounds(
+    userId: bigint,
+    dto: GetRecordsQueryDto,
+  ): Promise<RecordsListResponseDto> {
+    if (dto.neLat <= dto.swLat) {
+      throw new InvalidBoundsException(
+        '북동쪽 위도가 남서쪽 위도보다 작거나 같습니다.',
+      );
+    }
+
+    const offset = (dto.page - 1) * dto.limit;
+
+    const [records, countResult] = await Promise.all([
+      this.prisma.$queryRaw<RecordModel[]>(
+        SELECT_RECORDS_IN_BOUNDS_SQL(
+          userId,
+          dto.swLng,
+          dto.swLat,
+          dto.neLng,
+          dto.neLat,
+          dto.sortOrder,
+          dto.limit,
+          offset,
+        ),
+      ),
+      this.prisma.$queryRaw<[{ count: number }]>(
+        COUNT_RECORDS_IN_BOUNDS_SQL(
+          userId,
+          dto.swLng,
+          dto.swLat,
+          dto.neLng,
+          dto.neLat,
+        ),
+      ),
+    ]);
+
+    return RecordsListResponseDto.from(records, countResult[0].count);
   }
 
   async getGraph(
