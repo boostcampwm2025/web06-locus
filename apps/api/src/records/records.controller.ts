@@ -34,7 +34,7 @@ export class RecordsController {
   @CreateRecordSwagger()
   async createRecord(
     @CurrentUser('sub') userId: bigint,
-    @Body('data', ParseJsonPipe) dto: CreateRecordDto,
+    @Body('data', new ParseJsonPipe(CreateRecordDto)) dto,
     @UploadedFiles() images?: Express.Multer.File[],
   ): Promise<RecordResponseDto> {
     return await this.recordsService.createRecord(userId, dto, images);
