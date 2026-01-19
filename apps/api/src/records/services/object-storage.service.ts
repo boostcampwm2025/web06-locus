@@ -11,6 +11,7 @@ import {
   ProcessedImage,
   UploadedImage,
 } from './object-storage.types';
+import { ImageDeletionFailedException } from '../exceptions/record.exceptions';
 
 @Injectable()
 export class ObjectStorageService {
@@ -109,6 +110,8 @@ export class ObjectStorageService {
   async deleteImages(keys: string[]): Promise<void> {
     if (keys.length === 0) return;
 
+    this.logger.debug(`Attempting to delete images: ${JSON.stringify(keys)}`);
+
     const command = new DeleteObjectsCommand({
       Bucket: this.bucketName,
       Delete: {
@@ -117,9 +120,22 @@ export class ObjectStorageService {
     });
 
     try {
-      await this.s3Client.send(command);
-      this.logger.log(`Deleted ${keys.length} images from storage`);
+      const response = await this.s3Client.send(command);
+
+      if (response.Deleted?.length) {
+        this.logger.log(
+          `Successfully deleted ${response.Deleted.length}/${keys.length} images`,
+        );
+      }
+
+      if (response.Errors?.length) {
+        throw new ImageDeletionFailedException(response.Errors);
+      }
     } catch (error) {
+      if (error instanceof ImageDeletionFailedException) {
+        throw error;
+      }
+
       this.logger.error(`Failed to delete images: ${JSON.stringify(error)}`);
       throw error;
     }
