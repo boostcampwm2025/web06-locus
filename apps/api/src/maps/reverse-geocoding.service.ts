@@ -3,11 +3,15 @@ import { ConfigService } from '@nestjs/config';
 import {
   NaverMapResponse,
   ReverseGeocodingResult,
-} from './reverse-geocoding.types';
+} from './type/reverse-geocoding.types';
+import { GeocodingResult } from './type/geocoding.type';
+import { NotFoundAddressException } from './exception/geocode.exception';
+
+const GEOCODE_API_URL = 'https://maps.apigw.ntruss.com/map-geocode/v2/geocode';
 
 @Injectable()
-export class ReverseGeocodingService {
-  private readonly logger = new Logger(ReverseGeocodingService.name);
+export class MapsService {
+  private readonly logger = new Logger(MapsService.name);
   private readonly apiUrl =
     'https://maps.apigw.ntruss.com/map-reversegeocode/v2/gc';
   private readonly clientId: string;
@@ -28,7 +32,7 @@ export class ReverseGeocodingService {
   ): Promise<ReverseGeocodingResult> {
     try {
       const url = this.buildApiUrl(longitude, latitude);
-      const data = await this.callNaverMapApi(url);
+      const data = (await this.callNaverMapApi(url)) as NaverMapResponse;
 
       if (!this.isValidResponse(data)) {
         this.logger.warn(
@@ -51,6 +55,18 @@ export class ReverseGeocodingService {
     }
   }
 
+  async getCoordinatesFromAddress(address: string): Promise<GeocodingResult> {
+    const qs = new URLSearchParams({ query: address });
+    const url = `${GEOCODE_API_URL}?${qs.toString()}`;
+    const result = (await this.callNaverMapApi(url)) as GeocodingResult;
+
+    if (result.meta.totalCount === 0) {
+      throw new NotFoundAddressException(address);
+    }
+
+    return result;
+  }
+
   private buildApiUrl(longitude: number, latitude: number): string {
     // Naver Map API는 경도, 위도 순서 (longitude, latitude)
     const coords = `${longitude},${latitude}`;
@@ -58,11 +74,12 @@ export class ReverseGeocodingService {
     return `${this.apiUrl}?coords=${coords}&orders=roadaddr&output=json`;
   }
 
-  private async callNaverMapApi(url: string): Promise<NaverMapResponse> {
+  private async callNaverMapApi(url: string) {
     const response = await fetch(url, {
       headers: {
         'X-NCP-APIGW-API-KEY-ID': this.clientId,
         'X-NCP-APIGW-API-KEY': this.clientSecret,
+        'Accept': 'application/json',
       },
     });
 
@@ -75,8 +92,10 @@ export class ReverseGeocodingService {
 
     const raw: unknown = await response.json();
 
+    console.log(raw);
+
     // TODO: ZOD runtime validation 추가
-    return raw as NaverMapResponse;
+    return raw;
   }
 
   private isValidResponse(data: NaverMapResponse): boolean {

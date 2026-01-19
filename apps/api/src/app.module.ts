@@ -15,6 +15,7 @@ import { RabbitMqModule } from './mq/rabbitmq.module';
 import { RedisModule } from './redis/redis.module';
 import { MailModule } from './mail/mail.module';
 import { ConnectionsModule } from './connections/connections.module';
+import { MapsModule } from './maps/maps.module';
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { ConnectionsModule } from './connections/connections.module';
     UsersModule,
     ConnectionsModule,
     RecordsModule,
+    MapsModule,
   ],
   controllers: [AppController],
   providers: [
