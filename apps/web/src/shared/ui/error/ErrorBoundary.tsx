@@ -1,28 +1,31 @@
 import { ErrorBoundary } from 'react-error-boundary';
+import * as Sentry from '@sentry/react';
 import ErrorFallback from './ErrorFallback';
 
 interface Props {
-    children: React.ReactNode;
+  children: React.ReactNode;
 }
 
 export default function AppErrorBoundary({ children }: Props) {
-    return (
-        <ErrorBoundary
-            FallbackComponent={ErrorFallback}
-            // TODO: 에러 로깅 도입 시 사용 (ex. Sentry)
-            // onError={(error, errorInfo) => {
-            //   Sentry.captureException(error, { extra: errorInfo });
-            // }}
+  return (
+    <ErrorBoundary
+      FallbackComponent={ErrorFallback}
+      onError={(error, errorInfo) => {
+        Sentry.withScope((scope) => {
+          /* Tags: 필터링 및 그룹화에 사용  */
+          scope.setTag('error_boundary', 'true');
 
-            // TODO: 재시도 UX 정책 확정 후 구현
-            // onReset={() => {
-            //   // 상태 초기화 or refetch
-            // }}
+          /* Extra: 에러와 관련된 추가 정보 (React의 componentStack 포함) */
+          scope.setExtras(errorInfo as unknown as Record<string, unknown>);
 
-            // TODO: 페이지 전환 등 자동 리셋이 필요해질 경우 사용
-            // resetKeys={[location.pathname]}
-        >
-            {children}
-        </ErrorBoundary>
-    );
+          Sentry.captureException(error);
+        });
+      }}
+      // 만약 react-router 등을 사용 중이라면
+      // 아래와 같이 location 변경 시 에러 상태를 초기화하도록 할 수 있습니다.
+      // resetKeys={[window.location.pathname]}
+    >
+      {children}
+    </ErrorBoundary>
+  );
 }

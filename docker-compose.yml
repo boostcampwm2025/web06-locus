@@ -26,7 +26,7 @@ services:
   locus-elasticsearch:
     build:
       context: .
-      dockerfile: ./apps/api/Dockerfile-es 
+      dockerfile: ./apps/api/Dockerfile-es
     container_name: locus-elasticsearch
     ports:
       - '9200:9200'
