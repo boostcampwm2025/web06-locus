@@ -1,4 +1,4 @@
-FROM docker.elastic.co/elasticsearch/elasticsearch:9.2.3
+FROM docker.elastic.co/elasticsearch/elasticsearch-wolfi:9.2.4
 
 # Nori 플러그인 (한글 분석)
-RUN bin/elasticsearch-plugin install analysis-nori || true
+RUN bin/elasticsearch-plugin install --batch analysis-nori || true
