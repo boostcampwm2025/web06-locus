@@ -282,7 +282,8 @@ export class RecordsService {
         content: dto.content ?? null,
         locationName,
         locationAddress: address,
-        tags: dto.tags ?? [],
+        // TODO: 태그 기능 구현 후 활성화
+        // tags: dto.tags ?? [],
         isFavorite: false,
       },
     });
