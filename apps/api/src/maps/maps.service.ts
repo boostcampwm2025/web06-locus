@@ -92,8 +92,6 @@ export class MapsService {
 
     const raw: unknown = await response.json();
 
-    console.log(raw);
-
     // TODO: ZOD runtime validation 추가
     return raw;
   }
