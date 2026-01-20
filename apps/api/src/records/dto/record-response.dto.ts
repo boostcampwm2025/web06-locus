@@ -1,9 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { RecordModel } from '../records.types';
-import {
-  ProcessedImage,
-  UploadedImage,
-} from '../services/object-storage.types';
+import { RecordWithImages } from '../records.types';
 
 export class ImageSizeDto {
   @ApiProperty({ description: 'URL', example: 'https://...' })
@@ -98,42 +94,7 @@ export class RecordResponseDto {
   })
   updatedAt: string;
 
-  static from(
-    record: RecordModel,
-    processedImages?: ProcessedImage[],
-    uploadedImages?: UploadedImage[],
-  ): RecordResponseDto {
-    const images: ImageResponseDto[] = [];
-
-    if (processedImages && uploadedImages) {
-      for (let i = 0; i < processedImages.length; i++) {
-        const processed = processedImages[i];
-        const uploaded = uploadedImages[i];
-        images.push({
-          publicId: processed.imageId,
-          thumbnail: {
-            url: uploaded.urls.thumbnail,
-            width: processed.variants.thumbnail.width,
-            height: processed.variants.thumbnail.height,
-            size: processed.variants.thumbnail.size,
-          },
-          medium: {
-            url: uploaded.urls.medium,
-            width: processed.variants.medium.width,
-            height: processed.variants.medium.height,
-            size: processed.variants.medium.size,
-          },
-          original: {
-            url: uploaded.urls.original,
-            width: processed.variants.original.width,
-            height: processed.variants.original.height,
-            size: processed.variants.original.size,
-          },
-          order: i,
-        });
-      }
-    }
-
+  static from(record: RecordWithImages): RecordResponseDto {
     return {
       publicId: record.publicId,
       title: record.title,
@@ -145,7 +106,28 @@ export class RecordResponseDto {
         address: record.locationAddress,
       },
       tags: record.tags,
-      images,
+      images: record.images.map((img) => ({
+        publicId: img.publicId,
+        thumbnail: {
+          url: img.thumbnailUrl,
+          width: img.thumbnailWidth,
+          height: img.thumbnailHeight,
+          size: img.thumbnailSize,
+        },
+        medium: {
+          url: img.mediumUrl,
+          width: img.mediumWidth,
+          height: img.mediumHeight,
+          size: img.mediumSize,
+        },
+        original: {
+          url: img.originalUrl,
+          width: img.originalWidth,
+          height: img.originalHeight,
+          size: img.originalSize,
+        },
+        order: img.order,
+      })),
       isFavorite: record.isFavorite,
       createdAt: record.createdAt.toISOString(),
       updatedAt: record.updatedAt.toISOString(),
