@@ -14,6 +14,7 @@ interface PrismaMock {
     create: jest.Mock;
     findFirst: jest.Mock;
     delete: jest.Mock;
+    findMany: jest.Mock;
   };
 }
 
@@ -27,6 +28,7 @@ describe('TagsService - createOne', () => {
         create: jest.fn(),
         findFirst: jest.fn(),
         delete: jest.fn(),
+        findMany: jest.fn(),
       },
     };
 
@@ -167,6 +169,51 @@ describe('TagsService - createOne', () => {
       });
 
       expect(result).toEqual({ publicId: 'tag_pub' });
+    });
+  });
+
+  describe('TagsService - findAll', () => {
+    test('userId로 태그 목록을 조회하면 publicId/isSystem/name만 선택해서 반환한다', async () => {
+      const userId = 1n;
+
+      const rows = [
+        { publicId: 'tag_a', isSystem: false, name: '여행' },
+        { publicId: 'tag_b', isSystem: true, name: '시스템' },
+      ];
+
+      prismaMock.tag.findMany.mockResolvedValueOnce(rows);
+
+      const result = await service.findAll(userId);
+
+      expect(prismaMock.tag.findMany).toHaveBeenCalledTimes(1);
+      expect(prismaMock.tag.findMany).toHaveBeenCalledWith({
+        where: { userId },
+        select: {
+          publicId: true,
+          isSystem: true,
+          name: true,
+        },
+      });
+
+      expect(result).toEqual(rows);
+    });
+
+    test('태그가 없으면 빈 배열을 반환한다', async () => {
+      const userId = 1n;
+
+      prismaMock.tag.findMany.mockResolvedValueOnce([]);
+
+      const result = await service.findAll(userId);
+
+      expect(prismaMock.tag.findMany).toHaveBeenCalledWith({
+        where: { userId },
+        select: {
+          publicId: true,
+          isSystem: true,
+          name: true,
+        },
+      });
+      expect(result).toEqual([]);
     });
   });
 });
