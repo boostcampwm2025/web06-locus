@@ -1,4 +1,5 @@
 import type { PinMarkerData } from '@/shared/types/marker';
+import type { Coordinates } from '@/features/record/types';
 
 /**
  * PinOverlay 컴포넌트 Props
@@ -20,4 +21,40 @@ export interface PinOverlayViewLike {
   setPin(pin: PinMarkerData): void;
   setIsSelected(v: boolean): void;
   setOnClick(fn?: (id: string | number) => void): void;
+}
+
+/**
+ * waitForNaverMap 함수의 옵션
+ */
+export interface WaitForNaverMapOptions {
+  intervalMs?: number;
+  timeoutMs?: number;
+}
+
+/**
+ * 드래그 가능한 PinOverlay 컴포넌트 Props
+ */
+export interface DraggablePinOverlayProps extends PinOverlayProps {
+  onDragEnd?: (position: Coordinates) => void;
+}
+
+/**
+ * 네이버 지도 타입이 환경/버전에 따라 Coord/LatLng로 섞여 들어오는 걸 안전하게 다루기 위한 유니온
+ */
+export type NaverCoordLike = naver.maps.Coord | naver.maps.LatLng;
+
+/**
+ * Overlay 인스턴스가 내부적으로 들고 있는 DOM/position에 접근하기 위한 최소 형태
+ */
+export interface OverlayInternal {
+  container?: HTMLDivElement;
+  position?: NaverCoordLike;
+}
+
+/**
+ * 드래그 상태
+ */
+export interface DragState {
+  dragging: boolean;
+  grabOffset: { x: number; y: number } | null; // (마우스/터치 포인터 - 핀 중심) 오프셋
 }

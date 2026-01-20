@@ -40,7 +40,7 @@ export class ConnectionsController {
   @Delete(':publicId')
   @UseGuards(JwtAuthGuard)
   async deleteConnection(
-    @CurrentUser('sub') userId: number,
+    @CurrentUser('sub') userId: bigint,
     @Param('publicId') publicId: string,
   ): Promise<DeleteConnectionResponseDto> {
     const deletedConnectionDto = await this.connectionsService.delete(

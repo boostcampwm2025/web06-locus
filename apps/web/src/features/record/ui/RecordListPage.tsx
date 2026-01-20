@@ -1,10 +1,14 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import AppHeader from '@/shared/ui/header/AppHeader';
 import CategoryChips from '@/shared/ui/category/CategoryChips';
 import { RecordCard } from '@/shared/ui/record';
 import BottomTabBar from '@/shared/ui/navigation/BottomTabBar';
 import type { Location } from '@/features/record/types';
 import type { Category } from '@/shared/types/category';
+import { ROUTES } from '@/router/routes';
+import { useBottomTabNavigation } from '@/shared/hooks/useBottomTabNavigation';
+import { convertMockRecordsToRecordListItems } from '../domain/record.mock';
 
 export interface RecordListItem {
   id: string;
@@ -36,59 +40,8 @@ const defaultCategories: Category[] = [
   { id: 'shopping', label: '쇼핑' },
 ];
 
-const defaultRecords: RecordListItem[] = [
-  {
-    id: '1',
-    title: '경복궁 나들이',
-    location: { name: '경복궁', address: '서울특별시 종로구 사직로 161' },
-    date: new Date('2025-12-15'),
-    tags: ['역사', '명소'],
-    connectionCount: 3,
-    imageUrl: 'https://placehold.co/80',
-  },
-  {
-    id: '2',
-    title: '한옥의 고즈넉한 분위기와 골목길이 인상적인',
-    location: {
-      name: '북촌 한옥마을',
-      address: '서울특별시 종로구 계동길',
-    },
-    date: new Date('2025-12-14'),
-    tags: ['문화', '명소'],
-    connectionCount: 2,
-    imageUrl: 'https://placehold.co/80',
-  },
-  {
-    id: '3',
-    title: '서울숲 산책',
-    location: {
-      name: '서울숲',
-      address: '서울특별시 성동구 뚝섬로 273',
-    },
-    date: new Date('2025-12-13'),
-    tags: ['자연', '공원'],
-    connectionCount: 5,
-  },
-  {
-    id: '4',
-    title: '이태원 맛집 탐방',
-    location: { name: '이태원', address: '서울특별시 용산구 이태원로' },
-    date: new Date('2025-12-12'),
-    tags: ['음식', '문화'],
-    connectionCount: 1,
-  },
-  {
-    id: '5',
-    title: '명동 쇼핑',
-    location: { name: '명동', address: '서울특별시 중구 명동길' },
-    date: new Date('2025-12-10'),
-    tags: ['쇼핑', '명소'],
-    connectionCount: 4,
-  },
-];
-
 export default function RecordListPage({
-  records = defaultRecords,
+  records: propRecords,
   categories = defaultCategories,
   onRecordClick,
   onFilterClick,
@@ -97,8 +50,18 @@ export default function RecordListPage({
   onTabChange,
   className = '',
 }: RecordListPageProps) {
+  const navigate = useNavigate();
   const [isSearchActive, setIsSearchActive] = useState(false);
   const [searchValue, setSearchValue] = useState('');
+
+  // mock 데이터 사용 (기록 조회 API가 없으므로)
+  const records = useMemo<RecordListItem[]>(() => {
+    // propRecords가 제공된 경우 우선 사용 (테스트/스토리북용)
+    if (propRecords) return propRecords;
+
+    const result = convertMockRecordsToRecordListItems();
+    return result as RecordListItem[];
+  }, [propRecords]);
 
   const handleSearchClick = () => {
     setIsSearchActive(true);
@@ -111,12 +74,30 @@ export default function RecordListPage({
     onSearchCancel?.();
   };
 
+  const handleRecordClick = (recordId: string) => {
+    onRecordClick?.(recordId);
+    void navigate(ROUTES.RECORD_DETAIL.replace(':id', recordId));
+  };
+
+  const { handleTabChange: handleTabChangeNavigation } =
+    useBottomTabNavigation();
+
+  const handleTabChange = (tabId: 'home' | 'record') => {
+    onTabChange?.(tabId);
+    handleTabChangeNavigation(tabId);
+  };
+
+  const handleTitleClick = () => {
+    void navigate(ROUTES.HOME);
+  };
+
   return (
     <div
       className={`flex flex-col min-h-screen h-full bg-white overflow-hidden ${className}`}
     >
       {/* 헤더 */}
       <AppHeader
+        onTitleClick={handleTitleClick}
         onFilterClick={onFilterClick}
         onSearchClick={handleSearchClick}
         isSearchActive={isSearchActive}
@@ -127,7 +108,7 @@ export default function RecordListPage({
       />
 
       {/* 필터 바 */}
-      {!isSearchActive && <CategoryChips categories={categories} />}
+      <CategoryChips categories={categories} />
 
       {/* 리스트 */}
       <div className="flex-1 overflow-y-auto flex flex-col">
@@ -146,7 +127,7 @@ export default function RecordListPage({
                 tags={record.tags}
                 connectionCount={record.connectionCount}
                 imageUrl={record.imageUrl}
-                onClick={() => onRecordClick?.(record.id)}
+                onClick={() => handleRecordClick(record.id)}
               />
             ))}
           </div>
@@ -154,7 +135,7 @@ export default function RecordListPage({
       </div>
 
       {/* 바텀 탭 */}
-      <BottomTabBar activeTab="record" onTabChange={onTabChange} />
+      <BottomTabBar activeTab="record" onTabChange={handleTabChange} />
     </div>
   );
 }

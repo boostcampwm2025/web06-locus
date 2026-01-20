@@ -10,6 +10,10 @@ import {
   RecordCreationFailedException,
   RecordNotFoundException,
 } from './exceptions/record.exceptions';
+import { GRAPH_RAWS_SQL } from './sql/graph.raw.sql';
+import { GraphRowType } from './type/graph.type';
+import { GraphEdgeDto, GraphNodeDto } from './dto/graph.dto';
+import { GraphResponseDto } from './dto/graph.response.dto';
 import { createRecordSyncPayload } from './type/record-sync.types';
 import { Prisma, Record } from '@prisma/client';
 import { OutboxService } from '@/outbox/outbox.service';
@@ -162,6 +166,89 @@ export class RecordsService {
         },
       });
     });
+  }
+
+  async findOneByPublicId(publicId: string) {
+    const record = await this.prisma.record.findUnique({
+      where: { publicId },
+      select: {
+        id: true,
+        userId: true,
+        publicId: true,
+      },
+    });
+
+    if (!record) {
+      throw new RecordNotFoundException(publicId);
+    }
+
+    return record;
+  }
+
+  async getGraph(
+    startRecordPublicId: string,
+    userId: bigint,
+  ): Promise<GraphResponseDto> {
+    const startRecordId = await this.getRecordIdByPublicId(startRecordPublicId);
+
+    // 그래프 탐색 쿼리 실행
+    const rows = await this.prisma.$queryRaw<GraphRowType[]>(
+      GRAPH_RAWS_SQL(startRecordId, BigInt(userId)),
+    );
+
+    const { nodes, edges } = this.buildGraphFromRows(rows);
+
+    return {
+      nodes,
+      edges,
+      meta: {
+        start: startRecordPublicId,
+        nodeCount: nodes.length,
+        edgeCount: edges.length,
+        truncated: false,
+      },
+    };
+  }
+
+  async getRecordIdByPublicId(publicId: string): Promise<bigint> {
+    const recordId = await this.prisma.record.findUnique({
+      where: { publicId },
+      select: {
+        id: true,
+      },
+    });
+
+    if (!recordId) {
+      throw new RecordNotFoundException(publicId);
+    }
+
+    return recordId.id;
+  }
+
+  private buildGraphFromRows(rows: GraphRowType[]): {
+    nodes: GraphNodeDto[];
+    edges: GraphEdgeDto[];
+  } {
+    const nodes: GraphNodeDto[] = [];
+
+    const edges: GraphEdgeDto[] = [];
+
+    for (const row of rows) {
+      if (row.row_type === 'node') {
+        nodes.push({
+          publicId: row.node_public_id,
+          location: { latitude: row.latitude, longitude: row.longitude },
+        });
+      } else {
+        // edge
+        edges.push({
+          fromRecordPublicId: row.from_public_id,
+          toRecordPublicId: row.to_public_id,
+        });
+      }
+    }
+
+    return { nodes, edges };
   }
 
   // TODO: 태그 관련 중간테이블 및 서비스 추가

@@ -6,8 +6,9 @@ import {
   HttpCode,
   HttpStatus,
   Patch,
-  Param,
   Delete,
+  Get,
+  Param,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -22,6 +23,7 @@ import { RecordResponseDto } from './dto/record-response.dto';
 import { JwtAuthGuard } from '@/jwt/guard/jwt.auth.guard';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
 import { UpdateRecordDto } from './dto/update-record.dto';
+import { GraphResponseDto } from './dto/graph.response.dto';
 
 @ApiTags('records')
 @Controller('records')
@@ -91,5 +93,15 @@ export class RecordsController {
     @Param('publicId') publicId: string,
   ): Promise<void> {
     await this.recordsService.deleteRecord(userId, publicId);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get(':publicId/graph')
+  async getGraph(
+    @CurrentUser('sub') userId: bigint,
+    @Param('publicId') publicId: string,
+  ): Promise<GraphResponseDto> {
+    const graphData = await this.recordsService.getGraph(publicId, userId);
+    return graphData;
   }
 }

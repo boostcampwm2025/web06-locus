@@ -9,8 +9,8 @@ import { z } from 'zod';
 export const LocationSchema = z.object({
   latitude: z.number().min(-90).max(90),
   longitude: z.number().min(-180).max(180),
-  address: z.string(),
-  name: z.string().optional(),
+  address: z.string().nullable(),
+  name: z.string().nullable().optional(),
 });
 
 /**
@@ -63,12 +63,13 @@ export const OffsetPaginationSchema = z.object({
 
 /**
  * API 응답 기본 구조 (성공)
+ * message는 optional로 설정 (실제 API 응답에 따라 다를 수 있음)
  *
  * @usedIn 모든 성공 응답 스키마의 기본 구조
  */
 export const SuccessResponseSchema = z.object({
   status: z.literal('success'),
-  message: z.string(),
+  message: z.string().optional(),
 });
 
 /**

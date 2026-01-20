@@ -4,7 +4,13 @@
 export const ROUTES = {
   HOME: '/home',
   RECORD: '/record',
+  RECORD_LIST: '/records',
+  RECORD_DETAIL: '/records/:id',
+  CONNECTION: '/connection',
   AUTH_CALLBACK: '/auth/callback',
+  EMAIL_LOGIN: '/auth/email',
+  EMAIL_SIGNUP: '/auth/signup',
+  EMAIL_VERIFY: '/auth/verify',
   LOGIN: '/',
 } as const;
 

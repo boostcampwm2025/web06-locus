@@ -1,6 +1,7 @@
 import { NestFactory } from '@nestjs/core';
 import { MicroserviceOptions, Transport } from '@nestjs/microservices';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
+import cookieParser from 'cookie-parser';
 import { AppModule } from './app.module';
 import { RABBITMQ_CONSTANTS } from './common/constants/rabbitmq.constants';
 import { ValidationPipe } from '@nestjs/common';
@@ -9,6 +10,18 @@ import { ValidationError } from 'class-validator';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+
+  app.setGlobalPrefix('api');
+
+  const allowedOrigins = process.env.CORS_URL
+    ? process.env.CORS_URL.split(',').map((origin) => origin.trim())
+    : ['http://localhost:5173'];
+
+  app.enableCors({
+    origin: allowedOrigins,
+    credentials: true,
+  });
+
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true, // DTO에 정의되지 않은 속성 제거
@@ -43,6 +56,7 @@ async function bootstrap() {
   await app.startAllMicroservices();
 
   app.enableShutdownHooks();
+  app.use(cookieParser());
 
   await app.listen(process.env.PORT ?? 3000);
 }

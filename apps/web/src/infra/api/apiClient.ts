@@ -11,7 +11,9 @@ export const apiClient = async <T = unknown>(
 ): Promise<T> => {
   const { requireAuth = true, headers = {}, ...restOptions } = options;
 
-  const requestHeaders = prepareHeaders(headers, requireAuth);
+  // FormData인 경우 Content-Type을 자동으로 설정하지 않음 (브라우저가 boundary 포함하여 설정)
+  const isFormData = restOptions.body instanceof FormData;
+  const requestHeaders = prepareHeaders(headers, requireAuth, isFormData);
   const url = buildApiUrl(endpoint);
 
   const response = await fetch(url, {
@@ -57,16 +59,22 @@ function normalizeHeaders(headers: HeadersInit): Record<string, string> {
  * 요청 헤더 준비 (기본 헤더 + 사용자 헤더 + 인증 헤더)
  * @param headers - HeadersInit
  * @param requireAuth - 인증 필요 여부
+ * @param isFormData - FormData 여부 (FormData인 경우 Content-Type 자동 설정 안 함)
  * @returns Record<string, string>
  */
 function prepareHeaders(
   headers: HeadersInit,
   requireAuth: boolean,
+  isFormData = false,
 ): Record<string, string> {
   const requestHeaders: Record<string, string> = {
-    'Content-Type': 'application/json',
     ...normalizeHeaders(headers),
   };
+
+  // FormData가 아닌 경우에만 Content-Type 설정
+  if (!isFormData && !requestHeaders['Content-Type']) {
+    requestHeaders['Content-Type'] = 'application/json';
+  }
 
   if (requireAuth) {
     const accessToken = getAccessToken();

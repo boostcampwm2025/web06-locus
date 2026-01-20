@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { NotFoundException, UnauthorizedException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { Provider } from '@prisma/client';
 import { AuthService } from '../../src/auth/auth.service';
 import { UsersService } from '../../src/users/users.service';
@@ -15,8 +15,11 @@ import {
   EmailVerificationFailedException,
   EmailVerificationTooManyTriesException,
   InvalidCredentialsException,
+  InvalidRefreshTokenException,
   SocialAlreadyLoginException,
 } from '@/auth/exception';
+import { UserNotFoundException } from '@/users/exception';
+import { REDIS_KEY_PREFIX } from '@/redis/redis.constants';
 
 describe('AuthService 테스트', () => {
   let authService: AuthService;
@@ -53,6 +56,7 @@ describe('AuthService 테스트', () => {
   const mockJwtProvider = {
     generateAccessToken: jest.fn(),
     generateRefreshToken: jest.fn(),
+    verifyAccessToken: jest.fn(),
     verifyRefreshToken: jest.fn(),
   };
 
@@ -70,6 +74,15 @@ describe('AuthService 테스트', () => {
     keys: jest.fn(),
     exists: jest.fn(),
     ttl: jest.fn(),
+  };
+
+  const mockConfigService = {
+    get: jest.fn((key: string, defaultValue?: any) => {
+      const config: Record<string, any> = {
+        REFRESH_TOKEN_TTL: 604800, // 7일 (초 단위)
+      };
+      return config[key] ?? defaultValue;
+    }),
   };
 
   const mockMailService = {
@@ -95,6 +108,10 @@ describe('AuthService 테스트', () => {
         {
           provide: MailService,
           useValue: mockMailService,
+        },
+        {
+          provide: ConfigService,
+          useValue: mockConfigService,
         },
       ],
     }).compile();
@@ -388,6 +405,25 @@ describe('AuthService 테스트', () => {
       expect(jwtProvider.generateAccessToken).toHaveBeenCalledTimes(1);
     });
 
+    test('생성된 Refresh Token을 Redis에 저장해야 한다', async () => {
+      // given
+      const accessToken = 'access-token';
+      const refreshToken = 'refresh-token';
+      mockJwtProvider.generateAccessToken.mockResolvedValue(accessToken);
+      mockJwtProvider.generateRefreshToken.mockResolvedValue(refreshToken);
+      mockRedisService.set.mockResolvedValue('OK');
+
+      // when
+      await authService.generateTokens(mockUser);
+
+      // then
+      expect(redisService.set).toHaveBeenCalledWith(
+        `${REDIS_KEY_PREFIX.REFRESH_TOKEN}${mockUser.id}`,
+        refreshToken,
+        expect.any(Number),
+      );
+    });
+
     test('사용자 ID로 리프레시 토큰을 생성해야 한다', async () => {
       // given
       mockJwtProvider.generateAccessToken.mockResolvedValue('access-token');
@@ -439,141 +475,226 @@ describe('AuthService 테스트', () => {
         'Refresh token generation failed',
       );
     });
+
+    test('Redis 저장 실패 시 에러를 던져야 한다', async () => {
+      // given
+      mockJwtProvider.generateAccessToken.mockResolvedValue('access-token');
+      mockJwtProvider.generateRefreshToken.mockResolvedValue('refresh-token');
+      mockRedisService.set.mockRejectedValue(
+        new Error('Redis connection failed'),
+      );
+
+      // when & then
+      await expect(authService.generateTokens(mockUser)).rejects.toThrow(
+        'Redis connection failed',
+      );
+    });
   });
 
-  describe('reissueAccessToken', () => {
+  describe('reissueTokens', () => {
     const validRefreshToken = 'valid-refresh-token';
     const userId = 1n;
 
-    test('유효한 리프레시 토큰으로 새 액세스 토큰을 발급해야 한다', async () => {
+    test('유효한 리프레시 토큰으로 새 토큰을 발급해야 한다', async () => {
       // given
       const newAccessToken = 'new-access-token';
+      const newRefreshToken = 'new-refresh-token';
       mockJwtProvider.verifyRefreshToken.mockResolvedValue(userId);
+      mockRedisService.get.mockResolvedValue(validRefreshToken);
       mockUsersService.findById.mockResolvedValue(mockUser);
       mockJwtProvider.generateAccessToken.mockResolvedValue(newAccessToken);
+      mockJwtProvider.generateRefreshToken.mockResolvedValue(newRefreshToken);
+      mockRedisService.set.mockResolvedValue('OK');
 
       // when
-      const result = await authService.reissueAccessToken(validRefreshToken);
+      const result = await authService.reissueTokens(validRefreshToken);
 
       // then
-      expect(result).toEqual({ accessToken: newAccessToken });
+      expect(result).toEqual({
+        accessToken: newAccessToken,
+        refreshToken: newRefreshToken,
+      });
       expect(jwtProvider.verifyRefreshToken).toHaveBeenCalledWith(
         validRefreshToken,
       );
-      expect(usersService.findById).toHaveBeenCalledWith(userId);
     });
 
-    test('리프레시 토큰 검증 후 올바른 사용자 ID로 조회해야 한다', async () => {
+    test('Redis에 저장된 토큰과 요청 토큰을 비교해야 한다', async () => {
       // given
       mockJwtProvider.verifyRefreshToken.mockResolvedValue(userId);
+      mockRedisService.get.mockResolvedValue(validRefreshToken);
       mockUsersService.findById.mockResolvedValue(mockUser);
-      mockJwtProvider.generateAccessToken.mockResolvedValue('token');
+      mockJwtProvider.generateAccessToken.mockResolvedValue('new-access-token');
+      mockJwtProvider.generateRefreshToken.mockResolvedValue(
+        'new-refresh-token',
+      );
+      mockRedisService.set.mockResolvedValue('OK');
 
       // when
-      await authService.reissueAccessToken(validRefreshToken);
+      await authService.reissueTokens(validRefreshToken);
 
       // then
-      expect(jwtProvider.verifyRefreshToken).toHaveBeenCalledWith(
-        validRefreshToken,
+      expect(redisService.get).toHaveBeenCalledWith(
+        `${REDIS_KEY_PREFIX.REFRESH_TOKEN}${userId}`,
       );
-      expect(usersService.findById).toHaveBeenCalledWith(userId);
-      expect(usersService.findById).toHaveBeenCalledTimes(1);
     });
 
-    test('조회한 사용자 정보로 새 액세스 토큰을 생성해야 한다', async () => {
+    test('Redis에 토큰이 없으면 InvalidRefreshTokenException을 던져야 한다', async () => {
       // given
       mockJwtProvider.verifyRefreshToken.mockResolvedValue(userId);
+      mockRedisService.get.mockResolvedValue(null);
+
+      // when & then
+      await expect(
+        authService.reissueTokens(validRefreshToken),
+      ).rejects.toThrow(InvalidRefreshTokenException);
+      await expect(
+        authService.reissueTokens(validRefreshToken),
+      ).rejects.toThrow('유효하지 않은 Refresh Token입니다');
+    });
+
+    test('Redis 토큰과 요청 토큰이 다르면 InvalidRefreshTokenException을 던져야 한다', async () => {
+      // given
+      mockJwtProvider.verifyRefreshToken.mockResolvedValue(userId);
+      mockRedisService.get.mockResolvedValue('different-token');
+
+      // when & then
+      await expect(
+        authService.reissueTokens(validRefreshToken),
+      ).rejects.toThrow(InvalidRefreshTokenException);
+      await expect(
+        authService.reissueTokens(validRefreshToken),
+      ).rejects.toThrow('유효하지 않은 Refresh Token입니다');
+    });
+
+    test('새로운 Refresh Token을 Redis에 저장해야 한다', async () => {
+      // given
+      const newRefreshToken = 'new-refresh-token';
+      mockJwtProvider.verifyRefreshToken.mockResolvedValue(userId);
+      mockRedisService.get.mockResolvedValue(validRefreshToken);
       mockUsersService.findById.mockResolvedValue(mockUser);
-      mockJwtProvider.generateAccessToken.mockResolvedValue('new-token');
+      mockJwtProvider.generateAccessToken.mockResolvedValue('new-access-token');
+      mockJwtProvider.generateRefreshToken.mockResolvedValue(newRefreshToken);
+      mockRedisService.set.mockResolvedValue('OK');
 
       // when
-      await authService.reissueAccessToken(validRefreshToken);
+      await authService.reissueTokens(validRefreshToken);
 
       // then
-      expect(jwtProvider.generateAccessToken).toHaveBeenCalledWith(
-        mockUser.id,
-        mockUser.email,
-        mockUser.provider,
+      expect(redisService.set).toHaveBeenCalledWith(
+        `${REDIS_KEY_PREFIX.REFRESH_TOKEN}${mockUser.id}`,
+        newRefreshToken,
+        expect.any(Number),
       );
     });
 
-    test('만료된 리프레시 토큰이면 UnauthorizedException을 던져야 한다', async () => {
-      // given
-      mockJwtProvider.verifyRefreshToken.mockRejectedValue(
-        new UnauthorizedException('토큰이 만료되었습니다'),
-      );
-
-      // when & then
-      await expect(
-        authService.reissueAccessToken(validRefreshToken),
-      ).rejects.toThrow(UnauthorizedException);
-      await expect(
-        authService.reissueAccessToken(validRefreshToken),
-      ).rejects.toThrow('토큰이 만료되었습니다');
-    });
-
-    test('잘못된 형식의 리프레시 토큰이면 UnauthorizedException을 던져야 한다', async () => {
-      // given
-      mockJwtProvider.verifyRefreshToken.mockRejectedValue(
-        new UnauthorizedException('유효하지 않은 토큰입니다'),
-      );
-
-      // when & then
-      await expect(
-        authService.reissueAccessToken('invalid-token'),
-      ).rejects.toThrow(UnauthorizedException);
-    });
-
-    test('변조된 리프레시 토큰이면 UnauthorizedException을 던져야 한다', async () => {
-      // given
-      mockJwtProvider.verifyRefreshToken.mockRejectedValue(
-        new UnauthorizedException('토큰 서명이 유효하지 않습니다'),
-      );
-
-      // when & then
-      await expect(
-        authService.reissueAccessToken('tampered-token'),
-      ).rejects.toThrow(UnauthorizedException);
-    });
-
-    test('빈 문자열 토큰이면 UnauthorizedException을 던져야 한다', async () => {
-      // given
-      mockJwtProvider.verifyRefreshToken.mockRejectedValue(
-        new UnauthorizedException('토큰이 제공되지 않았습니다'),
-      );
-
-      // when & then
-      await expect(authService.reissueAccessToken('')).rejects.toThrow(
-        UnauthorizedException,
-      );
-    });
-
-    test('null 토큰이면 UnauthorizedException을 던져야 한다', async () => {
-      // given
-      mockJwtProvider.verifyRefreshToken.mockRejectedValue(
-        new UnauthorizedException('토큰이 제공되지 않았습니다'),
-      );
-
-      // when & then
-      await expect(authService.reissueAccessToken(null as any)).rejects.toThrow(
-        UnauthorizedException,
-      );
-    });
-
-    test('사용자를 찾을 수 없으면 NotFoundException을 던져야 한다', async () => {
+    test('사용자를 찾을 수 없으면 UserNotFoundException을 던져야 한다', async () => {
       // given
       mockJwtProvider.verifyRefreshToken.mockResolvedValue(userId);
-      mockUsersService.findById.mockRejectedValue(
-        new NotFoundException('사용자를 찾을 수 없습니다.'),
-      );
+      mockRedisService.get.mockResolvedValue(validRefreshToken);
+      mockUsersService.findById.mockRejectedValue(new UserNotFoundException());
 
       // when & then
       await expect(
-        authService.reissueAccessToken(validRefreshToken),
-      ).rejects.toThrow(NotFoundException);
+        authService.reissueTokens(validRefreshToken),
+      ).rejects.toThrow(UserNotFoundException);
       await expect(
-        authService.reissueAccessToken(validRefreshToken),
+        authService.reissueTokens(validRefreshToken),
       ).rejects.toThrow('사용자를 찾을 수 없습니다.');
+    });
+
+    test('만료된 리프레시 토큰이면 InvalidRefreshTokenException을 던져야 한다', async () => {
+      // given
+      mockJwtProvider.verifyRefreshToken.mockRejectedValue(
+        new InvalidRefreshTokenException(),
+      );
+
+      // when & then
+      await expect(
+        authService.reissueTokens(validRefreshToken),
+      ).rejects.toThrow(InvalidRefreshTokenException);
+    });
+  });
+
+  describe('logout', () => {
+    const userId = 1n;
+    const accessToken = 'valid-access-token';
+    const decodedToken = {
+      sub: '1',
+      email: 'test@example.com',
+      provider: 'LOCAL',
+      iat: Math.floor(Date.now() / 1000),
+      exp: Math.floor(Date.now() / 1000) + 900, // 15분 후 만료
+    };
+
+    test('Redis에서 Refresh Token을 삭제해야 한다', async () => {
+      // given
+      mockJwtProvider.verifyAccessToken.mockReturnValue(decodedToken);
+      mockRedisService.del.mockResolvedValue(1);
+      mockRedisService.set.mockResolvedValue('OK');
+
+      // when
+      await authService.logout(userId, accessToken);
+
+      // then
+      expect(redisService.del).toHaveBeenCalledWith(
+        `${REDIS_KEY_PREFIX.REFRESH_TOKEN}${userId}`,
+      );
+    });
+
+    test('Access Token을 블랙리스트에 추가해야 한다', async () => {
+      // given
+      mockJwtProvider.verifyAccessToken.mockReturnValue(decodedToken);
+      mockRedisService.del.mockResolvedValue(1);
+      mockRedisService.set.mockResolvedValue('OK');
+
+      // when
+      await authService.logout(userId, accessToken);
+
+      // then
+      expect(jwtProvider.verifyAccessToken).toHaveBeenCalledWith(accessToken);
+      expect(redisService.set).toHaveBeenCalledWith(
+        `${REDIS_KEY_PREFIX.BLACKLIST}${accessToken}`,
+        'true',
+        expect.any(Number),
+      );
+    });
+
+    test('토큰 만료 시간만큼만 블랙리스트에 저장해야 한다', async () => {
+      // given
+      mockJwtProvider.verifyAccessToken.mockReturnValue(decodedToken);
+      mockRedisService.del.mockResolvedValue(1);
+      mockRedisService.set.mockResolvedValue('OK');
+
+      // when
+      await authService.logout(userId, accessToken);
+
+      // then
+      const ttl = mockRedisService.set.mock.calls.find((call) =>
+        call[0].startsWith(REDIS_KEY_PREFIX.BLACKLIST),
+      )?.[2];
+      expect(ttl).toBeGreaterThan(0);
+      expect(ttl).toBeLessThanOrEqual(900); // 15분 이하
+    });
+
+    test('이미 만료된 토큰은 블랙리스트에 추가하지 않아야 한다', async () => {
+      // given
+      const expiredToken = {
+        ...decodedToken,
+        exp: Math.floor(Date.now() / 1000) - 100, // 이미 만료됨
+      };
+      mockJwtProvider.verifyAccessToken.mockReturnValue(expiredToken);
+      mockRedisService.del.mockResolvedValue(1);
+
+      // when
+      await authService.logout(userId, accessToken);
+
+      // then
+      expect(redisService.del).toHaveBeenCalled(); // Refresh Token 삭제는 호출됨
+      const blacklistCalls = mockRedisService.set.mock.calls.filter((call) =>
+        call[0].startsWith(REDIS_KEY_PREFIX.BLACKLIST),
+      );
+      expect(blacklistCalls).toHaveLength(0); // 블랙리스트에는 추가 안 됨
     });
   });
 });

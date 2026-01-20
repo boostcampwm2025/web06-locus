@@ -1,5 +1,6 @@
 export interface AppHeaderProps {
   onLogoClick?: () => void;
+  onTitleClick?: () => void;
   onSearchClick?: () => void;
   onFilterClick?: () => void;
   // 검색 모드 관련 props
@@ -13,6 +14,7 @@ export interface AppHeaderProps {
 
 export interface AppHeaderTitleProps {
   isOnline?: boolean;
+  onClick?: () => void;
   className?: string;
 }
 
@@ -50,7 +52,16 @@ export interface AppHeaderSearchModeProps {
  */
 export interface AppHeaderNormalModeProps {
   onLogoClick?: () => void;
+  onTitleClick?: () => void;
   onSearchClick?: () => void;
   onFilterClick?: () => void;
   className?: string;
+}
+
+/**
+ * 인증 페이지 헤더 컴포넌트 Props
+ */
+export interface AuthPageHeaderProps {
+  title?: string;
+  subtitle?: React.ReactNode;
 }
