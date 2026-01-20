@@ -14,6 +14,7 @@ import MainMapPage from '@/features/home/ui/MainMapPage';
 import RecordListPage from '@/features/record/ui/RecordListPage';
 import RecordDetailPage from '@/features/record/ui/RecordDetailPage';
 import RecordConnectionPage from '@/features/connection/ui/RecordConnectionPage';
+import { OnboardingPage } from '@/features/onboarding/pages';
 import ProtectedRoute from './ProtectedRoute';
 import PublicRoute from './PublicRoute';
 import RecordWritePageRoute from './RecordWritePageRoute';
@@ -127,6 +128,14 @@ export function AppRoutes() {
           <PublicRoute>
             <EmailVerifyPage />
           </PublicRoute>
+        }
+      />
+      <Route
+        path={ROUTES.ONBOARDING}
+        element={
+          <ProtectedRoute>
+            <OnboardingPage />
+          </ProtectedRoute>
         }
       />
       <Route
