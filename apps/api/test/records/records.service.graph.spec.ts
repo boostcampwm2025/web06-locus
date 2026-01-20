@@ -3,6 +3,9 @@ import { PrismaService } from '@/prisma/prisma.service';
 import { ReverseGeocodingService } from '@/records/services/reverse-geocoding.service';
 import { RecordNotFoundException } from '@/records/exceptions/record.exceptions';
 import { OutboxService } from '@/outbox/outbox.service';
+import { ImageProcessingService } from '@/records/services/image-processing.service';
+import { ObjectStorageService } from '@/records/services/object-storage.service';
+import { UsersService } from '@/users/users.service';
 interface PrismaMock {
   record: { findUnique: jest.Mock };
   $queryRaw: jest.Mock;
@@ -16,11 +19,25 @@ interface OutboxMock {
   publish: jest.Mock;
 }
 
+interface ImageProcessingServiceMock {
+  process: jest.Mock;
+}
+interface ObjectStorageServiceMock {
+  deleteImages: jest.Mock;
+  uploadRecordImages: jest.Mock;
+}
+interface UsersServiceMock {
+  findById: jest.Mock;
+}
+
 describe('RecordsService - getGraph', () => {
   let service: RecordsService;
   let prismaMock: PrismaMock;
   let reverseGeocodingMock: ReverseGeocodingMock;
   let outboxServiceMock: OutboxMock;
+  let imageProcessingServiceMock: ImageProcessingServiceMock;
+  let objectStorageServiceMock: ObjectStorageServiceMock;
+  let usersServiceMock: UsersServiceMock;
 
   beforeEach(() => {
     prismaMock = {
@@ -36,10 +53,26 @@ describe('RecordsService - getGraph', () => {
       publish: jest.fn(),
     };
 
+    imageProcessingServiceMock = {
+      process: jest.fn(),
+    };
+
+    objectStorageServiceMock = {
+      deleteImages: jest.fn(),
+      uploadRecordImages: jest.fn(),
+    };
+
+    usersServiceMock = {
+      findById: jest.fn(),
+    };
+
     service = new RecordsService(
       prismaMock as unknown as PrismaService,
       reverseGeocodingMock as unknown as ReverseGeocodingService,
       outboxServiceMock as unknown as OutboxService,
+      imageProcessingServiceMock as unknown as ImageProcessingService,
+      objectStorageServiceMock as unknown as ObjectStorageService,
+      usersServiceMock as unknown as UsersService,
     );
 
     jest.clearAllMocks();

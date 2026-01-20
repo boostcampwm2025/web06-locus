@@ -8,6 +8,8 @@ services:
       - .env.prod
     depends_on:
       - locus-redis
+      - locus-rabbitmq
+      - locus-elasticsearch
     networks:
       - locus-network
     restart: always
@@ -17,6 +19,50 @@ services:
     container_name: locus-redis
     ports:
       - '6379:6379'
+    networks:
+      - locus-network
+    restart: always
+
+  locus-elasticsearch:
+    build:
+      context: .
+      dockerfile: ./apps/api/Dockerfile-es
+    container_name: locus-elasticsearch
+    ports:
+      - '9200:9200'
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - xpack.security.http.ssl.enabled=false
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    networks:
+      - locus-network
+    restart: always
+
+  locus-kibana:
+    image: docker.elastic.co/kibana/kibana-wolfi:9.2.4
+    container_name: locus-kibana
+    ports:
+      - '5601:5601'
+    environment:
+      - ELASTICSEARCH_HOSTS=http://locus-elasticsearch:9200
+      - I18N_LOCALE=ko-KR
+    depends_on:
+      - locus-elasticsearch
+    networks:
+      - locus-network
+    restart: always
+
+  locus-rabbitmq:
+    image: rabbitmq:4-management
+    container_name: locus-rabbitmq
+    ports:
+      - '5672:5672'
+      - '15672:15672'
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS}
     networks:
       - locus-network
     restart: always
@@ -36,3 +82,6 @@ services:
 networks:
   locus-network:
     driver: bridge
+
+volumes:
+  elasticsearch_data:
