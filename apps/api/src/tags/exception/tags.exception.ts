@@ -22,3 +22,25 @@ export class InvalidTagNameException extends BusinessException {
     });
   }
 }
+
+export class TagForbiddenException extends BusinessException {
+  constructor(tagId: string) {
+    super(
+      403,
+      ErrorCodes.NOT_ALLOWED_DELETE_TAG,
+      '태그 삭제 권한이 없습니다.',
+      { tagId },
+    );
+  }
+}
+
+export class SystemTagNotDeletableException extends BusinessException {
+  constructor(tagId: string) {
+    super(
+      409,
+      ErrorCodes.SYSTEM_TAG_NOT_DELETABLE,
+      '시스템 태그는 삭제할 수 없습니다.',
+      { tagId },
+    );
+  }
+}
