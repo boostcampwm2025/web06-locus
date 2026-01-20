@@ -3,13 +3,17 @@ import { TagsService } from '@/tags/tags.services';
 import { PrismaService } from '@/prisma/prisma.service';
 import {
   InvalidTagNameException,
+  SystemTagNotDeletableException,
   TagAlreadyExistsException,
+  TagForbiddenException,
+  TagNotFoundException,
 } from '@/tags/exception/tags.exception';
 
 interface PrismaMock {
   tag: {
     create: jest.Mock;
     findFirst: jest.Mock;
+    delete: jest.Mock;
   };
 }
 
@@ -22,6 +26,7 @@ describe('TagsService - createOne', () => {
       tag: {
         create: jest.fn(),
         findFirst: jest.fn(),
+        delete: jest.fn(),
       },
     };
 
@@ -90,9 +95,78 @@ describe('TagsService - createOne', () => {
     expect(prismaMock.tag.create).toHaveBeenCalledTimes(1);
     expect(prismaMock.tag.create).toHaveBeenCalledWith({
       data: { name, isSystem: false, userId },
-      select: { id: true, name: true, isSystem: true },
+      select: { publicId: true, name: true, isSystem: true },
     });
 
     expect(result).toEqual({ id: 10n, name, isSystem: false });
+  });
+
+  describe('TagsService - deleteOne', () => {
+    test('publicId에 해당하는 태그가 없으면 TagNotFoundException을 던지고 delete를 호출하지 않는다', async () => {
+      prismaMock.tag.findFirst.mockResolvedValueOnce(null);
+
+      await expect(service.deleteOne(1n, 'tag_pub')).rejects.toBeInstanceOf(
+        TagNotFoundException,
+      );
+
+      expect(prismaMock.tag.delete).not.toHaveBeenCalled();
+    });
+
+    test('태그는 존재하지만 userId가 다르면 TagForbiddenException을 던지고 delete를 호출하지 않는다', async () => {
+      prismaMock.tag.findFirst.mockResolvedValueOnce({
+        id: 10n,
+        publicId: 'tag_pub',
+        userId: 2n,
+        isSystem: false,
+        name: '여행',
+      });
+
+      await expect(service.deleteOne(1n, 'tag_pub')).rejects.toBeInstanceOf(
+        TagForbiddenException,
+      );
+
+      expect(prismaMock.tag.delete).not.toHaveBeenCalled();
+    });
+
+    test('태그가 시스템 태그이면 SystemTagNotDeletableException을 던지고 delete를 호출하지 않는다', async () => {
+      prismaMock.tag.findFirst.mockResolvedValueOnce({
+        id: 10n,
+        publicId: 'tag_pub',
+        userId: 1n,
+        isSystem: true,
+        name: '시스템',
+      });
+
+      await expect(service.deleteOne(1n, 'tag_pub')).rejects.toBeInstanceOf(
+        SystemTagNotDeletableException,
+      );
+
+      expect(prismaMock.tag.delete).not.toHaveBeenCalled();
+    });
+
+    test('태그가 존재하고 소유자이며 시스템 태그가 아니면 delete를 호출하고 publicId를 반환한다', async () => {
+      prismaMock.tag.findFirst.mockResolvedValueOnce({
+        id: 10n,
+        publicId: 'tag_pub',
+        userId: 1n,
+        isSystem: false,
+        name: '여행',
+      });
+
+      prismaMock.tag.delete.mockResolvedValueOnce({ publicId: 'tag_pub' });
+
+      const result = await service.deleteOne(1n, 'tag_pub');
+
+      expect(prismaMock.tag.findFirst).toHaveBeenCalledWith({
+        where: { publicId: 'tag_pub' },
+      });
+
+      expect(prismaMock.tag.delete).toHaveBeenCalledWith({
+        where: { id: 10n },
+        select: { publicId: true },
+      });
+
+      expect(result).toEqual({ publicId: 'tag_pub' });
+    });
   });
 });
