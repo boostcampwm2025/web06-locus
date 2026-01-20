@@ -24,6 +24,7 @@ model User {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   records   Record[]
+  tags Tag[]
 
   @@index([provider, providerId])
   @@map("users")
@@ -62,13 +63,14 @@ model Record {
   location        Unsupported("cdb_admin.geometry")?
   locationName    String?   @map("location_name") @db.VarChar(200)
   locationAddress String?   @map("location_address") @db.VarChar(500)
-  tags            String[]
   isFavorite      Boolean  @default(false) @map("is_favorite")
   createdAt       DateTime @default(now()) @map("created_at")
   updatedAt       DateTime @updatedAt @map("updated_at")
 
   user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   images Image[]
+
+  tags RecordTag[]  
 
   fromConnections Connection[] @relation("FromRecord")
   toConnections   Connection[] @relation("ToRecord")
@@ -127,6 +129,36 @@ model Outbox {
   @@index([status, retryCount, createdAt])
   @@index([aggregateType, aggregateId])
   @@schema("locus")
+}
+
+model Tag {
+  id       BigInt  @id @default(autoincrement())
+  name     String  @db.VarChar(5)
+  isSystem Boolean @map("is_system")
+  userId   BigInt  @map("user_id")
+
+  user     User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  records  RecordTag[]
+
+  @@unique([userId, name])
+  @@index([userId])
+  @@schema("locus")
+
+  @@map("tags")
+}
+
+model RecordTag {
+  tagId    BigInt @map("tag_id")
+  recordId BigInt @map("record_id")
+
+  record   Record @relation(fields: [recordId], references: [id], onDelete: Cascade)
+  tag      Tag    @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([recordId, tagId])
+  @@index([tagId, recordId]) 
+  @@schema("locus")
+
+  @@map("record_tag")
 }
 
 enum Provider {
