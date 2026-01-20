@@ -169,7 +169,7 @@ export class RecordsService {
         processedImages,
         uploadedImages,
       );
-      return RecordResponseDto.from(record);
+      return RecordResponseDto.from(record, processedImages, uploadedImages);
     } catch (error) {
       await this.objectStorageService.deleteImages(uploadedKeys);
       throw error;
