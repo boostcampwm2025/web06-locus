@@ -12,6 +12,7 @@ export interface OnboardingPageWrapperProps {
  */
 export interface OnboardingFlowProps {
   onComplete?: () => void;
+  onSkip?: () => void;
 }
 
 /**
