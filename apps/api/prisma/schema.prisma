@@ -1,9 +1,11 @@
 generator client {
   provider = "prisma-client-js"
+  previewFeatures = ["multiSchema"]
 }
 
 datasource db {
   provider = "postgresql"
+  schemas  = ["locus", "public"]
 }
 
 model User {
@@ -25,6 +27,7 @@ model User {
 
   @@index([provider, providerId])
   @@map("users")
+  @@schema("locus")
 }
 
 model Connection {
@@ -47,6 +50,7 @@ model Connection {
   @@unique([userId, fromRecordId, toRecordId])
 
   @@map("connections")
+  @@schema("locus")
 }
 
 model Record {
@@ -73,6 +77,7 @@ model Record {
   @@index([createdAt])
   @@index([location], type: Gist)
   @@map("records")
+  @@schema("locus")
 }
 
 model Image {
@@ -103,6 +108,7 @@ model Image {
   @@unique([recordId, order])
   @@index([recordId])
   @@map("images")
+  @@schema("locus")
 }
 
 model Outbox {
@@ -120,6 +126,7 @@ model Outbox {
   // @@index([status, createdAt])
   @@index([status, retryCount, createdAt])
   @@index([aggregateType, aggregateId])
+  @@schema("locus")
 }
 
 enum Provider {
@@ -127,6 +134,7 @@ enum Provider {
   GOOGLE  
   NAVER   
   KAKAO   
+  @@schema("locus")
 }
 
 enum OutboxStatus {
@@ -134,10 +142,12 @@ enum OutboxStatus {
   RETRY
   DONE
   DEAD
+  @@schema("locus")
 }
 
 enum OutboxEventType {
   RECORD_CREATED
   RECORD_UPDATED
   RECORD_DELETED
+  @@schema("locus")
 }

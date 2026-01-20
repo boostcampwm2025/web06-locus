@@ -1,22 +1,21 @@
 import {
   Controller,
   Post,
-  Body,
   UseGuards,
+  UseInterceptors,
+  UploadedFiles,
   HttpCode,
   HttpStatus,
   Patch,
   Delete,
   Get,
   Param,
+  Body,
 } from '@nestjs/common';
-import {
-  ApiTags,
-  ApiOperation,
-  ApiResponse,
-  ApiBearerAuth,
-  ApiParam,
-} from '@nestjs/swagger';
+
+import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+
+import { FilesInterceptor } from '@nestjs/platform-express';
 import { RecordsService } from './records.service';
 import { CreateRecordDto } from './dto/create-record.dto';
 import { RecordResponseDto } from './dto/record-response.dto';
@@ -24,6 +23,12 @@ import { JwtAuthGuard } from '@/jwt/guard/jwt.auth.guard';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
 import { UpdateRecordDto } from './dto/update-record.dto';
 import { GraphResponseDto } from './dto/graph.response.dto';
+import { MAX_FILE_COUNT, multerOptions } from './config/multer.config';
+import {
+  CreateRecordSwagger,
+  DeleteRecordSwagger,
+} from './swagger/records.swagger';
+import { JsonBody } from '@/common/decorators/json-body.decorator';
 
 @ApiTags('records')
 @Controller('records')
@@ -33,29 +38,24 @@ export class RecordsController {
   @Post()
   @HttpCode(HttpStatus.CREATED)
   @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
-  @ApiOperation({
-    summary: '기록 생성',
-    description: '새로운 위치 기반 기록을 생성합니다.',
-  })
-  @ApiResponse({
-    status: 201,
-    description: '기록이 성공적으로 생성되었습니다.',
-    type: RecordResponseDto,
-  })
-  @ApiResponse({
-    status: 400,
-    description: '잘못된 요청 (필수 필드 누락, 유효성 검증 실패)',
-  })
-  @ApiResponse({
-    status: 401,
-    description: '인증 토큰이 없거나 유효하지 않습니다.',
-  })
+  @UseInterceptors(FilesInterceptor('images', MAX_FILE_COUNT, multerOptions))
+  @CreateRecordSwagger()
   async createRecord(
     @CurrentUser('sub') userId: bigint,
-    @Body() dto: CreateRecordDto,
+    @JsonBody(CreateRecordDto) dto: CreateRecordDto,
+    @UploadedFiles() images?: Express.Multer.File[],
   ): Promise<RecordResponseDto> {
-    return await this.recordsService.createRecord(userId, dto);
+    return await this.recordsService.createRecord(userId, dto, images);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get(':publicId/graph')
+  async getGraph(
+    @CurrentUser('sub') userId: bigint,
+    @Param('publicId') publicId: string,
+  ): Promise<GraphResponseDto> {
+    const graphData = await this.recordsService.getGraph(publicId, userId);
+    return graphData;
   }
 
   @Patch(':publicId')
@@ -76,32 +76,11 @@ export class RecordsController {
   @Delete(':publicId')
   @HttpCode(HttpStatus.NO_CONTENT)
   @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
-  @ApiOperation({
-    summary: '기록 삭제',
-    description: '기록을 삭제합니다. 삭제된 기록은 복구할 수 없습니다.',
-  })
-  @ApiParam({
-    name: 'publicId',
-    description: '삭제할 기록의 공개 ID',
-    example: 'abc123xyz',
-  })
-  @ApiResponse({ status: 404, description: '기록을 찾을 수 없습니다.' })
-  @ApiResponse({ status: 403, description: '기록 삭제 권한이 없습니다.' })
+  @DeleteRecordSwagger()
   async deleteRecord(
     @CurrentUser('sub') userId: bigint,
     @Param('publicId') publicId: string,
   ): Promise<void> {
     await this.recordsService.deleteRecord(userId, publicId);
-  }
-
-  @UseGuards(JwtAuthGuard)
-  @Get(':publicId/graph')
-  async getGraph(
-    @CurrentUser('sub') userId: bigint,
-    @Param('publicId') publicId: string,
-  ): Promise<GraphResponseDto> {
-    const graphData = await this.recordsService.getGraph(publicId, userId);
-    return graphData;
   }
 }

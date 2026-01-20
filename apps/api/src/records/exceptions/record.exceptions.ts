@@ -226,3 +226,31 @@ export class LocationNotFoundException extends BusinessException {
     );
   }
 }
+
+export class RecordDeletionFailedException extends BusinessException {
+  constructor(error: Error) {
+    super(
+      HttpStatus.INTERNAL_SERVER_ERROR,
+      RecordErrorCode.RECORD_DELETION_FAILED,
+      '기록 삭제에 실패했습니다.',
+      { error: error.message },
+    );
+  }
+}
+
+export class ImageDeletionFailedException extends BusinessException {
+  constructor(errors: { Key?: string; Code?: string; Message?: string }[]) {
+    super(
+      HttpStatus.INTERNAL_SERVER_ERROR,
+      RecordErrorCode.IMAGE_DELETION_FAILED,
+      'Object Storage에서 이미지 삭제에 실패했습니다.',
+      {
+        errors: errors.map((e) => ({
+          key: e.Key,
+          code: e.Code,
+          message: e.Message,
+        })),
+      },
+    );
+  }
+}
