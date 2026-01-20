@@ -431,11 +431,17 @@ export class RecordsService {
         });
       });
     } catch (error) {
-      if (error instanceof RecordDeletionFailedException) {
+      if (error instanceof Error) {
+        this.logger.error(
+          `Failed to delete record: publicId=${publicId}, error=${error.message}`,
+          error.stack,
+        );
         throw new RecordDeletionFailedException(error);
       }
+      throw new Error(
+        'Unexpected non-Error exception thrown when delete Record',
+      );
     }
-
     // 6. Object Storage 이미지 삭제 (트랜잭션 성공 후)
     if (imageKeys.length > 0) {
       try {
