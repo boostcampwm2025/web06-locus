@@ -3,7 +3,7 @@ import { PrismaService } from '@/prisma/prisma.service';
 import { ReverseGeocodingService } from './services/reverse-geocoding.service';
 import { CreateRecordDto } from './dto/create-record.dto';
 import { RecordResponseDto } from './dto/record-response.dto';
-import { LocationInfo, RecordModel } from './records.types';
+import { LocationInfo, RecordModel, RecordWithImages } from './records.types';
 import {
   ImageDeletionFailedException,
   RecordAccessDeniedException,
@@ -207,7 +207,7 @@ export class RecordsService {
     recordPublicId?: string,
     processedImages?: ProcessedImage[],
     uploadedImages?: UploadedImage[],
-  ): Promise<RecordModel> {
+  ): Promise<RecordWithImages> {
     try {
       const record = await this.prisma.$transaction(async (tx) => {
         const created = await this.saveRecord(
@@ -242,7 +242,28 @@ export class RecordsService {
           payload: createRecordSyncPayload(userId, updated),
         });
 
-        return updated;
+        const images = await tx.image.findMany({
+          where: { recordId: updated.id },
+          orderBy: { order: 'asc' },
+          select: {
+            publicId: true,
+            order: true,
+            thumbnailUrl: true,
+            thumbnailWidth: true,
+            thumbnailHeight: true,
+            thumbnailSize: true,
+            mediumUrl: true,
+            mediumWidth: true,
+            mediumHeight: true,
+            mediumSize: true,
+            originalUrl: true,
+            originalWidth: true,
+            originalHeight: true,
+            originalSize: true,
+          },
+        });
+
+        return { ...updated, images };
       });
 
       this.logger.log(
