@@ -5,7 +5,10 @@ import { CreateRecordDto } from './dto/create-record.dto';
 import { RecordResponseDto } from './dto/record-response.dto';
 import { LocationInfo, RecordModel } from './records.types';
 import {
+  ImageDeletionFailedException,
+  RecordAccessDeniedException,
   RecordCreationFailedException,
+  RecordDeletionFailedException,
   RecordNotFoundException,
 } from './exceptions/record.exceptions';
 import { GRAPH_RAWS_SQL } from './sql/graph.raw.sql';
@@ -22,7 +25,11 @@ import {
 import { UPDATE_RECORD_LOCATION_SQL } from './sql/record-raw.query';
 import { ImageProcessingService } from './services/image-processing.service';
 import { ObjectStorageService } from './services/object-storage.service';
-import { ProcessedImage, UploadedImage } from './services/object-storage.types';
+import {
+  ImageUrls,
+  ProcessedImage,
+  UploadedImage,
+} from './services/object-storage.types';
 import { nanoid } from 'nanoid';
 import { UsersService } from '@/users/users.service';
 
@@ -373,5 +380,92 @@ export class RecordsService {
     });
 
     await tx.image.createMany({ data: imageData });
+  }
+
+  async deleteRecord(userId: bigint, publicId: string): Promise<void> {
+    // 1. Record 조회 (이미지 포함)
+    const record = await this.prisma.record.findUnique({
+      where: { publicId },
+      select: {
+        id: true,
+        userId: true,
+        publicId: true,
+        images: {
+          select: {
+            thumbnailUrl: true,
+            mediumUrl: true,
+            originalUrl: true,
+          },
+        },
+      },
+    });
+
+    // 2. 존재 여부 확인
+    if (!record) {
+      throw new RecordNotFoundException(publicId);
+    }
+
+    // 3. 소유권 검증
+    if (record.userId !== userId) {
+      throw new RecordAccessDeniedException(publicId);
+    }
+
+    // 4. 이미지 URL에서 스토리지 키 추출
+    const imageUrls: ImageUrls[] = record.images.map((img) => ({
+      thumbnail: img.thumbnailUrl,
+      medium: img.mediumUrl,
+      original: img.originalUrl,
+    }));
+    const imageKeys = this.extractImageKeys(imageUrls);
+
+    // 5. 트랜잭션: DB 삭제 + Outbox 발행
+    try {
+      await this.prisma.$transaction(async (tx) => {
+        await tx.record.delete({ where: { id: record.id } });
+
+        await this.outboxService.publish(tx, {
+          aggregateType: AGGREGATE_TYPE.RECORD,
+          aggregateId: record.id.toString(),
+          eventType: OUTBOX_EVENT_TYPE.RECORD_DELETED,
+          payload: { publicId, userId: userId.toString() },
+        });
+      });
+    } catch (error) {
+      if (error instanceof Error) {
+        this.logger.error(
+          `Failed to delete record: publicId=${publicId}, error=${error.message}`,
+          error.stack,
+        );
+        throw new RecordDeletionFailedException(error);
+      }
+      throw new Error(
+        'Unexpected non-Error exception thrown when delete Record',
+      );
+    }
+    // 6. Object Storage 이미지 삭제 (트랜잭션 성공 후)
+    if (imageKeys.length > 0) {
+      try {
+        await this.objectStorageService.deleteImages(imageKeys);
+      } catch (error) {
+        if (error instanceof ImageDeletionFailedException) {
+          this.logger.error(
+            `Failed to delete images in object storage for record ${publicId}: ${error.message}`,
+          );
+          // TODO: Object Stoage에서 삭제 실패 시 처리 로직 추가
+        } else {
+          throw error;
+        }
+      }
+    }
+
+    this.logger.log(`Record deleted: publicId=${publicId}, userId=${userId}`);
+  }
+
+  private extractImageKeys(images: ImageUrls[]): string[] {
+    return images.flatMap((img) => [
+      this.objectStorageService.extractKeyFromUrl(img.thumbnail),
+      this.objectStorageService.extractKeyFromUrl(img.medium),
+      this.objectStorageService.extractKeyFromUrl(img.original),
+    ]);
   }
 }

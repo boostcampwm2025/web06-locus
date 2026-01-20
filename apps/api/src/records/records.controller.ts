@@ -8,6 +8,7 @@ import {
   HttpStatus,
   Get,
   Param,
+  Delete,
 } from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express';
 import { ApiTags } from '@nestjs/swagger';
@@ -18,7 +19,10 @@ import { JwtAuthGuard } from '@/jwt/guard/jwt.auth.guard';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
 import { GraphResponseDto } from './dto/graph.response.dto';
 import { MAX_FILE_COUNT, multerOptions } from './config/multer.config';
-import { CreateRecordSwagger } from './swagger/records.swagger';
+import {
+  CreateRecordSwagger,
+  DeleteRecordSwagger,
+} from './swagger/records.swagger';
 import { JsonBody } from '@/common/decorators/json-body.decorator';
 
 @ApiTags('records')
@@ -37,6 +41,17 @@ export class RecordsController {
     @UploadedFiles() images?: Express.Multer.File[],
   ): Promise<RecordResponseDto> {
     return await this.recordsService.createRecord(userId, dto, images);
+  }
+
+  @Delete(':publicId')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @UseGuards(JwtAuthGuard)
+  @DeleteRecordSwagger()
+  async deleteRecord(
+    @CurrentUser('sub') userId: bigint,
+    @Param('publicId') publicId: string,
+  ): Promise<void> {
+    await this.recordsService.deleteRecord(userId, publicId);
   }
 
   @UseGuards(JwtAuthGuard)

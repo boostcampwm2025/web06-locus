@@ -11,6 +11,7 @@ import {
   ProcessedImage,
   UploadedImage,
 } from './object-storage.types';
+import { ImageDeletionFailedException } from '../exceptions/record.exceptions';
 
 @Injectable()
 export class ObjectStorageService {
@@ -109,6 +110,8 @@ export class ObjectStorageService {
   async deleteImages(keys: string[]): Promise<void> {
     if (keys.length === 0) return;
 
+    this.logger.debug(`Attempting to delete images: ${JSON.stringify(keys)}`);
+
     const command = new DeleteObjectsCommand({
       Bucket: this.bucketName,
       Delete: {
@@ -117,9 +120,22 @@ export class ObjectStorageService {
     });
 
     try {
-      await this.s3Client.send(command);
-      this.logger.log(`Deleted ${keys.length} images from storage`);
+      const response = await this.s3Client.send(command);
+
+      if (response.Deleted?.length) {
+        this.logger.log(
+          `Successfully deleted ${response.Deleted.length}/${keys.length} images`,
+        );
+      }
+
+      if (response.Errors?.length) {
+        throw new ImageDeletionFailedException(response.Errors);
+      }
     } catch (error) {
+      if (error instanceof ImageDeletionFailedException) {
+        throw error;
+      }
+
       this.logger.error(`Failed to delete images: ${JSON.stringify(error)}`);
       throw error;
     }
@@ -132,5 +148,19 @@ export class ObjectStorageService {
     size: ImageSize,
   ): string {
     return `records/${userPublicId}/${recordPublicId}/${imageId}/${size}.jpg`;
+  }
+
+  /**
+   * 저장된 URL에서 S3 키를 추출합니다.
+   * URL 형식: ${publicUrl}/${key}
+   */
+  extractKeyFromUrl(url: string): string {
+    // publicUrl 부분을 제거하고 키만 추출
+    if (url.startsWith(this.publicUrl)) {
+      return url.slice(this.publicUrl.length + 1); // publicUrl + '/' 제거
+    }
+    // fallback: pathname에서 추출 시도
+    const urlObj = new URL(url);
+    return urlObj.pathname.slice(1);
   }
 }
