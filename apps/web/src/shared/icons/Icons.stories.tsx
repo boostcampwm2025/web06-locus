@@ -12,7 +12,10 @@ import FavoriteIcon from './FavoriteIcon';
 import ArrowLeftIcon from './ArrowLeftIcon';
 import ArrowRightIcon from './ArrowRightIcon';
 import LocationIcon from './LocationIcon';
+import MapPinIcon from './MapPinIcon';
 import LinkIcon from './LinkIcon';
+import Link2Icon from './Link2Icon';
+import FileTextIcon from './FileTextIcon';
 import ImageIcon from './ImageIcon';
 import CameraIcon from './CameraIcon';
 import PlusIcon from './PlusIcon';
@@ -128,9 +131,24 @@ export const IconCatalog: Story = {
             description="위치/장소 아이콘"
           />
           <IconCard
+            name="MapPinIcon"
+            icon={<MapPinIcon className="w-8 h-8 text-orange-500" />}
+            description="지도 핀 아이콘"
+          />
+          <IconCard
             name="LinkIcon"
             icon={<LinkIcon className="w-8 h-8 text-gray-500" />}
             description="연결 아이콘"
+          />
+          <IconCard
+            name="Link2Icon"
+            icon={<Link2Icon className="w-8 h-8 text-gray-500" />}
+            description="연결 아이콘 (체인 형태)"
+          />
+          <IconCard
+            name="FileTextIcon"
+            icon={<FileTextIcon className="w-8 h-8 text-gray-600" />}
+            description="파일/텍스트 아이콘"
           />
           <IconCard
             name="ImageIcon"
@@ -262,7 +280,13 @@ export const AllIcons: Story = {
         name="LocationIcon"
         icon={<LocationIcon className="w-8 h-8" />}
       />
+      <IconCard name="MapPinIcon" icon={<MapPinIcon className="w-8 h-8" />} />
       <IconCard name="LinkIcon" icon={<LinkIcon className="w-8 h-8" />} />
+      <IconCard name="Link2Icon" icon={<Link2Icon className="w-8 h-8" />} />
+      <IconCard
+        name="FileTextIcon"
+        icon={<FileTextIcon className="w-8 h-8" />}
+      />
       <IconCard name="ImageIcon" icon={<ImageIcon className="w-8 h-8" />} />
       <IconCard name="CameraIcon" icon={<CameraIcon className="w-8 h-8" />} />
       <IconCard name="PlusIcon" icon={<PlusIcon className="w-8 h-8" />} />

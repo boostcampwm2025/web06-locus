@@ -1,5 +1,7 @@
 export { default as ArrowLeftIcon } from './ArrowLeftIcon';
 export { default as ArrowRightIcon } from './ArrowRightIcon';
+export { default as ChevronLeftIcon } from './ChevronLeftIcon';
+export { default as ChevronRightIcon } from './ChevronRightIcon';
 export { default as BookmarkIcon } from './BookmarkIcon';
 export { default as FavoriteIcon } from './FavoriteIcon';
 export { default as CalendarIcon } from './CalendarIcon';
@@ -12,7 +14,10 @@ export { default as GoogleIcon } from './GoogleIcon';
 export { default as ImageIcon } from './ImageIcon';
 export { default as KakaoIcon } from './KakaoIcon';
 export { default as LinkIcon } from './LinkIcon';
+export { default as Link2Icon } from './Link2Icon';
 export { default as LocationIcon } from './LocationIcon';
+export { default as MapPinIcon } from './MapPinIcon';
+export { default as FileTextIcon } from './FileTextIcon';
 export { default as Logo } from './Logo';
 export { default as MapIcon } from './MapIcon';
 export { default as MoreVerticalIcon } from './MoreVerticalIcon';
