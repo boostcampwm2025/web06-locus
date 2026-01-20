@@ -1,4 +1,4 @@
-import * as Sentry from '@sentry/react';
+import { sentry } from './sentryWrapper';
 
 const isDevelopment = import.meta.env.MODE === 'development';
 
@@ -8,6 +8,8 @@ type LoggerExtra = Record<string, unknown>;
  * 개발 환경과 프로덕션 환경을 구분하여 로깅하는 유틸리티
  * - 개발 환경: 콘솔 출력 + Sentry 전송
  * - 프로덕션 환경: Sentry 전송만
+ *
+ * Sentry는 동적 로딩되므로 초기 번들에 포함되지 않습니다.
  */
 export const logger = {
   /**
@@ -20,7 +22,7 @@ export const logger = {
       console.error('[Logger] Error:', error, extra ?? '');
     }
 
-    Sentry.captureException(error, {
+    void sentry.captureException(error, {
       extra,
       tags: {
         logger: 'error',
@@ -39,7 +41,7 @@ export const logger = {
     }
 
     if (extra?.sendToSentry !== false) {
-      Sentry.captureMessage(message, {
+      void sentry.captureMessage(message, {
         level: 'warning',
         extra,
         tags: {
@@ -60,7 +62,7 @@ export const logger = {
     }
 
     // 개발/프로덕션 모두 Breadcrumb 추가
-    Sentry.addBreadcrumb({
+    void sentry.addBreadcrumb({
       category: 'logger',
       message,
       level: 'info',

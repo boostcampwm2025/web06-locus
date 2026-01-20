@@ -1,5 +1,5 @@
 import { ErrorBoundary } from 'react-error-boundary';
-import * as Sentry from '@sentry/react';
+import { sentry } from '@/shared/utils/sentryWrapper';
 import ErrorFallback from './ErrorFallback';
 
 interface Props {
@@ -11,19 +11,19 @@ export default function AppErrorBoundary({ children }: Props) {
     <ErrorBoundary
       FallbackComponent={ErrorFallback}
       onError={(error, errorInfo) => {
-        Sentry.withScope((scope) => {
+        // @ts-expect-error - sentry.withScope의 타입 추론 문제로 인한 타입 에러
+        void sentry.withScope((scope) => {
           /* Tags: 필터링 및 그룹화에 사용  */
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
           scope.setTag('error_boundary', 'true');
 
           /* Extra: 에러와 관련된 추가 정보 (React의 componentStack 포함) */
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
           scope.setExtras(errorInfo as unknown as Record<string, unknown>);
 
-          Sentry.captureException(error);
+          void sentry.captureException(error);
         });
       }}
-      // 만약 react-router 등을 사용 중이라면
-      // 아래와 같이 location 변경 시 에러 상태를 초기화하도록 할 수 있습니다.
-      // resetKeys={[window.location.pathname]}
     >
       {children}
     </ErrorBoundary>
