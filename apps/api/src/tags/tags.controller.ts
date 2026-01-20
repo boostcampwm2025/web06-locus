@@ -7,17 +7,25 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
+import { ApiTags } from '@nestjs/swagger';
 import { CreateTagRequestDto } from './dto/create-tag.request.dto';
 import { TagsService } from './tags.services';
 import { JwtAuthGuard } from '@/jwt/guard/jwt.auth.guard';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
 import { DeleteTagResponseDto } from './dto/delete-tag.response.dto';
 import { TagsResponseDto } from './dto/tags.response.dto';
+import {
+  CreateTagSwagger,
+  DeleteTagSwagger,
+  GetTagsSwagger,
+} from './swagger/tags.swagger';
+@ApiTags('tags')
 @Controller('tags')
 export class TagsController {
   constructor(private readonly tagService: TagsService) {}
   @UseGuards(JwtAuthGuard)
   @Post()
+  @CreateTagSwagger()
   async create(
     @CurrentUser('sub') userId: bigint,
     @Body() requestDto: CreateTagRequestDto,
@@ -29,6 +37,7 @@ export class TagsController {
 
   @UseGuards(JwtAuthGuard)
   @Delete(':publicId')
+  @DeleteTagSwagger()
   async delete(
     @CurrentUser('sub') userId: bigint,
     @Param('publicId') publicId: string,
@@ -40,6 +49,7 @@ export class TagsController {
 
   @UseGuards(JwtAuthGuard)
   @Get()
+  @GetTagsSwagger()
   async getTags(@CurrentUser('sub') userId: bigint): Promise<TagsResponseDto> {
     const tags = await this.tagService.findAll(userId);
 
