@@ -6,7 +6,7 @@ import { recordVariants } from '../constants/motionVariants';
 export function OnboardingPage2() {
   return (
     <>
-      <div className="absolute top-[60px] left-0 w-full h-[420px]">
+      <div className="absolute top-[60px] left-1/2 -translate-x-1/2 w-full max-w-[600px] h-[420px]">
         {PAGE2_RECORD_CARDS.map((card) => (
           <RecordCard key={card.id} {...card} />
         ))}

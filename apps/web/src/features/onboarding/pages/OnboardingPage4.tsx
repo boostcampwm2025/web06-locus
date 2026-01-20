@@ -8,7 +8,7 @@ export function OnboardingPage4() {
   return (
     <>
       {/* Connected map visualization */}
-      <div className="absolute top-[60px] left-0 w-full h-[450px]">
+      <div className="absolute top-[60px] left-1/2 -translate-x-1/2 w-full max-w-[600px] h-[450px]">
         {PAGE4_MEMORIES.map((memory) => (
           <MapMemoryCard key={memory.id} {...memory} />
         ))}
