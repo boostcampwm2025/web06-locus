@@ -1,0 +1,6 @@
+export const ErrorCodes = {
+  // 400 - Client Errors
+  TAG_ALREADY_EXISTS: 'TAG_ALREADY_EXISTS',
+  TAG_NOT_FOUND: 'TAG_NOT_FOUND',
+  INVALID_TAG_NAME: 'INVALID_TAG_NAME',
+};
