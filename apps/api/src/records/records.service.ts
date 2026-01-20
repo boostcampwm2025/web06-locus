@@ -38,7 +38,7 @@ import {
 } from './services/object-storage.types';
 import { nanoid } from 'nanoid';
 import { UsersService } from '@/users/users.service';
-import { RecordsListResponseDto } from './dto/records-list-reponse.dto';
+import { RecordListResponseDto } from './dto/records-list-reponse.dto';
 
 @Injectable()
 export class RecordsService {
@@ -90,7 +90,7 @@ export class RecordsService {
   async getRecordsInBounds(
     userId: bigint,
     dto: GetRecordsQueryDto,
-  ): Promise<RecordsListResponseDto> {
+  ): Promise<RecordListResponseDto> {
     if (dto.neLat <= dto.swLat) {
       throw new InvalidBoundsException(
         '북동쪽 위도가 남서쪽 위도보다 작거나 같습니다.',
@@ -123,7 +123,7 @@ export class RecordsService {
       ),
     ]);
 
-    return RecordsListResponseDto.from(records, countResult[0].count);
+    return RecordListResponseDto.from(records, countResult[0].count);
   }
 
   async getGraph(

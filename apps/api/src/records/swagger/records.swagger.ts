@@ -13,7 +13,7 @@ import {
   ApiErrorResponse,
 } from '@/common/utils/swagger-response.helper';
 import { RecordResponseDto } from '../dto/record-response.dto';
-import { RecordsListResponseDto } from '../dto/records-list-reponse.dto';
+import { RecordListResponseDto } from '../dto/records-list-reponse.dto';
 import { RecordErrorCode } from '../constants/error-codes';
 
 export const CreateRecordSwagger = () =>
@@ -66,14 +66,14 @@ export const CreateRecordSwagger = () =>
 
 export const GetRecordsSwagger = () =>
   applyDecorators(
-    ApiExtraModels(RecordsListResponseDto),
+    ApiExtraModels(RecordListResponseDto),
     ApiBearerAuth(),
     ApiOperation({
       summary: '지도 범위 기반 기록 조회',
       description:
         '지도에서 사용자가 보고 있는 범위(Bounding Box) 내에 위치한 기록들을 조회합니다. 페이지네이션을 지원하며, 최신순 또는 오래된순으로 정렬할 수 있습니다.',
     }),
-    ApiSuccessResponse(RecordsListResponseDto, HttpStatus.OK),
+    ApiSuccessResponse(RecordListResponseDto, HttpStatus.OK),
     ApiFailResponse(HttpStatus.BAD_REQUEST, [
       {
         code: RecordErrorCode.BOUNDS_MISSING,

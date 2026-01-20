@@ -40,6 +40,9 @@ export class RecordListItemDto {
   @ApiProperty({ description: '위치 정보', type: RecordLocationDto })
   location: RecordLocationDto;
 
+  @ApiProperty({ description: '즐겨찾기 여부', example: false })
+  isFavorite: boolean;
+
   @ApiProperty({
     description: '태그 목록',
     example: ['고향', '맛집'],
@@ -60,7 +63,7 @@ export class RecordListItemDto {
   updatedAt: string;
 }
 
-export class RecordsListResponseDto {
+export class RecordListResponseDto {
   @ApiProperty({
     description: '기록 목록',
     type: [RecordListItemDto],
@@ -76,7 +79,7 @@ export class RecordsListResponseDto {
   static from(
     records: RecordModel[],
     totalCount: number,
-  ): RecordsListResponseDto {
+  ): RecordListResponseDto {
     return {
       records: records.map((r) => ({
         publicId: r.publicId,
@@ -88,6 +91,7 @@ export class RecordsListResponseDto {
           name: r.locationName,
           address: r.locationAddress,
         },
+        isFavorite: r.isFavorite,
         tags: r.tags,
         createdAt: r.createdAt.toISOString(),
         updatedAt: r.updatedAt.toISOString(),
