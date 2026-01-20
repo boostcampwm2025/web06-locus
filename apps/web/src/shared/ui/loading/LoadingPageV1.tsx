@@ -1,6 +1,7 @@
-import logo from '@/assets/images/loading-duck-1.png';
 import './animations.css';
 import './LoadingPageV1.css';
+
+const logo = '/loading-duck-1.webp';
 
 const DOT_DELAYS = [0, 0.15, 0.3] as const;
 
@@ -12,8 +13,13 @@ function LoadingBrand() {
         <img
           src={logo}
           alt="character"
+          width={112}
+          height={112}
           className="relative h-28 w-28 select-none animate-[float_1.6s_ease-in-out_infinite]"
           draggable={false}
+          fetchPriority="high"
+          loading="eager"
+          decoding="async"
         />
       </div>
 

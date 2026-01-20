@@ -24,7 +24,7 @@ function App() {
 
   // 앱 시작 시 저장된 토큰으로 인증 상태 초기화
   useEffect(() => {
-    useAuthStore.getState().initialize();
+    void useAuthStore.getState().initialize();
   }, []);
 
   useEffect(() => {
