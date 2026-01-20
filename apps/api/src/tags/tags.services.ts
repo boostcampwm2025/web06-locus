@@ -8,6 +8,7 @@ import {
   TagForbiddenException,
   TagNotFoundException,
 } from './exception/tags.exception';
+import { TagDto } from './dto/tags.response.dto';
 
 @Injectable()
 export class TagsService {
@@ -71,6 +72,19 @@ export class TagsService {
       },
       select: {
         publicId: true,
+      },
+    });
+  }
+
+  async findAll(userId: bigint): Promise<TagDto[]> {
+    return await this.prismaService.tag.findMany({
+      where: {
+        userId: userId,
+      },
+      select: {
+        publicId: true,
+        isSystem: true,
+        name: true,
       },
     });
   }
