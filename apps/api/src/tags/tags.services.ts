@@ -3,7 +3,10 @@ import { CreateTagRequestDto } from './dto/create-tag.request.dto';
 import { PrismaService } from '@/prisma/prisma.service';
 import {
   InvalidTagNameException,
+  SystemTagNotDeletableException,
   TagAlreadyExistsException,
+  TagForbiddenException,
+  TagNotFoundException,
 } from './exception/tags.exception';
 
 @Injectable()
@@ -12,7 +15,7 @@ export class TagsService {
   async createOne(
     userId: bigint,
     requestDto: CreateTagRequestDto,
-  ): Promise<{ id: bigint; name: string; isSystem: boolean }> {
+  ): Promise<{ publicId: string; name: string; isSystem: boolean }> {
     await this.validateTagName(requestDto.name);
 
     const created = await this.prismaService.tag.create({
@@ -22,7 +25,7 @@ export class TagsService {
         userId: userId,
       },
       select: {
-        id: true,
+        publicId: true,
         name: true,
         isSystem: true,
       },
@@ -35,6 +38,39 @@ export class TagsService {
     return await this.prismaService.tag.findFirst({
       where: {
         name: name,
+      },
+    });
+  }
+
+  async findByPublicId(publicId: string) {
+    return await this.prismaService.tag.findFirst({
+      where: {
+        publicId: publicId,
+      },
+    });
+  }
+
+  async deleteOne(userId: bigint, publicId: string) {
+    const tag = await this.findByPublicId(publicId);
+
+    if (tag === null) {
+      throw new TagNotFoundException(publicId);
+    }
+
+    if (tag.userId !== userId) {
+      throw new TagForbiddenException(publicId);
+    }
+
+    if (tag.isSystem) {
+      throw new SystemTagNotDeletableException(publicId);
+    }
+
+    return await this.prismaService.tag.delete({
+      where: {
+        id: tag.id,
+      },
+      select: {
+        publicId: true,
       },
     });
   }
