@@ -1,6 +1,6 @@
 import { RecordsService } from '@/records/records.service';
 import { PrismaService } from '@/prisma/prisma.service';
-import { ReverseGeocodingService } from '@/records/services/reverse-geocoding.service';
+import { MapsService } from '@/maps/maps.service';
 import { RecordNotFoundException } from '@/records/exceptions/record.exceptions';
 import { OutboxService } from '@/outbox/outbox.service';
 import { ImageProcessingService } from '@/records/services/image-processing.service';
@@ -68,7 +68,7 @@ describe('RecordsService - getGraph', () => {
 
     service = new RecordsService(
       prismaMock as unknown as PrismaService,
-      reverseGeocodingMock as unknown as ReverseGeocodingService,
+      reverseGeocodingMock as unknown as MapsService,
       outboxServiceMock as unknown as OutboxService,
       imageProcessingServiceMock as unknown as ImageProcessingService,
       objectStorageServiceMock as unknown as ObjectStorageService,

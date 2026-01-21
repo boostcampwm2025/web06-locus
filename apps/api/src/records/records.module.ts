@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { RecordsController } from './records.controller';
 import { RecordsService } from './records.service';
-import { ReverseGeocodingService } from './services/reverse-geocoding.service';
+import { MapsService } from '../maps/maps.service';
 import { PrismaModule } from '@/prisma/prisma.module';
 import { JwtModule } from '@/jwt/jwt.module';
 import { RecordSearchService } from './records-search.service';
@@ -17,11 +17,11 @@ import { UsersService } from '@/users/users.service';
   controllers: [RecordsController, RecordSyncConsumer],
   providers: [
     RecordsService,
-    ReverseGeocodingService,
     RecordSearchService,
     ImageProcessingService,
     ObjectStorageService,
     UsersService,
+    MapsService,
   ],
   exports: [RecordsService, RecordSearchService],
 })
