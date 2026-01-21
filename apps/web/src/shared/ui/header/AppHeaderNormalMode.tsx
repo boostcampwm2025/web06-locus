@@ -1,7 +1,7 @@
+import { Logo } from '@/shared/ui/icons/Logo';
+import { SearchIcon } from '@/shared/ui/icons/SearchIcon';
+import { FilterIcon } from '@/shared/ui/icons/FilterIcon';
 import { useNavigate, useLocation } from 'react-router-dom';
-import Logo from '@/shared/icons/Logo';
-import SearchIcon from '@/shared/icons/SearchIcon';
-import FilterIcon from '@/shared/icons/FilterIcon';
 import type { AppHeaderNormalModeProps } from '@/shared/types/header';
 import AppHeaderTitle from './AppHeaderTitle';
 import { ROUTES } from '@/router/routes';
