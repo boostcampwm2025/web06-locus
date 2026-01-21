@@ -33,8 +33,11 @@ import {
   SELECT_RECORDS_IN_BOUNDS_SQL,
   UPDATE_RECORD_LOCATION_SQL,
   GET_RECORD_LOCATION_SQL,
+  SELECT_RECORDS_BY_LOCATION_SQL,
+  COUNT_RECORDS_BY_LOCATION_SQL,
 } from './sql/record-raw.query';
 import { UpdateRecordDto } from './dto/update-record.dto';
+import { GetRecordsByLocationDto } from './dto/get-records-by-location.dto';
 import { ImageProcessingService } from './services/image-processing.service';
 import { ObjectStorageService } from './services/object-storage.service';
 import {
@@ -185,6 +188,37 @@ export class RecordsService {
           dto.swLat,
           dto.neLng,
           dto.neLat,
+        ),
+      ),
+    ]);
+
+    const recordsWithImages = await this.attachImagesToRecords(records);
+
+    return RecordListResponseDto.from(recordsWithImages, countResult[0].count);
+  }
+
+  async getRecordsByLocation(
+    userId: bigint,
+    dto: GetRecordsByLocationDto,
+  ): Promise<RecordListResponseDto> {
+    const [records, countResult] = await Promise.all([
+      this.prisma.$queryRaw<RecordModel[]>(
+        SELECT_RECORDS_BY_LOCATION_SQL(
+          userId,
+          dto.latitude,
+          dto.longitude,
+          dto.radius,
+          dto.sortOrder,
+          dto.limit,
+          dto.offset,
+        ),
+      ),
+      this.prisma.$queryRaw<[{ count: number }]>(
+        COUNT_RECORDS_BY_LOCATION_SQL(
+          userId,
+          dto.latitude,
+          dto.longitude,
+          dto.radius,
         ),
       ),
     ]);
