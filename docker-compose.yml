@@ -88,3 +88,4 @@ networks:
 
 volumes:
   elasticsearch_data:
+  rabbitmq_data:
