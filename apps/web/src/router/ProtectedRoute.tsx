@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/features/auth/domain/authStore';
 import { ROUTES } from './routes';
-import { isOnboardingCompleted } from '@/infra/storage/onboardingStorage';
+import { useOnboardingCompleted } from '@/infra/storage/onboardingStorage';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -19,25 +19,31 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const location = useLocation();
   const navigate = useNavigate();
+  const isOnboardingCompleted = useOnboardingCompleted();
 
   // 인증되었지만 온보딩이 완료되지 않은 경우 온보딩으로 리다이렉트
   useEffect(() => {
     if (
       isAuthenticated &&
-      !isOnboardingCompleted() &&
+      !isOnboardingCompleted &&
       location.pathname !== ROUTES.ONBOARDING
     ) {
       void navigate(ROUTES.ONBOARDING, { replace: true });
     }
-  }, [isAuthenticated, location.pathname, navigate]);
+  }, [isAuthenticated, isOnboardingCompleted, location.pathname, navigate]);
 
   // 인증되지 않은 경우 로그인 페이지로 리다이렉트
   if (!isAuthenticated) {
     return <Navigate to={ROUTES.LOGIN} replace />;
   }
 
-  // 온보딩 페이지이거나 온보딩이 완료된 경우에만 children 렌더링
-  if (location.pathname === ROUTES.ONBOARDING || isOnboardingCompleted()) {
+  // 온보딩 페이지에서는 항상 렌더링 (완료 처리 중일 수 있음)
+  if (location.pathname === ROUTES.ONBOARDING) {
+    return <>{children}</>;
+  }
+
+  // 온보딩이 완료된 경우 children 렌더링
+  if (isOnboardingCompleted) {
     return <>{children}</>;
   }
 
