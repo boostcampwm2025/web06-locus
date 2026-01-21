@@ -10,6 +10,7 @@ import {
   Delete,
   Get,
   Param,
+  Query,
   Body,
 } from '@nestjs/common';
 
@@ -18,7 +19,9 @@ import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { FilesInterceptor } from '@nestjs/platform-express';
 import { RecordsService } from './records.service';
 import { CreateRecordDto } from './dto/create-record.dto';
+import { GetRecordsQueryDto } from './dto/get-records-query.dto';
 import { RecordResponseDto } from './dto/record-response.dto';
+import { RecordListResponseDto } from './dto/records-list-reponse.dto';
 import { JwtAuthGuard } from '@/jwt/guard/jwt.auth.guard';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
 import { UpdateRecordDto } from './dto/update-record.dto';
@@ -27,6 +30,7 @@ import { MAX_FILE_COUNT, multerOptions } from './config/multer.config';
 import {
   CreateRecordSwagger,
   DeleteRecordSwagger,
+  GetRecordsSwagger,
 } from './swagger/records.swagger';
 import { JsonBody } from '@/common/decorators/json-body.decorator';
 
@@ -34,6 +38,16 @@ import { JsonBody } from '@/common/decorators/json-body.decorator';
 @Controller('records')
 export class RecordsController {
   constructor(private readonly recordsService: RecordsService) {}
+
+  @Get()
+  @UseGuards(JwtAuthGuard)
+  @GetRecordsSwagger()
+  async getRecordsInBounds(
+    @CurrentUser('sub') userId: bigint,
+    @Query() query: GetRecordsQueryDto,
+  ): Promise<RecordListResponseDto> {
+    return await this.recordsService.getRecordsInBounds(userId, query);
+  }
 
   @Post()
   @HttpCode(HttpStatus.CREATED)

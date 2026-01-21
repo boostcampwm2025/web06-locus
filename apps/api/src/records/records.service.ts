@@ -6,10 +6,12 @@ import {
   RecordResponseDto,
   RecordResponseSource,
 } from './dto/record-response.dto';
+import { GetRecordsQueryDto } from './dto/get-records-query.dto';
 import { LocationInfo, RecordModel } from './records.types';
 import {
   LocationNotFoundException,
   ImageDeletionFailedException,
+  InvalidBoundsException,
   RecordAccessDeniedException,
   RecordCreationFailedException,
   RecordDeletionFailedException,
@@ -27,8 +29,10 @@ import {
   OUTBOX_EVENT_TYPE,
 } from '@/common/constants/event-types.constants';
 import {
-  GET_RECORD_LOCATION_SQL,
+  COUNT_RECORDS_IN_BOUNDS_SQL,
+  SELECT_RECORDS_IN_BOUNDS_SQL,
   UPDATE_RECORD_LOCATION_SQL,
+  GET_RECORD_LOCATION_SQL,
 } from './sql/record-raw.query';
 import { UpdateRecordDto } from './dto/update-record.dto';
 import { ImageProcessingService } from './services/image-processing.service';
@@ -40,6 +44,7 @@ import {
 } from './services/object-storage.types';
 import { nanoid } from 'nanoid';
 import { UsersService } from '@/users/users.service';
+import { RecordListResponseDto } from './dto/records-list-reponse.dto';
 
 @Injectable()
 export class RecordsService {
@@ -159,6 +164,45 @@ export class RecordsService {
     }
 
     return record;
+  }
+
+  async getRecordsInBounds(
+    userId: bigint,
+    dto: GetRecordsQueryDto,
+  ): Promise<RecordListResponseDto> {
+    if (dto.neLat <= dto.swLat) {
+      throw new InvalidBoundsException(
+        '북동쪽 위도가 남서쪽 위도보다 작거나 같습니다.',
+      );
+    }
+
+    const offset = (dto.page - 1) * dto.limit;
+
+    const [records, countResult] = await Promise.all([
+      this.prisma.$queryRaw<RecordModel[]>(
+        SELECT_RECORDS_IN_BOUNDS_SQL(
+          userId,
+          dto.swLng,
+          dto.swLat,
+          dto.neLng,
+          dto.neLat,
+          dto.sortOrder,
+          dto.limit,
+          offset,
+        ),
+      ),
+      this.prisma.$queryRaw<[{ count: number }]>(
+        COUNT_RECORDS_IN_BOUNDS_SQL(
+          userId,
+          dto.swLng,
+          dto.swLat,
+          dto.neLng,
+          dto.neLat,
+        ),
+      ),
+    ]);
+
+    return RecordListResponseDto.from(records, countResult[0].count);
   }
 
   async getGraph(
