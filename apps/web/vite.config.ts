@@ -50,7 +50,9 @@ const pwaOptions: Partial<VitePWAOptions> = {
     // 캐싱할 파일 확장자 정의 (LCP 관련 이미지 포함 가능)
     globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
     // 외부 도메인(네이버 지도 등) 캐싱은 보안/정책상 서비스워커에서 직접 다루기 까다로우므로 기본 설정 유지
-    // navigateFallbackDenylist: [/^\/api\//],
+
+    // api 경로로 향하는 navigate 요청은 무시(Oauth redirect 시 필요)
+    navigateFallbackDenylist: [/^\/api\//],
   },
 };
 
