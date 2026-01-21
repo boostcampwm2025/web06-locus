@@ -3,7 +3,7 @@ import OnboardingFlow from '../ui/OnboardingFlow';
 import { ROUTES } from '@/router/routes';
 import { setOnboardingCompleted } from '@/infra/storage/onboardingStorage';
 
-export function OnboardingPage() {
+export default function OnboardingPage() {
   const navigate = useNavigate();
   const location = useLocation();
 
