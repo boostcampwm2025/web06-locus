@@ -2,7 +2,6 @@ import { StrictMode, useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App.tsx';
 import './index.css';
-import AppErrorBoundary from './shared/ui/error/ErrorBoundary';
 import { initSentry } from './shared/utils/sentryWrapper';
 
 /**
@@ -113,9 +112,7 @@ if (rootElement) {
 
   root.render(
     <StrictMode>
-      <AppErrorBoundary>
-        <App />
-      </AppErrorBoundary>
+      <App />
     </StrictMode>,
   );
 

@@ -6,6 +6,7 @@ import { getRandomLoadingVersion } from './shared/utils/loadingUtils';
 import { AppRoutes } from './router';
 import { ToastProvider } from './shared/ui/toast';
 import { QueryClientWithToast } from './infra/api/queryClientWithToast';
+import AppErrorBoundary from './shared/ui/error/ErrorBoundary';
 
 function App() {
   const isInitialized = useAuthStore((state) => state.isInitialized);
@@ -40,9 +41,11 @@ function App() {
   return (
     <ToastProvider>
       <QueryClientWithToast>
-        <BrowserRouter>
-          <AppRoutes />
-        </BrowserRouter>
+        <AppErrorBoundary>
+          <BrowserRouter>
+            <AppRoutes />
+          </BrowserRouter>
+        </AppErrorBoundary>
       </QueryClientWithToast>
     </ToastProvider>
   );
