@@ -171,19 +171,19 @@ export class AuthController {
     // Refresh Token을 HttpOnly 쿠키에 저장
     res.cookie('refreshToken', refreshToken, {
       httpOnly: true,
-      secure: this.IS_PRODUCTION,
-      sameSite: this.IS_PRODUCTION ? 'none' : 'lax',
+      secure: process.env.NODE_ENV === 'production', // 프로덕션 환경(HTTPS)에서만 전송
+      sameSite: 'lax',
       maxAge: this.REFRESH_TOKEN_MAX_AGE,
-      path: '/api/auth', // 오직 재발급 경로에서만 전송
+      path: '/api/auth/reissue', // 오직 재발급 경로에서만 전송
     });
   }
 
   private clearRefreshTokenCookie(res: Response) {
     res.clearCookie('refreshToken', {
       httpOnly: true,
-      secure: this.IS_PRODUCTION,
-      sameSite: this.IS_PRODUCTION ? 'none' : 'lax',
-      path: '/api/auth',
+      secure: process.env.NODE_ENV === 'production', // 프로덕션 환경(HTTPS)에서만 전송
+      sameSite: 'lax',
+      path: '/api/auth/reissue',
     });
   }
 

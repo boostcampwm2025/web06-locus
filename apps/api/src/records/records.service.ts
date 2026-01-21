@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '@/prisma/prisma.service';
-import { ReverseGeocodingService } from './services/reverse-geocoding.service';
+import { MapsService } from '../maps/maps.service';
 import { CreateRecordDto } from './dto/create-record.dto';
 import {
   RecordResponseDto,
@@ -52,7 +52,7 @@ export class RecordsService {
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly reverseGeocodingService: ReverseGeocodingService,
+    private readonly reverseGeocodingService: MapsService,
     private readonly outboxService: OutboxService,
     private readonly imageProcessingService: ImageProcessingService,
     private readonly objectStorageService: ObjectStorageService,
@@ -106,7 +106,7 @@ export class RecordsService {
         data: {
           ...(dto.title !== undefined && { title: dto.title }),
           ...(dto.content !== undefined && { content: dto.content }),
-          ...(dto.tags !== undefined && { tags: dto.tags }),
+          //...(dto.tags !== undefined && { tags: dto.tags }),
           ...(dto.location && { locationName, locationAddress }),
         },
       });
@@ -507,7 +507,7 @@ export class RecordsService {
         content: dto.content ?? null,
         locationName,
         locationAddress: address,
-        tags: dto.tags ?? [],
+        //tags: dto.tags ?? [],
         isFavorite: false,
       },
     });
