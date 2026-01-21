@@ -1,5 +1,8 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { RecordModel } from '../records.types';
+import { ImageModel, RecordModel } from '../records.types';
+import { ImageResponseDto } from './record-response.dto';
+
+export type RecordListItemSource = RecordModel & { images: ImageModel[] };
 
 export class RecordLocationDto {
   @ApiProperty({ description: '위도', example: 37.5219 })
@@ -51,6 +54,12 @@ export class RecordListItemDto {
   tags: string[];
 
   @ApiProperty({
+    description: '이미지 목록',
+    type: [ImageResponseDto],
+  })
+  images: ImageResponseDto[];
+
+  @ApiProperty({
     description: '생성 시간',
     example: '2024-01-15T14:30:00Z',
   })
@@ -77,7 +86,7 @@ export class RecordListResponseDto {
   totalCount: number;
 
   static from(
-    records: RecordModel[],
+    records: RecordListItemSource[],
     totalCount: number,
   ): RecordListResponseDto {
     return {
@@ -93,6 +102,28 @@ export class RecordListResponseDto {
         },
         isFavorite: r.isFavorite,
         tags: r.tags,
+        images: r.images.map((img) => ({
+          publicId: img.publicId,
+          thumbnail: {
+            url: img.thumbnailUrl,
+            width: img.thumbnailWidth,
+            height: img.thumbnailHeight,
+            size: img.thumbnailSize,
+          },
+          medium: {
+            url: img.mediumUrl,
+            width: img.mediumWidth,
+            height: img.mediumHeight,
+            size: img.mediumSize,
+          },
+          original: {
+            url: img.originalUrl,
+            width: img.originalWidth,
+            height: img.originalHeight,
+            size: img.originalSize,
+          },
+          order: img.order,
+        })),
         createdAt: r.createdAt.toISOString(),
         updatedAt: r.updatedAt.toISOString(),
       })),
