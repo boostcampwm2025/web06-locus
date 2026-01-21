@@ -30,10 +30,6 @@ export interface ImageModel {
   originalSize: number;
 }
 
-export interface RecordWithImages extends RecordModel {
-  images: ImageModel[];
-}
-
 export interface LocationInfo {
   name: string | null;
   address: string | null;

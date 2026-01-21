@@ -1,5 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { RecordWithImages } from '../records.types';
+import { ImageModel, RecordModel } from '../records.types';
+
+export type RecordResponseSource = RecordModel & { images: ImageModel[] };
 
 export class ImageSizeDto {
   @ApiProperty({ description: 'URL', example: 'https://...' })
@@ -94,7 +96,7 @@ export class RecordResponseDto {
   })
   updatedAt: string;
 
-  static from(record: RecordWithImages): RecordResponseDto {
+  static from(record: RecordResponseSource): RecordResponseDto {
     return {
       publicId: record.publicId,
       title: record.title,

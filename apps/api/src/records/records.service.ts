@@ -2,8 +2,11 @@ import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '@/prisma/prisma.service';
 import { ReverseGeocodingService } from './services/reverse-geocoding.service';
 import { CreateRecordDto } from './dto/create-record.dto';
-import { RecordResponseDto } from './dto/record-response.dto';
-import { LocationInfo, RecordModel, RecordWithImages } from './records.types';
+import {
+  RecordResponseDto,
+  RecordResponseSource,
+} from './dto/record-response.dto';
+import { LocationInfo, RecordModel } from './records.types';
 import {
   ImageDeletionFailedException,
   RecordAccessDeniedException,
@@ -207,7 +210,7 @@ export class RecordsService {
     recordPublicId?: string,
     processedImages?: ProcessedImage[],
     uploadedImages?: UploadedImage[],
-  ): Promise<RecordWithImages> {
+  ): Promise<RecordResponseSource> {
     try {
       const record = await this.prisma.$transaction(async (tx) => {
         const created = await this.saveRecord(
