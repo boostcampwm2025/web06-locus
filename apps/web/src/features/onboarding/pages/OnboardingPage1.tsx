@@ -10,7 +10,7 @@ export function OnboardingPage1() {
   return (
     <>
       {/* Hero Visual Section */}
-      <div className="absolute top-[80px] left-0 w-full h-[320px]">
+      <div className="absolute top-[80px] left-1/2 -translate-x-1/2 w-full max-w-[600px] h-[320px]">
         {PAGE1_FLOATING_CARDS.map((card) => (
           <FloatingImageCard key={card.id} {...card} />
         ))}
