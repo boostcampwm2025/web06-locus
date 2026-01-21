@@ -26,6 +26,11 @@ import { TrashIcon } from '../ui/icons/TrashIcon';
 import { FilterIcon } from '../ui/icons/FilterIcon';
 import { CheckIcon } from '../ui/icons/CheckIcon';
 import { MoreVerticalIcon } from '../ui/icons/MoreVerticalIcon';
+import { MapPinIcon } from '../ui/icons/MapPinIcon';
+import { Link2Icon } from '../ui/icons/Link2Icon';
+import { FileTextIcon } from '../ui/icons/FileTextIcon';
+import { ChevronLeftIcon } from '../ui/icons/ChevronLeftIcon';
+import { ChevronRightIcon } from '../ui/icons/ChevronRightIcon';
 
 const meta = {
   title: 'Shared/Icons',
@@ -192,6 +197,31 @@ export const IconCatalog: Story = {
             icon={<MoreVerticalIcon className="w-8 h-8 text-gray-700" />}
             description="세로 점 3개 메뉴 아이콘"
           />
+          <IconCard
+            name="MapPinIcon"
+            icon={<MapPinIcon className="w-8 h-8 text-red-500" />}
+            description="지도 핀 아이콘"
+          />
+          <IconCard
+            name="Link2Icon"
+            icon={<Link2Icon className="w-8 h-8 text-gray-600" />}
+            description="연결 아이콘 (링크)"
+          />
+          <IconCard
+            name="FileTextIcon"
+            icon={<FileTextIcon className="w-8 h-8 text-gray-600" />}
+            description="파일/문서 아이콘"
+          />
+          <IconCard
+            name="ChevronLeftIcon"
+            icon={<ChevronLeftIcon className="w-8 h-8 text-gray-700" />}
+            description="왼쪽 화살표 아이콘"
+          />
+          <IconCard
+            name="ChevronRightIcon"
+            icon={<ChevronRightIcon className="w-8 h-8 text-gray-700" />}
+            description="오른쪽 화살표 아이콘"
+          />
         </div>
       </div>
 
@@ -280,6 +310,20 @@ export const AllIcons: Story = {
       <IconCard
         name="MoreVerticalIcon"
         icon={<MoreVerticalIcon className="w-8 h-8" />}
+      />
+      <IconCard name="MapPinIcon" icon={<MapPinIcon className="w-8 h-8" />} />
+      <IconCard name="Link2Icon" icon={<Link2Icon className="w-8 h-8" />} />
+      <IconCard
+        name="FileTextIcon"
+        icon={<FileTextIcon className="w-8 h-8" />}
+      />
+      <IconCard
+        name="ChevronLeftIcon"
+        icon={<ChevronLeftIcon className="w-8 h-8" />}
+      />
+      <IconCard
+        name="ChevronRightIcon"
+        icon={<ChevronRightIcon className="w-8 h-8" />}
       />
       <IconCard name="GoogleIcon" icon={<GoogleIcon className="w-8 h-8" />} />
       <IconCard name="NaverIcon" icon={<NaverIcon className="w-8 h-8" />} />
