@@ -1,4 +1,6 @@
-import { MapPinIcon, FileTextIcon, Link2Icon } from '@/shared/icons';
+import MapPinIcon from '@/shared/icons/MapPinIcon';
+import FileTextIcon from '@/shared/icons/FileTextIcon';
+import Link2Icon from '@/shared/icons/Link2Icon';
 import { ONBOARDING_IMAGES } from './onboardingImages';
 import type {
   FloatingCard,

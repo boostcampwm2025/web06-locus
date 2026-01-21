@@ -1,6 +1,7 @@
 import { motion, AnimatePresence } from 'motion/react';
 import { useState } from 'react';
-import { ChevronLeftIcon, ChevronRightIcon } from '@/shared/icons';
+import ChevronLeftIcon from '@/shared/icons/ChevronLeftIcon';
+import ChevronRightIcon from '@/shared/icons/ChevronRightIcon';
 import {
   OnboardingPage1,
   OnboardingPage2,
