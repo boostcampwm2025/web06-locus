@@ -131,6 +131,11 @@ export function buildApiUrl(endpoint: string, absolute = false): string {
     return endpoint;
   }
 
+  // API_BASE_URL이 절대 URL인 경우 (환경 변수로 개발/프로덕션 서버 URL 설정)
+  if (API_BASE_URL.startsWith('http')) {
+    return `${API_BASE_URL}${endpoint}`;
+  }
+
   // 상대 경로로 API_BASE_URL prefix 추가
   const relativeUrl = `${API_BASE_URL}${endpoint}`;
 
