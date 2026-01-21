@@ -169,6 +169,32 @@ export class InvalidJsonFormatException extends BusinessException {
   }
 }
 
+export class BoundsMissingException extends BusinessException {
+  constructor(missingParams: string[]) {
+    super(
+      HttpStatus.BAD_REQUEST,
+      RecordErrorCode.BOUNDS_MISSING,
+      '지도 범위 파라미터가 누락되었습니다.',
+      {
+        missing_params: missingParams,
+      },
+    );
+  }
+}
+
+export class InvalidBoundsException extends BusinessException {
+  constructor(reason: string) {
+    super(
+      HttpStatus.BAD_REQUEST,
+      RecordErrorCode.INVALID_BOUNDS,
+      '지도 범위가 유효하지 않습니다.',
+      {
+        reason,
+      },
+    );
+  }
+}
+
 // 500 Internal Server Error - 서버 에러
 export class ImageProcessingFailedException extends BusinessException {
   constructor(filename: string, error: Error) {
