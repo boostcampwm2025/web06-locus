@@ -44,7 +44,7 @@ export class UpdateRecordDto {
   @IsString()
   @IsOptional()
   @MaxLength(100)
-  title: string;
+  title?: string;
 
   @ApiPropertyOptional({
     description: '기록 내용',
@@ -63,7 +63,7 @@ export class UpdateRecordDto {
   @ValidateNested()
   @IsOptional()
   @Type(() => LocationDto)
-  location: LocationDto;
+  location?: LocationDto;
 
   @ApiPropertyOptional({
     description: '태그 목록',
