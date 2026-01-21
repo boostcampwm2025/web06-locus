@@ -122,7 +122,28 @@ export class RecordsService {
         payload: createRecordSyncPayload(userId, updatedRecord),
       });
 
-      return updatedRecord;
+      const images = await tx.image.findMany({
+        where: { recordId: updatedRecord.id },
+        orderBy: { order: 'asc' },
+        select: {
+          publicId: true,
+          order: true,
+          thumbnailUrl: true,
+          thumbnailWidth: true,
+          thumbnailHeight: true,
+          thumbnailSize: true,
+          mediumUrl: true,
+          mediumWidth: true,
+          mediumHeight: true,
+          mediumSize: true,
+          originalUrl: true,
+          originalWidth: true,
+          originalHeight: true,
+          originalSize: true,
+        },
+      });
+
+      return { ...updatedRecord, images };
     });
     return RecordResponseDto.from(record);
   }
