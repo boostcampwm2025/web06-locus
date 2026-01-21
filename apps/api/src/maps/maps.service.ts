@@ -5,7 +5,6 @@ import {
   ReverseGeocodingResult,
 } from './type/reverse-geocoding.types';
 import { GeocodingResult } from './type/geocoding.type';
-import { NotFoundAddressException } from './exception/geocode.exception';
 
 const GEOCODE_API_URL = 'https://maps.apigw.ntruss.com/map-geocode/v2/geocode';
 const REVERSE_GEOCODE_API_URL =
@@ -59,10 +58,6 @@ export class MapsService {
     const qs = new URLSearchParams({ query: address });
     const url = `${GEOCODE_API_URL}?${qs.toString()}`;
     const result = (await this.callNaverMapApi(url)) as GeocodingResult;
-
-    if (result.meta.totalCount === 0) {
-      throw new NotFoundAddressException(address);
-    }
 
     return result;
   }
