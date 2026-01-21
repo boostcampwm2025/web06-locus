@@ -2,6 +2,11 @@ import { getAccessToken } from '../storage/tokenStorage';
 import { API_BASE_URL } from './constants';
 import { sentry } from '@/shared/utils/sentryWrapper';
 import { handleApiErrorForSentry } from './apiErrorHandler';
+import {
+  ClientError,
+  ServerError,
+  type ApiErrorResponse,
+} from '@/shared/errors';
 
 export interface ApiClientOptions extends RequestInit {
   requireAuth?: boolean;
@@ -144,23 +149,95 @@ async function handleErrorResponse(
   url: string,
   options: ApiClientOptions,
 ): Promise<never> {
-  const responseClone = response.clone();
-  const errorText = await responseClone.text();
   const status = response.status;
-  const statusText = response.statusText || 'Unknown Error';
+  const errorBody = await parseErrorBody(response);
 
-  // API 에러를 Sentry에 전송 (에러 섀도잉 방지를 위해 try-catch로 감쌈)
   try {
     await handleApiErrorForSentry(response, endpoint, url, options);
-  } catch (error) {
-    // Sentry 전송 실패해도 원본 에러는 반드시 던져야 함
-    console.error('Sentry 에러 전송 실패:', error);
+  } catch (err) {
+    console.error('Sentry 전송 실패:', err);
   }
 
-  // API 요청 실패 에러 던지기
-  throw new Error(
-    `API 요청 실패: ${String(status)} ${statusText} - ${errorText}`,
-  );
+  // 메시지 및 코드 결정 (우선순위 전략)
+  const errorCode = errorBody?.code;
+  const errorMessage = determineErrorMessage(status, errorBody);
+
+  // 에러 클래스 분기 처리
+  const errorResponse = errorBody ?? undefined;
+  const ErrorClass = status >= 500 ? ServerError : ClientError;
+  throw new ErrorClass(errorMessage, status, errorCode, errorResponse);
+}
+
+/**
+ * JSON 또는 Text 응답 안전하게 파싱
+ */
+async function parseErrorBody(
+  response: Response,
+): Promise<ApiErrorResponse | null> {
+  // JSON이 아니면 null 반환
+  const contentType = response.headers.get('content-type');
+  if (!contentType?.includes('application/json')) {
+    return null;
+  }
+
+  try {
+    const text = await response.clone().text();
+    const parsed = JSON.parse(text) as unknown;
+
+    // 유효한 ApiErrorResponse 형식인지 확인
+    if (!isValidApiErrorResponse(parsed)) {
+      return null;
+    }
+
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * 파싱된 객체가 유효한 ApiErrorResponse 형식인지 확인
+ */
+function isValidApiErrorResponse(value: unknown): value is ApiErrorResponse {
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+
+  if (!('status' in value)) {
+    return false;
+  }
+
+  return value.status === 'fail' || value.status === 'error';
+}
+
+/**
+ * 상황별 최적의 에러 메시지 결정
+ */
+function determineErrorMessage(
+  status: number,
+  body: ApiErrorResponse | null,
+): string {
+  if (!body) {
+    // body가 null인 경우 기본 메시지 반환
+    return status >= 500
+      ? '서버에 일시적인 문제가 발생했습니다.'
+      : '요청 처리 중 오류가 발생했습니다.';
+  }
+
+  // 1. 백엔드에서 준 메시지가 있으면 최우선
+  if ('message' in body && body.message) {
+    return body.message;
+  }
+
+  // 2. Fail 상태인데 메시지가 없으면 code라도 반환
+  if (body.status === 'fail' && body.code) {
+    return body.code;
+  }
+
+  // 3. 마지막 수단: 상태 코드별 기본 메시지
+  return status >= 500
+    ? '서버에 일시적인 문제가 발생했습니다.'
+    : '요청 처리 중 오류가 발생했습니다.';
 }
 
 /**
