@@ -1,9 +1,12 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import AppHeader from '@/shared/ui/header/AppHeader';
 import CategoryChips from '@/shared/ui/category/CategoryChips';
-import MapViewport from './MapViewport';
 import BottomTabBar from '@/shared/ui/navigation/BottomTabBar';
+import MapLoadingSkeleton from '@/shared/ui/loading/MapLoadingSkeleton';
+
+// 지도 컴포넌트를 동적 임포트
+const MapViewport = lazy(() => import('./MapViewport'));
 import RecordSummaryBottomSheet from '@/features/record/ui/RecordSummaryBottomSheet';
 import ToastErrorMessage from '@/shared/ui/alert/ToastErrorMessage';
 import type { Record, Coordinates } from '@/features/record/types';
@@ -145,10 +148,12 @@ export default function MainMapPage() {
         onSearchCancel={handleSearchCancel}
       />
       <CategoryChips />
-      <MapViewport
-        createdRecordPins={createdRecordPins}
-        connectedRecords={connectedRecords}
-      />
+      <Suspense fallback={<MapLoadingSkeleton />}>
+        <MapViewport
+          createdRecordPins={createdRecordPins}
+          connectedRecords={connectedRecords}
+        />
+      </Suspense>
       <BottomTabBar activeTab="home" onTabChange={handleTabChange} />
 
       {/* 성공 토스트 메시지 */}

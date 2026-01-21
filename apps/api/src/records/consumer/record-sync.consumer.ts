@@ -3,7 +3,8 @@ import { Controller, Logger } from '@nestjs/common';
 import { EventPattern, Payload, Ctx, RmqContext } from '@nestjs/microservices';
 import { RABBITMQ_CONSTANTS } from '@/common/constants/rabbitmq.constants';
 import { RecordSyncEvent } from '../type/record-sync.types';
-import { RecordSearchService } from '../record-search.service';
+import { RecordSearchService } from '../records-search.service';
+import { OUTBOX_EVENT_TYPE } from '@/common/constants/event-types.constants';
 
 @Controller()
 export class RecordSyncConsumer {
@@ -32,14 +33,14 @@ export class RecordSyncConsumer {
     try {
       // 이벤트 타입에 따라 처리
       switch (event.eventType) {
-        case 'RECORD_CREATED':
+        case OUTBOX_EVENT_TYPE.RECORD_CREATED:
           await this.recordSearchService.indexRecord(event.payload);
           break;
-        case 'RECORD_UPDATED':
-          // TODO : await this.updateRecord(event.payload);
+        case OUTBOX_EVENT_TYPE.RECORD_UPDATED:
+          await this.recordSearchService.updateRecord(event.payload);
           break;
-        case 'RECORD_DELETED':
-          // TODO: await this.deleteRecord(event.aggregateId);
+        case OUTBOX_EVENT_TYPE.RECORD_DELETED:
+          await this.recordSearchService.deleteRecord(event.aggregateId);
           break;
       }
 

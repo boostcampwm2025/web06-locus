@@ -47,5 +47,10 @@ export type {
   GraphMeta,
   ConnectedRecordDetail,
 } from '@locus/shared';
-export type { ToastVariant, ToastErrorMessageProps } from './toast';
+export type {
+  ToastVariant,
+  ToastErrorMessageProps,
+  Toast,
+  ToastContextType,
+} from './toast';
 export type { AuthPageHeaderProps } from './header';

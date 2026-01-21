@@ -1,5 +1,5 @@
 import FormSection from './FormSection';
-import ImageIcon from '@/shared/icons/ImageIcon';
+import { ImageIcon } from '@/shared/ui/icons/ImageIcon';
 import type { ImageUploadButtonProps } from '@/shared/types/form';
 
 export default function ImageUploadButton({
