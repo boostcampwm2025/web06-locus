@@ -57,12 +57,15 @@ services:
   locus-rabbitmq:
     image: rabbitmq:4-management
     container_name: locus-rabbitmq
+    hostname: locus-rabbit-node
     ports:
       - '5672:5672'
       - '15672:15672'
     environment:
-      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER}
-      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS}
+      - RABBITMQ_DEFAULT_USER=${RABBITMQ_DEFAULT_USER}
+      - RABBITMQ_DEFAULT_PASS=${RABBITMQ_DEFAULT_PASS}
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
     networks:
       - locus-network
     restart: always
@@ -85,3 +88,4 @@ networks:
 
 volumes:
   elasticsearch_data:
+  rabbitmq_data:

@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '@/prisma/prisma.service';
-import { ReverseGeocodingService } from './services/reverse-geocoding.service';
+import { MapsService } from '../maps/maps.service';
 import { CreateRecordDto } from './dto/create-record.dto';
 import { RecordResponseDto } from './dto/record-response.dto';
 import { LocationInfo, RecordModel } from './records.types';
@@ -39,7 +39,7 @@ export class RecordsService {
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly reverseGeocodingService: ReverseGeocodingService,
+    private readonly reverseGeocodingService: MapsService,
     private readonly outboxService: OutboxService,
     private readonly imageProcessingService: ImageProcessingService,
     private readonly objectStorageService: ObjectStorageService,
@@ -61,6 +61,83 @@ export class RecordsService {
       return this.createRecordWithImages(userId, dto, images);
     }
     return this.createRecordWithoutImages(userId, dto);
+  }
+
+  // NOTE: 업데이트 로직 대충 작성 (todo: 휴고의 로직으로 변경)
+  async updateRecord(
+    userId: bigint,
+    publicId: string,
+    dto: UpdateRecordDto,
+  ): Promise<RecordResponseDto> {
+    const record = await this.prisma.$transaction(async (tx) => {
+      const existing = await tx.record.findFirst({ where: { publicId } });
+
+      if (!existing) throw new RecordNotFoundException(publicId);
+      if (existing.userId !== userId)
+        throw new RecordAccessDeniedException(publicId);
+
+      let locationName = existing.locationName;
+      let locationAddress = existing.locationAddress;
+
+      if (dto.location) {
+        const { name, address } = await this.getLocationInfo(
+          dto.location.latitude,
+          dto.location.longitude,
+        );
+        locationName = name;
+        locationAddress = address;
+      }
+
+      const updated = await tx.record.update({
+        where: { id: existing.id },
+        data: {
+          ...(dto.title !== undefined && { title: dto.title }),
+          ...(dto.content !== undefined && { content: dto.content }),
+          //...(dto.tags !== undefined && { tags: dto.tags }),
+          ...(dto.location && { locationName, locationAddress }),
+        },
+      });
+
+      const updatedRecord = dto.location
+        ? await this.updateLocation(
+            tx,
+            updated.id,
+            dto.location.latitude,
+            dto.location.longitude,
+          )
+        : await this.getRecordWithLocation(tx, existing.id, updated);
+
+      await this.outboxService.publish(tx, {
+        aggregateType: AGGREGATE_TYPE.RECORD,
+        aggregateId: updatedRecord.id.toString(),
+        eventType: OUTBOX_EVENT_TYPE.RECORD_UPDATED,
+        payload: createRecordSyncPayload(userId, updatedRecord),
+      });
+
+      const images = await tx.image.findMany({
+        where: { recordId: updatedRecord.id },
+        orderBy: { order: 'asc' },
+        select: {
+          publicId: true,
+          order: true,
+          thumbnailUrl: true,
+          thumbnailWidth: true,
+          thumbnailHeight: true,
+          thumbnailSize: true,
+          mediumUrl: true,
+          mediumWidth: true,
+          mediumHeight: true,
+          mediumSize: true,
+          originalUrl: true,
+          originalWidth: true,
+          originalHeight: true,
+          originalSize: true,
+        },
+      });
+
+      return { ...updatedRecord, images };
+    });
+    return RecordResponseDto.from(record);
   }
 
   async findOneByPublicId(publicId: string) {
@@ -282,7 +359,7 @@ export class RecordsService {
         content: dto.content ?? null,
         locationName,
         locationAddress: address,
-        tags: dto.tags ?? [],
+        //tags: dto.tags ?? [],
         isFavorite: false,
       },
     });
