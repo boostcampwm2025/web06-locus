@@ -10,7 +10,10 @@ import {
 } from '../pages';
 import type { OnboardingFlowProps } from '../types';
 
-export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
+export default function OnboardingFlow({
+  onComplete,
+  onSkip,
+}: OnboardingFlowProps) {
   const [currentPage, setCurrentPage] = useState(0);
   const totalPages = 4;
 
@@ -56,6 +59,20 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
       <div className="absolute bg-[rgba(255,255,255,0.3)] h-[50.338px] left-[281.97px] rounded-full top-[152.39px] w-[92.108px] blur-sm" />
       <div className="absolute bg-[rgba(255,255,255,0.3)] h-[88.787px] left-[270.62px] rounded-full top-[689.25px] w-[74.508px] blur-sm" />
       <div className="absolute bg-[rgba(255,255,255,0.3)] h-[57.209px] left-[106.5px] rounded-full top-[682.98px] w-[59.855px] blur-sm" />
+
+      {/* Skip button */}
+      {onSkip && (
+        <motion.button
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.5 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={onSkip}
+          className="absolute top-6 right-6 z-20 px-4 py-2.5 bg-white/80 backdrop-blur-sm text-[#6a7282] font-medium rounded-[12px] shadow-md hover:bg-white/90 hover:text-[#101828] transition-all duration-200 text-[14px]"
+        >
+          건너뛰기
+        </motion.button>
+      )}
 
       {/* Page content with animation */}
       <div className="relative z-10 flex flex-col items-center justify-between h-full px-6 py-16">

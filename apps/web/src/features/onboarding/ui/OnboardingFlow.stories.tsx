@@ -65,6 +65,21 @@ export const WithOnComplete: Story = {
   },
 };
 
+export const WithOnSkip: Story = {
+  args: {
+    onComplete: fn(),
+    onSkip: fn(),
+  },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          'onSkip 콜백이 제공되면 상단 우측에 "건너뛰기" 버튼이 표시되며, 클릭 시 호출됩니다.',
+      },
+    },
+  },
+};
+
 export const Mobile: Story = {
   parameters: {
     viewport: {
