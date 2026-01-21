@@ -5,3 +5,13 @@ export interface ToastErrorMessageProps {
   variant?: ToastVariant;
   className?: string;
 }
+
+export interface Toast {
+  id: string;
+  message: string;
+  variant: ToastVariant;
+}
+
+export interface ToastContextType {
+  showToast: (message: string, variant?: ToastVariant) => void;
+}
