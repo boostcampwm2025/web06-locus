@@ -22,19 +22,6 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     return res.status(status).json(body);
   }
 
-  private normalizeMessage(body: unknown, fallback: string): string {
-    if (typeof body === 'string') return body;
-
-    if (typeof body === 'object' && body !== null && 'message' in body) {
-      const message = body.message;
-
-      if (Array.isArray(message)) return message.join(', ');
-      if (typeof message === 'string') return message;
-    }
-
-    return fallback;
-  }
-
   private getHttpContext(host: ArgumentsHost): { req: Request; res: Response } {
     const ctx = host.switchToHttp();
     return {
@@ -68,9 +55,14 @@ export class GlobalExceptionFilter implements ExceptionFilter {
 
       // 4xx -> fail
       if (status >= 400 && status < 500) {
+        const safeMessage = this.ensureClientMessage(
+          message,
+          '요청이 올바르지 않습니다.',
+        );
+
         return {
           status,
-          body: ApiResponse.fail('DEFAULT_CLIENT_ERROR', message),
+          body: ApiResponse.fail('DEFAULT_CLIENT_ERROR', safeMessage),
         };
       }
 
@@ -86,5 +78,23 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       status: HttpStatus.INTERNAL_SERVER_ERROR,
       body: ApiResponse.error('Internal Server Error'),
     };
+  }
+
+  private normalizeMessage(body: unknown, fallback: string): string {
+    if (typeof body === 'string') return body;
+
+    if (typeof body === 'object' && body !== null && 'message' in body) {
+      const message = body.message;
+
+      if (Array.isArray(message)) return message.join(', ');
+      if (typeof message === 'string') return message;
+    }
+
+    return fallback;
+  }
+
+  private ensureClientMessage(value: unknown, fallback: string): string {
+    const msg = typeof value === 'string' ? value.trim() : '';
+    return msg.length > 0 ? msg : fallback;
   }
 }

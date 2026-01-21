@@ -41,11 +41,13 @@ import { AccessToken } from '@/common/decorators/access-token.decorator';
 @Controller('auth')
 export class AuthController {
   private readonly REFRESH_TOKEN_MAX_AGE: number;
+  private readonly IS_PRODUCTION: boolean;
 
   constructor(
     private readonly authService: AuthService,
     private readonly configService: ConfigService,
   ) {
+    this.IS_PRODUCTION = this.configService.get('NODE_ENV') === 'production';
     const rawValue = this.configService.get<string>('JWT_REFRESH_EXPIRES_IN');
     const days = parseInt(rawValue ?? '7', 10);
     const validDays = isNaN(days) ? 7 : days;
@@ -169,19 +171,19 @@ export class AuthController {
     // Refresh Token을 HttpOnly 쿠키에 저장
     res.cookie('refreshToken', refreshToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production', // 프로덕션 환경(HTTPS)에서만 전송
-      sameSite: 'lax', // CSRF 방지
+      secure: this.IS_PRODUCTION,
+      sameSite: this.IS_PRODUCTION ? 'none' : 'lax',
       maxAge: this.REFRESH_TOKEN_MAX_AGE,
-      path: '/api/auth/reissue', // 오직 재발급 경로에서만 전송
+      path: '/api/auth', // 오직 재발급 경로에서만 전송
     });
   }
 
   private clearRefreshTokenCookie(res: Response) {
     res.clearCookie('refreshToken', {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      path: '/api/auth/reissue',
+      secure: this.IS_PRODUCTION,
+      sameSite: this.IS_PRODUCTION ? 'none' : 'lax',
+      path: '/api/auth',
     });
   }
 

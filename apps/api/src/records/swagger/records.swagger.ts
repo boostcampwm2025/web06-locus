@@ -13,6 +13,7 @@ import {
   ApiErrorResponse,
 } from '@/common/utils/swagger-response.helper';
 import { RecordResponseDto } from '../dto/record-response.dto';
+import { RecordListResponseDto } from '../dto/records-list-reponse.dto';
 import { RecordErrorCode } from '../constants/error-codes';
 
 export const CreateRecordSwagger = () =>
@@ -54,6 +55,41 @@ export const CreateRecordSwagger = () =>
       {
         code: RecordErrorCode.INVALID_JSON_FORMAT,
         message: 'JSON 형식이 올바르지 않습니다.',
+      },
+    ]),
+    ApiFailResponse(HttpStatus.UNAUTHORIZED, {
+      code: 'AUTH_TOKEN_MISSING',
+      message: '인증 토큰이 없거나 유효하지 않습니다.',
+    }),
+    ApiErrorResponse(),
+  );
+
+export const GetRecordsSwagger = () =>
+  applyDecorators(
+    ApiExtraModels(RecordListResponseDto),
+    ApiBearerAuth(),
+    ApiOperation({
+      summary: '지도 범위 기반 기록 조회',
+      description:
+        '지도에서 사용자가 보고 있는 범위(Bounding Box) 내에 위치한 기록들을 조회합니다. 페이지네이션을 지원하며, 최신순 또는 오래된순으로 정렬할 수 있습니다.',
+    }),
+    ApiSuccessResponse(RecordListResponseDto, HttpStatus.OK),
+    ApiFailResponse(HttpStatus.BAD_REQUEST, [
+      {
+        code: RecordErrorCode.BOUNDS_MISSING,
+        message: '지도 범위 파라미터가 누락되었습니다.',
+      },
+      {
+        code: RecordErrorCode.INVALID_LATITUDE,
+        message: '위도 값이 유효하지 않습니다. (-90 ~ 90)',
+      },
+      {
+        code: RecordErrorCode.INVALID_LONGITUDE,
+        message: '경도 값이 유효하지 않습니다. (-180 ~ 180)',
+      },
+      {
+        code: RecordErrorCode.INVALID_BOUNDS,
+        message: '지도 범위가 유효하지 않습니다.',
       },
     ]),
     ApiFailResponse(HttpStatus.UNAUTHORIZED, {
