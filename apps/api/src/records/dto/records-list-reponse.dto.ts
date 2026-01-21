@@ -101,7 +101,7 @@ export class RecordListResponseDto {
           address: r.locationAddress,
         },
         isFavorite: r.isFavorite,
-        tags: r.tags,
+        tags: [],
         images: r.images.map((img) => ({
           publicId: img.publicId,
           thumbnail: {

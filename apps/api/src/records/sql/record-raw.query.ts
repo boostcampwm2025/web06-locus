@@ -15,6 +15,7 @@ export const SELECT_RECORDS_IN_BOUNDS_SQL = (
 
   return Prisma.sql`
     SELECT
+      id,
       public_id AS "publicId",
       title,
       content,
@@ -22,7 +23,6 @@ export const SELECT_RECORDS_IN_BOUNDS_SQL = (
       ST_X(location) AS longitude,
       location_name AS "locationName",
       location_address AS "locationAddress",
-      tags,
       is_favorite AS "isFavorite",
       created_at AS "createdAt",
       updated_at AS "updatedAt"
@@ -68,14 +68,13 @@ export const UPDATE_RECORD_LOCATION_SQL = (
   WHERE id = ${recordId}
   RETURNING
     id,
-    public_id AS "publicId", 
+    public_id AS "publicId",
     content,
     title,
     ST_X(location) AS longitude,
     ST_Y(location) AS latitude,
     location_name AS "locationName",
     location_address AS "locationAddress",
-    tags,
     is_favorite AS "isFavorite",
     created_at AS "createdAt",
     updated_at AS "updatedAt"
@@ -111,7 +110,6 @@ export const SELECT_RECORDS_BY_LOCATION_SQL = (
       ST_X(location) AS longitude,
       location_name AS "locationName",
       location_address AS "locationAddress",
-      tags,
       is_favorite AS "isFavorite",
       created_at AS "createdAt",
       updated_at AS "updatedAt"
