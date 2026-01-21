@@ -35,8 +35,8 @@ const RecordConnectionPage = lazy(
   () => import('@/features/connection/ui/RecordConnectionPage'),
 );
 const RecordWritePageRoute = lazy(() => import('./RecordWritePageRoute'));
-const OnboardingFlow = lazy(
-  () => import('@/features/onboarding/ui/OnboardingFlow'),
+const OnboardingPage = lazy(
+  () => import('@/features/onboarding/pages/OnboardingPage'),
 );
 
 // 로딩 폴백 컴포넌트
@@ -102,13 +102,9 @@ function RecordConnectionPageRoute() {
 }
 
 function OnboardingPageRoute() {
-  const navigate = useNavigate();
   return (
     <Suspense fallback={<RouteLoadingFallback />}>
-      <OnboardingFlow
-        onComplete={() => void navigate(ROUTES.HOME)}
-        onSkip={() => void navigate(ROUTES.HOME)}
-      />
+      <OnboardingPage />
     </Suspense>
   );
 }
