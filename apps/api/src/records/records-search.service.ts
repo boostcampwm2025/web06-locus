@@ -7,6 +7,7 @@ import {
   RECORD_INDEX_SETTINGS,
   RECORD_SEARCH_MAPPING,
 } from './constants/record-search.constant';
+import { ESDocumentNotFoundException } from './exceptions/record.exceptions';
 
 @Injectable()
 export class RecordSearchService {
@@ -31,12 +32,14 @@ export class RecordSearchService {
         index: RECORD_INDEX_NAME,
         id: String(payload.recordId),
         doc: payload,
-        doc_as_upsert: true, // 문서가 없으면 생성 (혹시 모를 문제를 예방)
       });
 
       this.logger.log(`✅ Record ${payload.recordId} 업데이트 완료`);
     } catch (error) {
       this.logger.error(`❌ Record ${payload.recordId} 업데이트 실패`, error);
+      if (error instanceof errors.ResponseError && error.statusCode === 404) {
+        throw new ESDocumentNotFoundException(payload.recordId);
+      }
       throw error;
     }
   }
