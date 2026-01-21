@@ -1,6 +1,6 @@
 import BaseBottomSheet from '@/shared/ui/bottomSheet/BaseBottomSheet';
-import XIcon from '@/shared/icons/XIcon';
-import CheckIcon from '@/shared/icons/CheckIcon';
+import { XIcon } from '@/shared/ui/icons/XIcon';
+import { CheckIcon } from '@/shared/ui/icons/CheckIcon';
 import type { FilterBottomSheetProps } from '@/features/record/types';
 
 export default function FilterBottomSheet({

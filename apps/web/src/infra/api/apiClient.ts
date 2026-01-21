@@ -1,6 +1,12 @@
 import { getAccessToken } from '../storage/tokenStorage';
 import { API_BASE_URL } from './constants';
-import * as Sentry from '@sentry/react';
+import { sentry } from '@/shared/utils/sentryWrapper';
+import { handleApiErrorForSentry } from './apiErrorHandler';
+import {
+  ClientError,
+  ServerError,
+  type ApiErrorResponse,
+} from '@/shared/errors';
 
 export interface ApiClientOptions extends RequestInit {
   requireAuth?: boolean;
@@ -20,7 +26,7 @@ export const apiClient = async <T = unknown>(
   const startTime = Date.now();
 
   // API 요청 Breadcrumb 추가
-  Sentry.addBreadcrumb({
+  void sentry.addBreadcrumb({
     category: 'api',
     message: `API ${method} ${endpoint}`,
     level: 'info',
@@ -38,7 +44,7 @@ export const apiClient = async <T = unknown>(
   const duration = Date.now() - startTime;
 
   // API 응답 Breadcrumb 추가
-  Sentry.addBreadcrumb({
+  void sentry.addBreadcrumb({
     category: 'api',
     message: `API ${method} ${endpoint} - ${response.status}`,
     level: response.ok ? 'info' : 'error',
@@ -143,57 +149,95 @@ async function handleErrorResponse(
   url: string,
   options: ApiClientOptions,
 ): Promise<never> {
-  // response를 복제해서 텍스트를 추출 (원본 response는 그대로 유지)
-  const responseClone = response.clone();
-  const errorText = await responseClone.text();
-  const statusText = response.statusText || 'Unknown Error';
+  const status = response.status;
+  const errorBody = await parseErrorBody(response);
 
-  // 401 에러는 조건부로만 Sentry 전송
-  if (response.status === 401) {
-    const accessToken = getAccessToken();
-    const requireAuth = options.requireAuth !== false;
-
-    // 비정상적인 401만 전송
-    // - 토큰이 있는데도 401 발생
-    // - 인증이 필요한 요청인데 401 발생
-    if (accessToken && requireAuth) {
-      Sentry.captureException(new Error('유효한 토큰이 있는데도 401 발생'), {
-        tags: {
-          error_type: 'api_error',
-          http_status: 401,
-          endpoint: endpoint,
-          auth_status: 'has_token',
-        },
-        extra: {
-          status_text: statusText,
-          response_body: errorText.substring(0, 1000),
-          request_url: url,
-          request_method: options.method ?? 'GET',
-        },
-        level: 'warning',
-      });
-    }
-    // 정상적인 401은 Sentry 전송 안 함 (로그인 안 한 사용자 등)
-  } else {
-    // 401이 아닌 다른 에러는 모두 전송
-    Sentry.captureException(new Error(`API ${response.status}`), {
-      tags: {
-        error_type: 'api_error',
-        http_status: response.status,
-        endpoint: endpoint,
-      },
-      extra: {
-        status_text: statusText,
-        response_body: errorText.substring(0, 1000), // 너무 긴 응답은 잘라내기
-        request_url: url,
-        request_method: options.method ?? 'GET',
-      },
-    });
+  try {
+    await handleApiErrorForSentry(response, endpoint, url, options);
+  } catch (err) {
+    console.error('Sentry 전송 실패:', err);
   }
 
-  throw new Error(
-    `API 요청 실패: ${String(response.status)} ${statusText} - ${errorText}`,
-  );
+  // 메시지 및 코드 결정 (우선순위 전략)
+  const errorCode = errorBody?.code;
+  const errorMessage = determineErrorMessage(status, errorBody);
+
+  // 에러 클래스 분기 처리
+  const errorResponse = errorBody ?? undefined;
+  const ErrorClass = status >= 500 ? ServerError : ClientError;
+  throw new ErrorClass(errorMessage, status, errorCode, errorResponse);
+}
+
+/**
+ * JSON 또는 Text 응답 안전하게 파싱
+ */
+async function parseErrorBody(
+  response: Response,
+): Promise<ApiErrorResponse | null> {
+  // JSON이 아니면 null 반환
+  const contentType = response.headers.get('content-type');
+  if (!contentType?.includes('application/json')) {
+    return null;
+  }
+
+  try {
+    const text = await response.clone().text();
+    const parsed = JSON.parse(text) as unknown;
+
+    // 유효한 ApiErrorResponse 형식인지 확인
+    if (!isValidApiErrorResponse(parsed)) {
+      return null;
+    }
+
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * 파싱된 객체가 유효한 ApiErrorResponse 형식인지 확인
+ */
+function isValidApiErrorResponse(value: unknown): value is ApiErrorResponse {
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+
+  if (!('status' in value)) {
+    return false;
+  }
+
+  return value.status === 'fail' || value.status === 'error';
+}
+
+/**
+ * 상황별 최적의 에러 메시지 결정
+ */
+function determineErrorMessage(
+  status: number,
+  body: ApiErrorResponse | null,
+): string {
+  if (!body) {
+    // body가 null인 경우 기본 메시지 반환
+    return status >= 500
+      ? '서버에 일시적인 문제가 발생했습니다.'
+      : '요청 처리 중 오류가 발생했습니다.';
+  }
+
+  // 1. 백엔드에서 준 메시지가 있으면 최우선
+  if ('message' in body && body.message) {
+    return body.message;
+  }
+
+  // 2. Fail 상태인데 메시지가 없으면 code라도 반환
+  if (body.status === 'fail' && body.code) {
+    return body.code;
+  }
+
+  // 3. 마지막 수단: 상태 코드별 기본 메시지
+  return status >= 500
+    ? '서버에 일시적인 문제가 발생했습니다.'
+    : '요청 처리 중 오류가 발생했습니다.';
 }
 
 /**

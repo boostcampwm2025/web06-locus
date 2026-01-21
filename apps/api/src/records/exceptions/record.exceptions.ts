@@ -169,6 +169,32 @@ export class InvalidJsonFormatException extends BusinessException {
   }
 }
 
+export class BoundsMissingException extends BusinessException {
+  constructor(missingParams: string[]) {
+    super(
+      HttpStatus.BAD_REQUEST,
+      RecordErrorCode.BOUNDS_MISSING,
+      '지도 범위 파라미터가 누락되었습니다.',
+      {
+        missing_params: missingParams,
+      },
+    );
+  }
+}
+
+export class InvalidBoundsException extends BusinessException {
+  constructor(reason: string) {
+    super(
+      HttpStatus.BAD_REQUEST,
+      RecordErrorCode.INVALID_BOUNDS,
+      '지도 범위가 유효하지 않습니다.',
+      {
+        reason,
+      },
+    );
+  }
+}
+
 // 500 Internal Server Error - 서버 에러
 export class ImageProcessingFailedException extends BusinessException {
   constructor(filename: string, error: Error) {
@@ -196,24 +222,48 @@ export class RecordCreationFailedException extends BusinessException {
     );
   }
 }
+
 export class RecordAccessDeniedException extends BusinessException {
   constructor(recordId: string) {
     super(
-      403,
+      HttpStatus.FORBIDDEN,
       RecordErrorCode.RECORD_ACCESS_DENIED,
       '해당 기록에 대한 권한이 없습니다.',
-      {
-        record_id: recordId,
-      },
+      { record_id: recordId },
     );
   }
 }
 
 export class RecordNotFoundException extends BusinessException {
   constructor(recordId: string) {
-    super(404, RecordErrorCode.RECORD_NOT_FOUND, '기록을 찾을 수 없습니다.', {
-      record_id: recordId,
-    });
+    super(
+      HttpStatus.NOT_FOUND,
+      RecordErrorCode.RECORD_NOT_FOUND,
+      '기록을 찾을 수 없습니다.',
+      { record_id: recordId },
+    );
+  }
+}
+
+export class ESDocumentNotFoundException extends BusinessException {
+  constructor(recordId: string) {
+    super(
+      HttpStatus.NOT_FOUND,
+      RecordErrorCode.ES_DOCUMENT_NOT_FOUND,
+      '기록 document을 찾을 수 없습니다.',
+      { record_id: recordId },
+    );
+  }
+}
+
+export class LocationNotFoundException extends BusinessException {
+  constructor(recordId: string) {
+    super(
+      HttpStatus.NOT_FOUND,
+      RecordErrorCode.LOCATION_NOT_FOUND,
+      '기록의 장소를 찾을 수 없습니다.',
+      { record_id: recordId },
+    );
   }
 }
 

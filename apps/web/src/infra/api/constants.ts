@@ -14,6 +14,9 @@ export const API_ENDPOINTS = {
   AUTH_LOGIN: '/auth/login',
   AUTH_LOGOUT: '/auth/logout',
 
+  // Users
+  USERS_ME: '/users/me',
+
   // Records
   RECORDS: '/records',
   RECORDS_BY_ID: (publicId: string) => `/records/${publicId}`,
