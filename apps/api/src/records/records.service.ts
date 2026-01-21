@@ -106,7 +106,7 @@ export class RecordsService {
         data: {
           ...(dto.title !== undefined && { title: dto.title }),
           ...(dto.content !== undefined && { content: dto.content }),
-          ...(dto.tags !== undefined && { tags: dto.tags }),
+          //...(dto.tags !== undefined && { tags: dto.tags }),
           ...(dto.location && { locationName, locationAddress }),
         },
       });
@@ -507,7 +507,7 @@ export class RecordsService {
         content: dto.content ?? null,
         locationName,
         locationAddress: address,
-        tags: dto.tags ?? [],
+        //tags: dto.tags ?? [],
         isFavorite: false,
       },
     });
