@@ -7,7 +7,6 @@ import { FormInputField } from '@/shared/ui/form';
 import { SocialLoginButton } from '@/shared/ui/button';
 import { ToastErrorMessage } from '@/shared/ui/alert';
 import { AuthPageHeader } from '@/shared/ui/header';
-import { isOnboardingCompleted } from '@/infra/storage/onboardingStorage';
 
 export default function EmailLoginPage() {
   const navigate = useNavigate();
@@ -28,18 +27,8 @@ export default function EmailLoginPage() {
       // localStorage에는 accessToken만 저장 (refreshToken은 쿠키에만 저장)
       void setTokens(response.data.accessToken, '');
 
-      // 온보딩 완료 여부 확인
-      // accessToken 발급 시점이므로 신규 가입자로 간주하고 온보딩으로 이동
-      const onboardingCompleted = isOnboardingCompleted();
-
-      // 상태 업데이트가 완료된 후 navigate 실행
-      setTimeout(() => {
-        if (!onboardingCompleted) {
-          void navigate(ROUTES.ONBOARDING, { replace: true });
-        } else {
-          void navigate(ROUTES.HOME, { replace: true });
-        }
-      }, 0);
+      // ProtectedRoute에서 온보딩 체크를 처리하므로 HOME으로 이동
+      void navigate(ROUTES.HOME, { replace: true });
     } catch (err) {
       if (err instanceof AuthError) {
         setError(err.message);

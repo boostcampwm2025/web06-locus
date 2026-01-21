@@ -5,7 +5,6 @@ import ErrorFallback from '@/shared/ui/error/ErrorFallback';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { getRandomLoadingVersion } from '@/shared/utils/loadingUtils';
 import { ROUTES } from '@/router/routes';
-import { isOnboardingCompleted } from '@/infra/storage/onboardingStorage';
 
 export default function OAuthCallbackPage() {
   const [searchParams] = useSearchParams();
@@ -48,17 +47,8 @@ export default function OAuthCallbackPage() {
       // URL에서 토큰 파라미터 제거
       window.history.replaceState({}, document.title, ROUTES.AUTH_CALLBACK);
 
-      // accessToken 발급 시점이므로 신규 가입자로 간주하고 온보딩으로 이동
-      const onboardingCompleted = isOnboardingCompleted();
-
-      // 상태 업데이트가 완료된 후 navigate 실행
-      setTimeout(() => {
-        if (!onboardingCompleted) {
-          void navigate(ROUTES.ONBOARDING, { replace: true });
-        } else {
-          void navigate(ROUTES.HOME, { replace: true });
-        }
-      }, 0);
+      // ProtectedRoute에서 온보딩 체크를 처리하므로 HOME으로 이동
+      void navigate(ROUTES.HOME, { replace: true });
     } catch (err) {
       // 예외 발생 시 기존 토큰 정리
       clearAuth();
