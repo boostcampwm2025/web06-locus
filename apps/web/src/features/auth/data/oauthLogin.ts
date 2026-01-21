@@ -8,7 +8,7 @@ import { buildApiUrl } from '@/infra/api/apiClient';
  */
 function getOAuthLoginUrl(provider: OAuthProvider): string {
   const endpoint = API_ENDPOINTS.AUTH_OAUTH2(provider);
-  return buildApiUrl(endpoint, true);
+  return buildApiUrl(endpoint, false);
 }
 
 /**
