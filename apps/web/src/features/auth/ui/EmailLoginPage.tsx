@@ -26,7 +26,9 @@ export default function EmailLoginPage() {
 
       // localStorage에는 accessToken만 저장 (refreshToken은 쿠키에만 저장)
       void setTokens(response.data.accessToken, '');
-      void navigate(ROUTES.HOME);
+
+      // ProtectedRoute에서 온보딩 체크를 처리하므로 HOME으로 이동
+      void navigate(ROUTES.HOME, { replace: true });
     } catch (err) {
       if (err instanceof AuthError) {
         setError(err.message);

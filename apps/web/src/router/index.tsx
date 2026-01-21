@@ -35,6 +35,9 @@ const RecordConnectionPage = lazy(
   () => import('@/features/connection/ui/RecordConnectionPage'),
 );
 const RecordWritePageRoute = lazy(() => import('./RecordWritePageRoute'));
+const OnboardingFlow = lazy(
+  () => import('@/features/onboarding/ui/OnboardingFlow'),
+);
 
 // 로딩 폴백 컴포넌트
 const RouteLoadingFallback = () => {
@@ -98,6 +101,18 @@ function RecordConnectionPageRoute() {
   );
 }
 
+function OnboardingPageRoute() {
+  const navigate = useNavigate();
+  return (
+    <Suspense fallback={<RouteLoadingFallback />}>
+      <OnboardingFlow
+        onComplete={() => void navigate(ROUTES.HOME)}
+        onSkip={() => void navigate(ROUTES.HOME)}
+      />
+    </Suspense>
+  );
+}
+
 /**
  * 최상위 Suspense를 활용한 전체 라우트 정의
  */
@@ -139,8 +154,15 @@ export function AppRoutes() {
             </PublicRoute>
           }
         />
-
         {/* Protected Routes */}
+        <Route
+          path={ROUTES.ONBOARDING}
+          element={
+            <ProtectedRoute>
+              <OnboardingPageRoute />
+            </ProtectedRoute>
+          }
+        />
         <Route
           path={ROUTES.HOME}
           element={

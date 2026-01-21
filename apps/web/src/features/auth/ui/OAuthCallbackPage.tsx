@@ -46,6 +46,8 @@ export default function OAuthCallbackPage() {
 
       // URL에서 토큰 파라미터 제거
       window.history.replaceState({}, document.title, ROUTES.AUTH_CALLBACK);
+
+      // ProtectedRoute에서 온보딩 체크를 처리하므로 HOME으로 이동
       void navigate(ROUTES.HOME, { replace: true });
     } catch (err) {
       // 예외 발생 시 기존 토큰 정리
