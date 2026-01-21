@@ -1,4 +1,4 @@
-import ErrorIcon from '@/shared/icons/ErrorIcon';
+import { ErrorIcon } from '@/shared/ui/icons/ErrorIcon';
 import type { ToastVariant, ToastErrorMessageProps } from '@/shared/types';
 
 const variantStyles: Record<

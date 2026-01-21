@@ -1,5 +1,7 @@
 import { getAccessToken } from '../storage/tokenStorage';
 import { API_BASE_URL } from './constants';
+import { sentry } from '@/shared/utils/sentryWrapper';
+import { handleApiErrorForSentry } from './apiErrorHandler';
 
 export interface ApiClientOptions extends RequestInit {
   requireAuth?: boolean;
@@ -15,10 +17,36 @@ export const apiClient = async <T = unknown>(
   const isFormData = restOptions.body instanceof FormData;
   const requestHeaders = prepareHeaders(headers, requireAuth, isFormData);
   const url = buildApiUrl(endpoint);
+  const method = options.method ?? 'GET';
+  const startTime = Date.now();
+
+  // API 요청 Breadcrumb 추가
+  void sentry.addBreadcrumb({
+    category: 'api',
+    message: `API ${method} ${endpoint}`,
+    level: 'info',
+    data: {
+      url,
+      method,
+    },
+  });
 
   const response = await fetch(url, {
     ...restOptions,
     headers: requestHeaders,
+  });
+
+  const duration = Date.now() - startTime;
+
+  // API 응답 Breadcrumb 추가
+  void sentry.addBreadcrumb({
+    category: 'api',
+    message: `API ${method} ${endpoint} - ${response.status}`,
+    level: response.ok ? 'info' : 'error',
+    data: {
+      status: response.status,
+      duration,
+    },
   });
 
   if (response.status === 401) {
@@ -26,7 +54,7 @@ export const apiClient = async <T = unknown>(
   }
 
   if (!response.ok) {
-    await handleErrorResponse(response);
+    await handleErrorResponse(response, endpoint, url, options);
   }
 
   return parseResponse<T>(response);
@@ -89,10 +117,20 @@ function prepareHeaders(
 /**
  * API URL 생성
  * @param endpoint - API 엔드포인트
+ * @param absolute - 절대 URL로 반환할지 여부 (기본값: false, 상대 경로)
  * @returns 완전한 API URL
  */
-export function buildApiUrl(endpoint: string): string {
-  return endpoint.startsWith('http') ? endpoint : `${API_BASE_URL}${endpoint}`;
+export function buildApiUrl(endpoint: string, absolute = false): string {
+  // 이미 절대 URL인 경우 그대로 반환
+  if (endpoint.startsWith('http')) {
+    return endpoint;
+  }
+
+  // 상대 경로로 API_BASE_URL prefix 추가
+  const relativeUrl = `${API_BASE_URL}${endpoint}`;
+
+  // 절대 URL이 필요한 경우 (예: window.location.href)
+  return absolute ? `${window.location.origin}${relativeUrl}` : relativeUrl;
 }
 
 async function handleUnauthorized(): Promise<void> {
@@ -100,11 +138,28 @@ async function handleUnauthorized(): Promise<void> {
   useAuthStore.getState().clearAuth();
 }
 
-async function handleErrorResponse(response: Response): Promise<never> {
-  const errorText = await response.text();
+async function handleErrorResponse(
+  response: Response,
+  endpoint: string,
+  url: string,
+  options: ApiClientOptions,
+): Promise<never> {
+  const responseClone = response.clone();
+  const errorText = await responseClone.text();
+  const status = response.status;
   const statusText = response.statusText || 'Unknown Error';
+
+  // API 에러를 Sentry에 전송 (에러 섀도잉 방지를 위해 try-catch로 감쌈)
+  try {
+    await handleApiErrorForSentry(response, endpoint, url, options);
+  } catch (error) {
+    // Sentry 전송 실패해도 원본 에러는 반드시 던져야 함
+    console.error('Sentry 에러 전송 실패:', error);
+  }
+
+  // API 요청 실패 에러 던지기
   throw new Error(
-    `API 요청 실패: ${String(response.status)} ${statusText} - ${errorText}`,
+    `API 요청 실패: ${String(status)} ${statusText} - ${errorText}`,
   );
 }
 

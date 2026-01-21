@@ -1,28 +1,31 @@
 import { ErrorBoundary } from 'react-error-boundary';
+import { sentry } from '@/shared/utils/sentryWrapper';
 import ErrorFallback from './ErrorFallback';
 
 interface Props {
-    children: React.ReactNode;
+  children: React.ReactNode;
 }
 
 export default function AppErrorBoundary({ children }: Props) {
-    return (
-        <ErrorBoundary
-            FallbackComponent={ErrorFallback}
-            // TODO: 에러 로깅 도입 시 사용 (ex. Sentry)
-            // onError={(error, errorInfo) => {
-            //   Sentry.captureException(error, { extra: errorInfo });
-            // }}
+  return (
+    <ErrorBoundary
+      FallbackComponent={ErrorFallback}
+      onError={(error, errorInfo) => {
+        // @ts-expect-error - sentry.withScope의 타입 추론 문제로 인한 타입 에러
+        void sentry.withScope((scope) => {
+          /* Tags: 필터링 및 그룹화에 사용  */
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+          scope.setTag('error_boundary', 'true');
 
-            // TODO: 재시도 UX 정책 확정 후 구현
-            // onReset={() => {
-            //   // 상태 초기화 or refetch
-            // }}
+          /* Extra: 에러와 관련된 추가 정보 (React의 componentStack 포함) */
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+          scope.setExtras(errorInfo as unknown as Record<string, unknown>);
 
-            // TODO: 페이지 전환 등 자동 리셋이 필요해질 경우 사용
-            // resetKeys={[location.pathname]}
-        >
-            {children}
-        </ErrorBoundary>
-    );
+          void sentry.captureException(error);
+        });
+      }}
+    >
+      {children}
+    </ErrorBoundary>
+  );
 }

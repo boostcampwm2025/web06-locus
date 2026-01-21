@@ -222,24 +222,48 @@ export class RecordCreationFailedException extends BusinessException {
     );
   }
 }
+
 export class RecordAccessDeniedException extends BusinessException {
   constructor(recordId: string) {
     super(
-      403,
+      HttpStatus.FORBIDDEN,
       RecordErrorCode.RECORD_ACCESS_DENIED,
       '해당 기록에 대한 권한이 없습니다.',
-      {
-        record_id: recordId,
-      },
+      { record_id: recordId },
     );
   }
 }
 
 export class RecordNotFoundException extends BusinessException {
   constructor(recordId: string) {
-    super(404, RecordErrorCode.RECORD_NOT_FOUND, '기록을 찾을 수 없습니다.', {
-      record_id: recordId,
-    });
+    super(
+      HttpStatus.NOT_FOUND,
+      RecordErrorCode.RECORD_NOT_FOUND,
+      '기록을 찾을 수 없습니다.',
+      { record_id: recordId },
+    );
+  }
+}
+
+export class ESDocumentNotFoundException extends BusinessException {
+  constructor(recordId: string) {
+    super(
+      HttpStatus.NOT_FOUND,
+      RecordErrorCode.ES_DOCUMENT_NOT_FOUND,
+      '기록 document을 찾을 수 없습니다.',
+      { record_id: recordId },
+    );
+  }
+}
+
+export class LocationNotFoundException extends BusinessException {
+  constructor(recordId: string) {
+    super(
+      HttpStatus.NOT_FOUND,
+      RecordErrorCode.LOCATION_NOT_FOUND,
+      '기록의 장소를 찾을 수 없습니다.',
+      { record_id: recordId },
+    );
   }
 }
 

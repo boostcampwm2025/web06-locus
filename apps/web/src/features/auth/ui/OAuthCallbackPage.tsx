@@ -42,7 +42,7 @@ export default function OAuthCallbackPage() {
       }
 
       // refreshToken은 /auth/reissue 엔드포인트에서 쿠키로 자동 전송됨
-      setTokens(accessToken, '');
+      void setTokens(accessToken, '');
 
       // URL에서 토큰 파라미터 제거
       window.history.replaceState({}, document.title, ROUTES.AUTH_CALLBACK);

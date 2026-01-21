@@ -69,8 +69,8 @@ export const UPDATE_RECORD_LOCATION_SQL = (
   RETURNING
     id,
     public_id AS "publicId", 
-    title,
     content,
+    title,
     ST_X(location) AS longitude,
     ST_Y(location) AS latitude,
     location_name AS "locationName",
@@ -79,4 +79,12 @@ export const UPDATE_RECORD_LOCATION_SQL = (
     is_favorite AS "isFavorite",
     created_at AS "createdAt",
     updated_at AS "updatedAt"
+`;
+
+export const GET_RECORD_LOCATION_SQL = (recordId: bigint) => Prisma.sql`
+  SELECT 
+    ST_X(location::geometry) as longitude,
+    ST_Y(location::geometry) as latitude
+  FROM records
+  WHERE id = ${recordId}
 `;
