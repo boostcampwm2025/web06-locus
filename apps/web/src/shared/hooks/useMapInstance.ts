@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { loadNaverMapScript } from '@/infra/map/naverMapLoader';
 import { useGeolocation } from './useGeolocation';
 import { initializePinOverlayViewClass } from '@/infra/map/marker/PinOverlayView';
+import { useAuthStore } from '@/features/auth/domain/authStore';
 import type { UseMapInstanceOptions } from '@/shared/types';
 
 const DEFAULT_CENTER_LAT = 37.5665;
@@ -24,7 +25,10 @@ export function useMapInstance(options: UseMapInstanceOptions = {}) {
   const [isMapLoaded, setIsMapLoaded] = useState(false);
   const [mapLoadError, setMapLoadError] = useState<string | null>(null);
 
-  const geolocation = useGeolocation();
+  // 로그인 체크가 완료된 후에만 위치 권한 요청
+  const isInitialized = useAuthStore((state) => state.isInitialized);
+  const geolocationEnabled = shouldUseGeolocation && isInitialized;
+  const geolocation = useGeolocation(geolocationEnabled);
   const latitude = shouldUseGeolocation ? geolocation.latitude : null;
   const longitude = shouldUseGeolocation ? geolocation.longitude : null;
 
