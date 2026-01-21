@@ -77,15 +77,19 @@ function RecordDetailPageRoute() {
         onFavoriteToggle={() => {
           void undefined;
         }}
-        onMenuClick={() => {
-          void undefined;
-        }}
+        // onMenuClick을 전달하지 않으면 내부에서 ActionSheet를 열도록 함
         onConnectionManage={() => {
           if (id) {
             void navigate(generatePath(ROUTES.CONNECTION_MANAGEMENT, { id }));
           }
         }}
         onConnectionMode={() => void navigate(ROUTES.CONNECTION)}
+        onEdit={() => {
+          // TODO: API 연동 후 구현 예정
+        }}
+        onDelete={() => {
+          // TODO: API 연동 후 구현 예정
+        }}
       />
     </Suspense>
   );

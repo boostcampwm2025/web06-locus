@@ -31,7 +31,6 @@ export default function RecordDetailPage({
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const menuButtonRef = useRef<HTMLButtonElement>(null);
 
-  // 메뉴 클릭 핸들러
   const handleMenuClick = () => {
     if (onMenuClick) {
       onMenuClick();
@@ -76,26 +75,30 @@ export default function RecordDetailPage({
       />
 
       {/* 메뉴 액션 시트 */}
-      <ActionSheet
-        isOpen={isActionSheetOpen}
-        onClose={() => setIsActionSheetOpen(false)}
-        anchorElement={menuButtonRef.current}
-        items={[
-          ...(onEdit ? [{ label: '편집하기', onClick: onEdit }] : []),
-          ...(onDelete
-            ? [
-                {
-                  label: '삭제하기',
-                  onClick: () => {
-                    setIsActionSheetOpen(false);
-                    setIsDeleteConfirmOpen(true);
-                  },
-                  variant: 'danger' as const,
-                },
-              ]
-            : []),
-        ]}
-      />
+      {isActionSheetOpen && (
+        <div className="relative">
+          <ActionSheet
+            isOpen={isActionSheetOpen}
+            onClose={() => setIsActionSheetOpen(false)}
+            anchorElement={menuButtonRef.current}
+            items={[
+              ...(onEdit ? [{ label: '편집하기', onClick: onEdit }] : []),
+              ...(onDelete
+                ? [
+                    {
+                      label: '삭제하기',
+                      onClick: () => {
+                        setIsActionSheetOpen(false);
+                        setIsDeleteConfirmOpen(true);
+                      },
+                      variant: 'danger' as const,
+                    },
+                  ]
+                : []),
+            ]}
+          />
+        </div>
+      )}
 
       {/* 삭제 확인 다이얼로그 */}
       <ConfirmDialog
