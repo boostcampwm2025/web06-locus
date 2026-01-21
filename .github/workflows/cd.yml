@@ -43,7 +43,7 @@ jobs:
           file: ./nginx/Dockerfile
           push: true
           build-args: |
-            VITE_NAVER_MAP_CLIENT_ID=${{ secrets.VITE_NAVER_MAP_CLIENT_ID }}
+            VITE_NAVER_CLIENT_ID=${{ secrets.VITE_NAVER_CLIENT_ID }}
             VITE_API_BASE_URL=${{ secrets.VITE_API_BASE_URL }}
           tags: |
             ${{ secrets.DEV_REGISTRY }}/locus-nginx:latest
