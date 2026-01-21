@@ -1,4 +1,4 @@
-import SearchIcon from '@/shared/icons/SearchIcon';
+import { SearchIcon } from '@/shared/ui/icons/SearchIcon';
 import type { RecordSearchInputProps } from '../types/recordConnection';
 
 /**

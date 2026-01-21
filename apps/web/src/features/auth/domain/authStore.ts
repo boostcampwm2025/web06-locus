@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import * as Sentry from '@sentry/react';
+import { sentry } from '@/shared/utils/sentryWrapper';
 import type { AuthState } from '../types/auth';
 import {
   saveTokens,
@@ -7,14 +7,15 @@ import {
   clearTokens,
 } from '@/infra/storage/tokenStorage';
 import { logout as logoutApi } from '@/infra/api/services/authService';
+import { getCurrentUser } from '@/infra/api/services/userService';
 import { logger } from '@/shared/utils/logger';
 
 interface AuthStore extends AuthState {
   isInitialized: boolean;
-  setTokens: (accessToken: string, refreshToken: string) => void;
+  setTokens: (accessToken: string, refreshToken: string) => Promise<void>;
   clearAuth: () => void;
   logout: () => Promise<void>;
-  initialize: () => void;
+  initialize: () => Promise<void>;
 }
 
 const initialState: AuthState = {
@@ -27,7 +28,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
   ...initialState,
   isInitialized: false,
 
-  setTokens: (accessToken: string, refreshToken: string) => {
+  setTokens: async (accessToken: string, refreshToken: string) => {
     saveTokens({ accessToken, refreshToken });
     set({
       isAuthenticated: true,
@@ -35,12 +36,23 @@ export const useAuthStore = create<AuthStore>((set) => ({
       refreshToken,
     });
 
-    // 사용자 컨텍스트 설정 (토큰에서 사용자 ID 추출 가능한 경우)
-    // TODO: 실제 사용자 정보를 가져올 수 있으면 id, username 등 추가
-    Sentry.setUser({
-      // id: userId, // 사용자 ID가 있다면 추가
-      // username: username, // 사용자명이 있다면 추가
-    });
+    // 사용자 정보를 가져와서 Sentry에 설정
+    try {
+      const user = await getCurrentUser();
+      void sentry.setUser({
+        id: user.publicId,
+        username: user.nickname ?? undefined,
+        email: user.email,
+      });
+    } catch (error) {
+      // 사용자 정보 조회 실패 시 로그만 남기고 계속 진행
+      if (error instanceof Error) {
+        logger.warn('사용자 정보 조회 실패 (Sentry 사용자 설정 스킵)', {
+          context: 'authStore.setTokens',
+          error_type: 'user_fetch_error',
+        });
+      }
+    }
   },
 
   clearAuth: () => {
@@ -48,7 +60,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
     set({ ...initialState, isInitialized: true });
 
     // 사용자 컨텍스트 제거
-    Sentry.setUser(null);
+    void sentry.setUser(null);
   },
 
   logout: async () => {
@@ -72,11 +84,11 @@ export const useAuthStore = create<AuthStore>((set) => ({
       set({ ...initialState, isInitialized: true });
 
       // 사용자 컨텍스트 제거
-      Sentry.setUser(null);
+      void sentry.setUser(null);
     }
   },
 
-  initialize: () => {
+  initialize: async () => {
     try {
       const tokens = getTokens();
       if (tokens) {
@@ -86,6 +98,24 @@ export const useAuthStore = create<AuthStore>((set) => ({
           refreshToken: tokens.refreshToken,
           isInitialized: true,
         });
+
+        // 토큰이 있으면 사용자 정보를 가져와서 Sentry에 설정
+        try {
+          const user = await getCurrentUser();
+          void sentry.setUser({
+            id: user.publicId,
+            username: user.nickname ?? undefined,
+            email: user.email,
+          });
+        } catch (error) {
+          // 사용자 정보 조회 실패 시 로그만 남기고 계속 진행
+          if (error instanceof Error) {
+            logger.warn('사용자 정보 조회 실패 (Sentry 사용자 설정 스킵)', {
+              context: 'authStore.initialize',
+              error_type: 'user_fetch_error',
+            });
+          }
+        }
       } else {
         set({ isInitialized: true });
       }

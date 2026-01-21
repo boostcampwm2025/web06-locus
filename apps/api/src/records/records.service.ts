@@ -8,6 +8,7 @@ import {
 } from './dto/record-response.dto';
 import { LocationInfo, RecordModel } from './records.types';
 import {
+  LocationNotFoundException,
   ImageDeletionFailedException,
   RecordAccessDeniedException,
   RecordCreationFailedException,
@@ -19,13 +20,17 @@ import { GraphRowType } from './type/graph.type';
 import { GraphEdgeDto, GraphNodeDto } from './dto/graph.dto';
 import { GraphResponseDto } from './dto/graph.response.dto';
 import { createRecordSyncPayload } from './type/record-sync.types';
-import { Prisma } from '@prisma/client';
+import { Prisma, Record } from '@prisma/client';
 import { OutboxService } from '@/outbox/outbox.service';
 import {
   AGGREGATE_TYPE,
   OUTBOX_EVENT_TYPE,
 } from '@/common/constants/event-types.constants';
-import { UPDATE_RECORD_LOCATION_SQL } from './sql/record-raw.query';
+import {
+  GET_RECORD_LOCATION_SQL,
+  UPDATE_RECORD_LOCATION_SQL,
+} from './sql/record-raw.query';
+import { UpdateRecordDto } from './dto/update-record.dto';
 import { ImageProcessingService } from './services/image-processing.service';
 import { ObjectStorageService } from './services/object-storage.service';
 import {
@@ -66,14 +71,66 @@ export class RecordsService {
     return this.createRecordWithoutImages(userId, dto);
   }
 
+  // NOTE: 업데이트 로직 대충 작성 (todo: 휴고의 로직으로 변경)
+  async updateRecord(
+    userId: bigint,
+    publicId: string,
+    dto: UpdateRecordDto,
+  ): Promise<RecordResponseDto> {
+    const record = await this.prisma.$transaction(async (tx) => {
+      const existing = await tx.record.findFirst({ where: { publicId } });
+
+      if (!existing) throw new RecordNotFoundException(publicId);
+      if (existing.userId !== userId)
+        throw new RecordAccessDeniedException(publicId);
+
+      let locationName = existing.locationName;
+      let locationAddress = existing.locationAddress;
+
+      if (dto.location) {
+        const { name, address } = await this.getLocationInfo(
+          dto.location.latitude,
+          dto.location.longitude,
+        );
+        locationName = name;
+        locationAddress = address;
+      }
+
+      const updated = await tx.record.update({
+        where: { id: existing.id },
+        data: {
+          ...(dto.title !== undefined && { title: dto.title }),
+          ...(dto.content !== undefined && { content: dto.content }),
+          ...(dto.tags !== undefined && { tags: dto.tags }),
+          ...(dto.location && { locationName, locationAddress }),
+        },
+      });
+
+      const updatedRecord = dto.location
+        ? await this.updateLocation(
+            tx,
+            updated.id,
+            dto.location.latitude,
+            dto.location.longitude,
+          )
+        : await this.getRecordWithLocation(tx, existing.id, updated);
+
+      await this.outboxService.publish(tx, {
+        aggregateType: AGGREGATE_TYPE.RECORD,
+        aggregateId: updatedRecord.id.toString(),
+        eventType: OUTBOX_EVENT_TYPE.RECORD_UPDATED,
+        payload: createRecordSyncPayload(userId, updatedRecord),
+      });
+
+      return updatedRecord;
+    });
+    return RecordResponseDto.from(record);
+  }
+
   async findOneByPublicId(publicId: string) {
     const record = await this.prisma.record.findUnique({
       where: { publicId },
-      select: {
-        id: true,
-        userId: true,
-        publicId: true,
-      },
+      select: { id: true, userId: true, publicId: true },
     });
 
     if (!record) {
@@ -123,6 +180,85 @@ export class RecordsService {
     return recordId.id;
   }
 
+  async deleteRecord(userId: bigint, publicId: string): Promise<void> {
+    // 1. Record 조회 (이미지 포함)
+    const record = await this.prisma.record.findUnique({
+      where: { publicId },
+      select: {
+        id: true,
+        userId: true,
+        publicId: true,
+        images: {
+          select: {
+            thumbnailUrl: true,
+            mediumUrl: true,
+            originalUrl: true,
+          },
+        },
+      },
+    });
+
+    // 2. 존재 여부 확인
+    if (!record) {
+      throw new RecordNotFoundException(publicId);
+    }
+
+    // 3. 소유권 검증
+    if (record.userId !== userId) {
+      throw new RecordAccessDeniedException(publicId);
+    }
+
+    // 4. 이미지 URL에서 스토리지 키 추출
+    const imageUrls: ImageUrls[] = record.images.map((img) => ({
+      thumbnail: img.thumbnailUrl,
+      medium: img.mediumUrl,
+      original: img.originalUrl,
+    }));
+    const imageKeys = this.extractImageKeys(imageUrls);
+
+    // 5. 트랜잭션: DB 삭제 + Outbox 발행
+    try {
+      await this.prisma.$transaction(async (tx) => {
+        await tx.record.delete({ where: { id: record.id } });
+
+        await this.outboxService.publish(tx, {
+          aggregateType: AGGREGATE_TYPE.RECORD,
+          aggregateId: record.id.toString(),
+          eventType: OUTBOX_EVENT_TYPE.RECORD_DELETED,
+          payload: { publicId, userId: userId.toString() },
+        });
+      });
+    } catch (error) {
+      if (error instanceof Error) {
+        this.logger.error(
+          `Failed to delete record: publicId=${publicId}, error=${error.message}`,
+          error.stack,
+        );
+        throw new RecordDeletionFailedException(error);
+      }
+      throw new Error(
+        'Unexpected non-Error exception thrown when delete Record',
+      );
+    }
+    // 6. Object Storage 이미지 삭제 (트랜잭션 성공 후)
+    if (imageKeys.length > 0) {
+      try {
+        await this.objectStorageService.deleteImages(imageKeys);
+      } catch (error) {
+        if (error instanceof ImageDeletionFailedException) {
+          this.logger.error(
+            `Failed to delete images in object storage for record ${publicId}: ${error.message}`,
+          );
+          // TODO: Object Stoage에서 삭제 실패 시 처리 로직 추가
+        } else {
+          throw error;
+        }
+      }
+    }
+
+    this.logger.log(`Record deleted: publicId=${publicId}, userId=${userId}`);
+  }
+
   private buildGraphFromRows(rows: GraphRowType[]): {
     nodes: GraphNodeDto[];
     edges: GraphEdgeDto[];
@@ -148,6 +284,7 @@ export class RecordsService {
 
     return { nodes, edges };
   }
+
   private async createRecordWithImages(
     userId: bigint,
     dto: CreateRecordDto,
@@ -289,7 +426,6 @@ export class RecordsService {
     }
   }
 
-  // NOTE: repository 계층으로 분리..?
   private async saveRecord(
     tx: Prisma.TransactionClient,
     userId: bigint,
@@ -333,14 +469,29 @@ export class RecordsService {
         latitude,
         longitude,
       );
-
-    if (!name && !address) {
-      this.logger.warn(
-        `Reverse geocoding failed: lat=${latitude}, lng=${longitude}`,
-      );
-    }
-
     return { name, address };
+  }
+
+  private async getRecordWithLocation(
+    tx: Prisma.TransactionClient,
+    recordId: bigint,
+    updatedRecord: Record,
+  ): Promise<RecordModel> {
+    const locations = await tx.$queryRaw<
+      { longitude: number; latitude: number }[]
+    >(GET_RECORD_LOCATION_SQL(recordId));
+
+    const locationData = locations[0];
+    if (!locationData) {
+      throw new LocationNotFoundException(updatedRecord.publicId);
+    }
+    const { userId: _, ...rest } = updatedRecord;
+
+    return {
+      ...rest,
+      longitude: locationData.longitude,
+      latitude: locationData.latitude,
+    } as RecordModel;
   }
 
   /**
@@ -404,85 +555,6 @@ export class RecordsService {
     });
 
     await tx.image.createMany({ data: imageData });
-  }
-
-  async deleteRecord(userId: bigint, publicId: string): Promise<void> {
-    // 1. Record 조회 (이미지 포함)
-    const record = await this.prisma.record.findUnique({
-      where: { publicId },
-      select: {
-        id: true,
-        userId: true,
-        publicId: true,
-        images: {
-          select: {
-            thumbnailUrl: true,
-            mediumUrl: true,
-            originalUrl: true,
-          },
-        },
-      },
-    });
-
-    // 2. 존재 여부 확인
-    if (!record) {
-      throw new RecordNotFoundException(publicId);
-    }
-
-    // 3. 소유권 검증
-    if (record.userId !== userId) {
-      throw new RecordAccessDeniedException(publicId);
-    }
-
-    // 4. 이미지 URL에서 스토리지 키 추출
-    const imageUrls: ImageUrls[] = record.images.map((img) => ({
-      thumbnail: img.thumbnailUrl,
-      medium: img.mediumUrl,
-      original: img.originalUrl,
-    }));
-    const imageKeys = this.extractImageKeys(imageUrls);
-
-    // 5. 트랜잭션: DB 삭제 + Outbox 발행
-    try {
-      await this.prisma.$transaction(async (tx) => {
-        await tx.record.delete({ where: { id: record.id } });
-
-        await this.outboxService.publish(tx, {
-          aggregateType: AGGREGATE_TYPE.RECORD,
-          aggregateId: record.id.toString(),
-          eventType: OUTBOX_EVENT_TYPE.RECORD_DELETED,
-          payload: { publicId, userId: userId.toString() },
-        });
-      });
-    } catch (error) {
-      if (error instanceof Error) {
-        this.logger.error(
-          `Failed to delete record: publicId=${publicId}, error=${error.message}`,
-          error.stack,
-        );
-        throw new RecordDeletionFailedException(error);
-      }
-      throw new Error(
-        'Unexpected non-Error exception thrown when delete Record',
-      );
-    }
-    // 6. Object Storage 이미지 삭제 (트랜잭션 성공 후)
-    if (imageKeys.length > 0) {
-      try {
-        await this.objectStorageService.deleteImages(imageKeys);
-      } catch (error) {
-        if (error instanceof ImageDeletionFailedException) {
-          this.logger.error(
-            `Failed to delete images in object storage for record ${publicId}: ${error.message}`,
-          );
-          // TODO: Object Stoage에서 삭제 실패 시 처리 로직 추가
-        } else {
-          throw error;
-        }
-      }
-    }
-
-    this.logger.log(`Record deleted: publicId=${publicId}, userId=${userId}`);
   }
 
   private extractImageKeys(images: ImageUrls[]): string[] {

@@ -24,7 +24,7 @@ export default function OAuthLoginPage() {
   // 개발 환경에서만 테스트 로그인 (바로 HOME으로 이동)
   const handleTestLogin = () => {
     // 더미 토큰 설정 (실제 API 호출 없이 인증 상태만 설정)
-    setTokens('test-access-token', '');
+    void setTokens('test-access-token', '');
     void navigate(ROUTES.HOME);
   };
 

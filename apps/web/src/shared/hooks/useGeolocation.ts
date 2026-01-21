@@ -8,10 +8,19 @@ const initialState: GeolocationState = {
   isLoading: true,
 };
 
-export function useGeolocation(): GeolocationState {
+export function useGeolocation(enabled = false): GeolocationState {
   const [state, setState] = useState<GeolocationState>(initialState);
 
   useEffect(() => {
+    // enabled가 false이면 위치 권한 요청하지 않음
+    if (!enabled) {
+      setState({
+        ...initialState,
+        isLoading: false,
+      });
+      return;
+    }
+
     // 지원이 안되는 브라우저 처리
     if (!navigator.geolocation) {
       const error: GeolocationPositionError = {
@@ -51,10 +60,10 @@ export function useGeolocation(): GeolocationState {
         // GPS 정확도 높임
         enableHighAccuracy: true,
         timeout: 10000,
-        maximumAge: 0,
+        maximumAge: 5 * 60 * 1000, // 5분 (캐시된 위치 정보 사용 허용)
       },
     );
-  }, []);
+  }, [enabled]);
 
   return state;
 }
