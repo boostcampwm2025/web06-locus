@@ -14,6 +14,7 @@ export type {
   AppHeaderNormalModeProps,
   UseSearchInputOptions,
   UseSearchInputReturn,
+  BackHeaderProps,
 } from './header';
 export type {
   Category,

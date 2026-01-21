@@ -65,3 +65,12 @@ export interface AuthPageHeaderProps {
   title?: string;
   subtitle?: React.ReactNode;
 }
+
+/**
+ * 뒤로가기 헤더 컴포넌트 Props
+ */
+export interface BackHeaderProps {
+  title: string;
+  onBack?: () => void;
+  className?: string;
+}
