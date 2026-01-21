@@ -1,5 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ElasticsearchService } from '@nestjs/elasticsearch';
+import { errors } from '@elastic/elasticsearch';
 import { RecordSearchService } from '../../src/records/records-search.service';
 import { RecordSyncPayload } from '../../src/records/type/record-sync.types';
 import {
@@ -7,6 +8,7 @@ import {
   RECORD_INDEX_SETTINGS,
   RECORD_SEARCH_MAPPING,
 } from '../../src/records/constants/record-search.constant';
+import { ESDocumentNotFoundException } from '@/records/exceptions/record.exceptions';
 
 describe('RecordSearchService', () => {
   let service: RecordSearchService;
@@ -255,7 +257,6 @@ describe('RecordSearchService', () => {
         index: RECORD_INDEX_NAME,
         id: '123',
         doc: payload,
-        doc_as_upsert: true,
       });
       expect(mockElasticsearchService.update).toHaveBeenCalledTimes(1);
     });
@@ -283,7 +284,7 @@ describe('RecordSearchService', () => {
       await expect(service.updateRecord(payload)).rejects.toThrow(error);
     });
 
-    test('docs가 없으면 upsert로 생성해야 한다', async () => {
+    test('docs가 없으면 NotFound 커스텀 예외를 던져야 한다.', async () => {
       // given
       const payload: RecordSyncPayload = {
         recordId: '777',
@@ -299,14 +300,17 @@ describe('RecordSearchService', () => {
         connectionsCount: 0,
         createdAt: '2024-01-01T00:00:00.000Z',
       };
-      mockElasticsearchService.update.mockResolvedValue({} as any);
 
-      // when
-      await service.updateRecord(payload);
-
-      // then
-      expect(mockElasticsearchService.update).toHaveBeenCalledWith(
-        expect.objectContaining({ doc_as_upsert: true }),
+      const elastic404Error = new errors.ResponseError({
+        body: { error: 'not_found' },
+        statusCode: 404,
+        warnings: null,
+        meta: {} as any,
+      });
+      mockElasticsearchService.update.mockRejectedValue(elastic404Error);
+      // when & then
+      await expect(service.updateRecord(payload)).rejects.toThrow(
+        ESDocumentNotFoundException,
       );
     });
   });
