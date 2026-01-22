@@ -625,7 +625,7 @@ export default function MapViewport({
           mapInstanceRef.current &&
           allPins.map((pin) => (
             <PinOverlay
-              key={`${pin.id}-${pin.position.lat}-${pin.position.lng}`}
+              key={pin.id}
               map={mapInstanceRef.current!}
               pin={pin}
               isSelected={selectedPinId === pin.id}
