@@ -12,6 +12,7 @@ export default function AppHeader({
   onTitleClick,
   onSearchClick,
   onFilterClick,
+  onSettingsClick,
   isSearchActive = false,
   searchPlaceholder = '키워드, 장소, 태그 검색',
   searchValue,
@@ -45,6 +46,7 @@ export default function AppHeader({
       onTitleClick={onTitleClick}
       onSearchClick={onSearchClick}
       onFilterClick={onFilterClick}
+      onSettingsClick={onSettingsClick}
       className={className}
     />
   );

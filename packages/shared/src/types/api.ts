@@ -9,6 +9,7 @@ import {
   GraphEdgeResponseSchema,
   GraphMetaResponseSchema,
   ConnectedRecordDetailResponseSchema,
+  RecordDetailResponseSchema,
   GetRecordsByBoundsRequestSchema,
   SearchRecordsRequestSchema,
   CreateRecordRequestSchema,
@@ -32,6 +33,14 @@ export type GraphMeta = z.infer<typeof GraphMetaResponseSchema>;
 export type ConnectedRecordDetail = z.infer<
   typeof ConnectedRecordDetailResponseSchema
 >;
+
+/**
+ * 기록 상세 조회 응답의 record 타입
+ * @api GET /records/{publicId} - 응답의 data.record
+ */
+export type RecordDetail = z.infer<
+  typeof RecordDetailResponseSchema
+>['data']['record'];
 
 /**
  * Request 타입 (BE 입력 검증용)

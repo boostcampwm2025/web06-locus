@@ -31,6 +31,19 @@ export const RecordResponseSchema = z.object({
 });
 
 /**
+ * 태그 스키마 (상세 조회용 - Response용 - camelCase)
+ * 기록 생성/수정 응답에서도 사용됨
+ *
+ * @api POST /records - 기록 생성 응답의 data.tags 배열 아이템
+ * @api PATCH /records/{public_id} - 기록 수정 응답의 data.tags 배열 아이템
+ * @api GET /records/{publicId} - 응답의 record.tags 배열 아이템
+ */
+export const TagDetailResponseSchema = z.object({
+  publicId: z.string(),
+  name: z.string(),
+});
+
+/**
  * 기록 생성/수정 응답용 기록 스키마 (이미지 포함, Response용 - camelCase)
  *
  * @api POST /records - 기록 생성 응답에 사용
@@ -40,6 +53,9 @@ export const RecordWithImagesResponseSchema = RecordResponseSchema.extend({
   userId: z.string().optional(),
   images: z.array(ImageResponseSchema),
   isFavorite: z.boolean(),
+}).extend({
+  // 백엔드는 태그를 객체 배열로 반환함 (RecordTagDto[])
+  tags: z.array(TagDetailResponseSchema),
 });
 
 // ============================================================================
@@ -294,6 +310,28 @@ export const ConnectedRecordsResponseSchema = SuccessResponseSchema.extend({
       limit: z.number(),
       nextCursor: z.string().nullable(),
       hasNext: z.boolean(),
+    }),
+  }),
+});
+
+
+/**
+ * 기록 상세 조회 응답 스키마
+ *
+ * @api GET /records/{publicId}
+ */
+export const RecordDetailResponseSchema = SuccessResponseSchema.extend({
+  data: z.object({
+    record: z.object({
+      publicId: z.string(),
+      title: z.string(),
+      content: z.string().nullable(),
+      location: LocationSchema,
+      tags: z.array(TagDetailResponseSchema),
+      images: z.array(ImageResponseSchema),
+      isFavorite: z.boolean(),
+      createdAt: z.string().datetime(),
+      updatedAt: z.string().datetime(),
     }),
   }),
 });

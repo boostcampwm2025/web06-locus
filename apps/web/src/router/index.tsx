@@ -13,9 +13,9 @@ import { ROUTES } from './routes';
 import LoadingPage from '@/shared/ui/loading/LoadingPage';
 import { getRandomLoadingVersion } from '@/shared/utils/loadingUtils';
 import { useDeleteRecord } from '@/features/record/hooks/useDeleteRecord';
-import { useGetRecordsByBounds } from '@/features/record/hooks/useGetRecordsByBounds';
+import { useGetRecordDetail } from '@/features/record/hooks/useGetRecordDetail';
 import { useRecordGraph } from '@/features/connection/hooks/useRecordGraph';
-import type { Record as ApiRecord } from '@locus/shared';
+import { logger } from '@/shared/utils/logger';
 
 // 라우트별 지연 로딩
 const OAuthLoginPage = lazy(() => import('@/features/auth/ui/OAuthLoginPage'));
@@ -53,17 +53,6 @@ const RouteLoadingFallback = () => {
   return <LoadingPage version={loadingVersion} />;
 };
 
-// 한국 전체를 커버하는 넓은 bounds (기록 상세 조회용)
-const KOREA_WIDE_BOUNDS = {
-  neLat: 38.6,
-  neLng: 131.9,
-  swLat: 33.1,
-  swLng: 124.6,
-  page: 1,
-  limit: 100,
-  sortOrder: 'desc' as const,
-};
-
 /**
  * 페이지별 래퍼 컴포넌트들
  * 내부에서 lazy 컴포넌트를 사용하므로 Suspense로 감쌈
@@ -73,14 +62,15 @@ function RecordDetailPageRoute() {
   const navigate = useNavigate();
   const deleteRecordMutation = useDeleteRecord();
 
-  // 전체 기록 목록 가져오기 (bounds 기반 조회)
+  // 기록 상세 조회
   const {
-    data: recordsByBoundsData,
+    data: recordDetail,
     isLoading,
     isError,
-  } = useGetRecordsByBounds(KOREA_WIDE_BOUNDS);
+  } = useGetRecordDetail(id ?? null);
 
   if (!id) {
+    logger.warn('기록 상세 페이지: ID가 없음');
     return (
       <div className="flex items-center justify-center h-screen">
         <p className="text-gray-400">기록 ID가 없습니다.</p>
@@ -94,7 +84,12 @@ function RecordDetailPageRoute() {
   }
 
   // 에러 또는 데이터 없음
-  if (isError || !recordsByBoundsData?.records) {
+  if (isError || !recordDetail) {
+    logger.error(new Error('기록 상세 조회 실패'), {
+      publicId: id,
+      isError,
+      hasData: !!recordDetail,
+    });
     return (
       <div className="flex items-center justify-center h-screen">
         <p className="text-gray-400">기록을 불러올 수 없습니다.</p>
@@ -102,46 +97,31 @@ function RecordDetailPageRoute() {
     );
   }
 
-  // 해당 기록 찾기
-  const record = recordsByBoundsData.records.find(
-    (r: ApiRecord) => r.publicId === id,
-  );
-
-  if (!record) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <p className="text-gray-400">기록을 찾을 수 없습니다.</p>
-      </div>
-    );
-  }
+  // 타입 단언 (useQuery의 타입 추론 문제 해결)
+  const detail = recordDetail;
 
   // API 응답을 RecordDetailPageProps로 변환
   // 이미지가 있는 경우 첫 번째 이미지의 medium URL 사용
-  const recordWithImages = record as ApiRecord & {
-    images?: {
-      thumbnail: { url: string };
-      medium: { url: string };
-      original: { url: string };
-    }[];
-    isFavorite?: boolean;
-  };
   const mediumImageUrl =
-    recordWithImages.images && recordWithImages.images.length > 0
-      ? recordWithImages.images[0].medium.url
+    detail.images && detail.images.length > 0
+      ? detail.images[0]?.medium.url
       : undefined;
 
+  // 태그를 문자열 배열로 변환 (기존 타입 호환)
+  const tags = detail.tags?.map((tag) => tag.name);
+
   const recordProps = {
-    title: record.title,
-    date: new Date(record.createdAt),
+    title: detail.title,
+    date: new Date(detail.createdAt),
     location: {
-      name: record.location.name ?? '',
-      address: record.location.address ?? '',
+      name: detail.location.name ?? '',
+      address: detail.location.address ?? '',
     },
-    tags: record.tags,
-    description: record.content ?? '',
+    tags,
+    description: detail.content ?? '',
     imageUrl: mediumImageUrl,
     connectionCount: 0, // TODO: 그래프 API로 연결 개수 가져오기
-    isFavorite: recordWithImages.isFavorite ?? false,
+    isFavorite: detail.isFavorite,
   };
 
   const handleDelete = () => {
@@ -153,7 +133,13 @@ function RecordDetailPageRoute() {
         // 삭제 성공 시 기록 목록으로 이동
         void navigate(ROUTES.RECORD_LIST);
       } catch (error) {
-        console.error('기록 삭제 실패:', error);
+        logger.error(
+          error instanceof Error ? error : new Error('기록 삭제 실패'),
+          {
+            publicId: id,
+            component: 'RecordDetailPageRoute',
+          },
+        );
         // TODO: 에러 토스트 표시
       }
     })();

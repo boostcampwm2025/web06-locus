@@ -59,11 +59,13 @@ export interface ImageSelectBottomSheetProps {
 
 /**
  * 기록 요약 바텀시트 Props
+ * record는 Record 객체 또는 publicId 문자열을 받을 수 있음
+ * publicId인 경우 내부에서 API로 상세 정보를 조회함
  */
 export interface RecordSummaryBottomSheetProps {
   isOpen: boolean;
   onClose: () => void;
-  record: Record;
+  record: Record | string; // Record 객체 또는 publicId
   isDeleting?: boolean;
   onEdit?: () => void;
   onDelete?: () => void;
@@ -74,7 +76,7 @@ export interface RecordSummaryBottomSheetProps {
  */
 export interface RecordSummaryHeaderProps {
   title: string;
-  date: Date;
+  date: Date | string;
   onClose: () => void;
 }
 
@@ -90,6 +92,22 @@ export interface RecordLocationCardProps {
  */
 export interface RecordTagsSectionProps {
   tags: string[];
+}
+
+/**
+ * 기록 요약 콘텐츠 Props (RecordSummaryContent)
+ * RecordLocationCard, RecordTagsSection 확장
+ */
+export interface RecordSummaryContentProps
+  extends RecordLocationCardProps,
+    RecordTagsSectionProps {
+  title: string;
+  date: Date | string;
+  content: string;
+  isDeleting: boolean;
+  onEdit?: () => void;
+  onDelete?: () => void;
+  onClose: () => void;
 }
 
 /**
@@ -115,7 +133,7 @@ export interface RecordWriteFormProps {
   onAddTagClick: () => void;
   onTagInputChange: (e: ChangeEvent<HTMLInputElement>) => void;
   onConfirmAddTag: () => void;
-  onKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void;
+  onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => void;
   onCancelAddTag: () => void;
   onAddImage: () => void;
   selectedImages?: File[];

@@ -17,6 +17,7 @@ import RecordSummaryBottomSheet from './RecordSummaryBottomSheet';
 import { useRecordForm } from './hook/useRecordForm';
 import { useRecordMap } from './hook/useRecordMap';
 import { useCreateRecord } from '../hooks/useCreateRecord';
+import { useGetTags } from '../hooks/useGetTags';
 import DraggablePinOverlay from '@/infra/map/marker/DraggablePinOverlay';
 import type {
   RecordWritePageProps,
@@ -62,6 +63,7 @@ export default function RecordWritePage({
   >(initialCoordinates);
 
   const createRecordMutation = useCreateRecord();
+  const { data: allTags = [] } = useGetTags();
 
   const handleAddImage = () => {
     setIsImageSelectSheetOpen(true);
@@ -106,6 +108,14 @@ export default function RecordWritePage({
     }
 
     try {
+      // 태그 이름을 publicId로 변환
+      const tagPublicIds = formData.tags
+        .map((tagName) => {
+          const tag = allTags.find((t) => t.name === tagName);
+          return tag?.publicId;
+        })
+        .filter((publicId): publicId is string => !!publicId);
+
       // API 호출
       const response = await createRecordMutation.mutateAsync({
         request: {
@@ -115,16 +125,17 @@ export default function RecordWritePage({
             latitude: currentCoordinates.lat,
             longitude: currentCoordinates.lng,
           },
-          tags: formData.tags,
+          tags: tagPublicIds,
         },
         images: selectedImages,
       });
 
       // API 응답을 Record 타입으로 변환
+      // response.tags는 객체 배열이므로 태그 이름만 추출
       const record: Record = {
         id: response.publicId,
         text: response.title,
-        tags: response.tags,
+        tags: response.tags.map((tag) => tag.name),
         location: {
           name: response.location.name ?? initialLocation.name,
           address: response.location.address ?? initialLocation.address,
@@ -394,59 +405,18 @@ function RecordWriteForm({
 
         {/* 태그 섹션 */}
         <FormSection title="태그">
-          <div className="flex items-center gap-2 flex-wrap">
-            {/* 선택된 태그들 표시 */}
-            {formData.tags.map((tag) => (
-              <CategoryChip
-                key={tag}
-                label={tag}
-                isSelected={true}
-                onClick={() => {
-                  onTagToggle(tag);
-                }}
-              />
-            ))}
-            {isAddingTag ? (
-              <>
-                <input
-                  type="text"
-                  value={newTagInput}
-                  onChange={onTagInputChange}
-                  placeholder="태그 입력 (최대 5자)"
-                  maxLength={5}
-                  disabled={isCreatingTag}
-                  className="px-4 py-2 rounded-full text-sm font-medium border border-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent text-gray-900 placeholder:text-gray-400 disabled:opacity-50 disabled:cursor-not-allowed"
-                  autoFocus
-                  onKeyDown={onKeyDown}
-                />
-                <button
-                  type="button"
-                  onClick={onConfirmAddTag}
-                  disabled={isCreatingTag}
-                  className="px-4 py-2 rounded-full text-sm font-medium bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isCreatingTag ? '생성 중...' : '추가'}
-                </button>
-                <button
-                  type="button"
-                  onClick={onCancelAddTag}
-                  className="w-9 h-9 rounded-full bg-gray-100 text-gray-700 flex items-center justify-center hover:bg-gray-200 transition-colors"
-                  aria-label="취소"
-                >
-                  <XIcon className="w-5 h-5" />
-                </button>
-              </>
-            ) : (
-              <button
-                type="button"
-                onClick={onAddTagClick}
-                className="w-9 h-9 rounded-full bg-gray-100 text-gray-700 flex items-center justify-center hover:bg-gray-200 transition-colors"
-                aria-label="태그 추가"
-              >
-                <PlusIcon className="w-5 h-5" />
-              </button>
-            )}
-          </div>
+          <RecordWriteTags
+            formData={formData}
+            isAddingTag={isAddingTag}
+            newTagInput={newTagInput}
+            onTagToggle={onTagToggle}
+            onTagInputChange={onTagInputChange}
+            onConfirmAddTag={onConfirmAddTag}
+            onKeyDown={onKeyDown}
+            isCreatingTag={isCreatingTag}
+            onCancelAddTag={onCancelAddTag}
+            onAddTagClick={onAddTagClick}
+          />
         </FormSection>
 
         {/* 액션 버튼 */}
@@ -467,6 +437,91 @@ function RecordWriteForm({
           </ActionButton>
         </div>
       </div>
+    </div>
+  );
+}
+
+function RecordWriteTags({
+  formData,
+  isAddingTag,
+  newTagInput,
+  onTagToggle,
+  onTagInputChange,
+  onConfirmAddTag,
+  onKeyDown,
+  isCreatingTag,
+  onCancelAddTag,
+  onAddTagClick,
+}: {
+  formData: { tags: string[] };
+  isAddingTag: boolean;
+  newTagInput: string;
+  onTagToggle: (tag: string) => void;
+  onTagInputChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onConfirmAddTag: () => void;
+  onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => void;
+  isCreatingTag: boolean;
+  onCancelAddTag: () => void;
+  onAddTagClick: () => void;
+}) {
+  const { data: allTags = [] } = useGetTags();
+
+  return (
+    <div className="flex items-center gap-2 flex-wrap">
+      {/* 전체 태그 목록을 chips로 표시 */}
+      {allTags.map((tag) => {
+        const isSelected = formData.tags.includes(tag.name);
+        return (
+          <CategoryChip
+            key={tag.publicId}
+            label={tag.name}
+            isSelected={isSelected}
+            onClick={() => {
+              onTagToggle(tag.name);
+            }}
+          />
+        );
+      })}
+      {isAddingTag ? (
+        <>
+          <input
+            type="text"
+            value={newTagInput}
+            onChange={onTagInputChange}
+            placeholder="태그 입력 (최대 5자)"
+            maxLength={5}
+            disabled={isCreatingTag}
+            className="px-4 py-2 rounded-full text-sm font-medium border border-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent text-gray-900 placeholder:text-gray-400 disabled:opacity-50 disabled:cursor-not-allowed"
+            autoFocus
+            onKeyDown={onKeyDown}
+          />
+          <button
+            type="button"
+            onClick={onConfirmAddTag}
+            disabled={isCreatingTag}
+            className="px-4 py-2 rounded-full text-sm font-medium bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isCreatingTag ? '생성 중...' : '추가'}
+          </button>
+          <button
+            type="button"
+            onClick={onCancelAddTag}
+            className="w-9 h-9 rounded-full bg-gray-100 text-gray-700 flex items-center justify-center hover:bg-gray-200 transition-colors"
+            aria-label="취소"
+          >
+            <XIcon className="w-5 h-5" />
+          </button>
+        </>
+      ) : (
+        <button
+          type="button"
+          onClick={onAddTagClick}
+          className="w-9 h-9 rounded-full bg-gray-100 text-gray-700 flex items-center justify-center hover:bg-gray-200 transition-colors"
+          aria-label="태그 추가"
+        >
+          <PlusIcon className="w-5 h-5" />
+        </button>
+      )}
     </div>
   );
 }

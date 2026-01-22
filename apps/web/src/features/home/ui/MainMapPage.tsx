@@ -1,26 +1,30 @@
 import { useState, useEffect, lazy, Suspense } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import AppHeader from '@/shared/ui/header/AppHeader';
-import CategoryChips from '@/shared/ui/category/CategoryChips';
+import CategoryChip from '@/shared/ui/category/CategoryChip';
 import BottomTabBar from '@/shared/ui/navigation/BottomTabBar';
 import MapLoadingSkeleton from '@/shared/ui/loading/MapLoadingSkeleton';
-
-// 지도 컴포넌트를 동적 임포트
-const MapViewport = lazy(() => import('./MapViewport'));
-import RecordSummaryBottomSheet from '@/features/record/ui/RecordSummaryBottomSheet';
+import ActionSheet from '@/shared/ui/dialog/ActionSheet';
 import ToastErrorMessage from '@/shared/ui/alert/ToastErrorMessage';
-import type { Record, Coordinates } from '@/features/record/types';
-import type { MainMapPageLocationState } from '@features/home/types/mainMapPage';
+import RecordSummaryBottomSheet from '@/features/record/ui/RecordSummaryBottomSheet';
+import TagManagementModal from '@/features/record/ui/TagManagementModal';
+import { useGetTags } from '@/features/record/hooks/useGetTags';
+import { useDeleteRecord } from '@/features/record/hooks/useDeleteRecord';
+import { useAuthStore } from '@/features/auth/domain/authStore';
 import { useBottomTabNavigation } from '@/shared/hooks/useBottomTabNavigation';
+import { useGeocodeSearch } from '@/features/home/hooks/useGeocodeSearch';
 import { ROUTES } from '@/router/routes';
 import {
   getStoredRecordPins,
   addStoredRecordPin,
 } from '@/infra/storage/recordStorage';
+import type { Record, Coordinates } from '@/features/record/types';
+import type { MainMapPageLocationState } from '@features/home/types/mainMapPage';
 import type { StoredRecordPin } from '@/infra/types/storage';
-import { useGeocodeSearch } from '@/features/home/hooks/useGeocodeSearch';
-import { useQueryClient } from '@tanstack/react-query';
-import { useDeleteRecord } from '@/features/record/hooks/useDeleteRecord';
+
+// 지도 컴포넌트를 동적 임포트
+const MapViewport = lazy(() => import('./MapViewport'));
 
 export default function MainMapPage() {
   const location = useLocation();
@@ -30,6 +34,10 @@ export default function MainMapPage() {
   const [savedRecord, setSavedRecord] = useState<Record | null>(null);
   const [isDetailSheetOpen, setIsDetailSheetOpen] = useState(false);
   const [isSearchActive, setIsSearchActive] = useState(false);
+  const [isActionSheetOpen, setIsActionSheetOpen] = useState(false);
+  const [isTagManagementModalOpen, setIsTagManagementModalOpen] =
+    useState(false);
+  const logout = useAuthStore((state) => state.logout);
 
   // 알림 상태 관리
   const [showSuccessToast, setShowSuccessToast] = useState(false);
@@ -185,11 +193,26 @@ export default function MainMapPage() {
 
   const { handleTabChange } = useBottomTabNavigation();
 
+  const handleSettingsClick = () => {
+    setIsActionSheetOpen(true);
+  };
+
+  const handleLogout = async () => {
+    await logout();
+    void navigate(ROUTES.LOGIN);
+  };
+
+  const handleTagManagementClick = () => {
+    setIsActionSheetOpen(false);
+    setIsTagManagementModalOpen(true);
+  };
+
   return (
     <div className="flex flex-col h-screen bg-white relative overflow-hidden">
       <AppHeader
         onTitleClick={() => void navigate(ROUTES.HOME)}
         onSearchClick={handleSearchClick}
+        onSettingsClick={handleSettingsClick}
         isSearchActive={isSearchActive}
         searchValue={searchValue}
         onSearchChange={setSearchValue}
@@ -197,7 +220,7 @@ export default function MainMapPage() {
         onSearch={(value) => setSearchValue(value)}
       />
 
-      <CategoryChips />
+      <MainMapTags />
 
       <Suspense fallback={<MapLoadingSkeleton />}>
         <MapViewport
@@ -262,6 +285,49 @@ export default function MainMapPage() {
           }}
         />
       )}
+
+      {/* 설정 ActionSheet */}
+      <ActionSheet
+        isOpen={isActionSheetOpen}
+        onClose={() => setIsActionSheetOpen(false)}
+        items={[
+          {
+            label: '태그 관리',
+            onClick: handleTagManagementClick,
+            variant: 'default',
+          },
+          {
+            label: '로그아웃',
+            onClick: () => void handleLogout(),
+            variant: 'danger',
+          },
+        ]}
+      />
+
+      {/* 태그 관리 모달 */}
+      <TagManagementModal
+        isOpen={isTagManagementModalOpen}
+        onClose={() => setIsTagManagementModalOpen(false)}
+      />
+    </div>
+  );
+}
+
+function MainMapTags() {
+  const { data: allTags = [] } = useGetTags();
+
+  return (
+    <div className="flex gap-2 overflow-x-auto px-4 py-3 snap-x snap-mandatory [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+      {allTags.map((tag) => (
+        <CategoryChip
+          key={tag.publicId}
+          label={tag.name}
+          isSelected={false}
+          onClick={() => {
+            // TODO: 태그 클릭 시 필터링 기능 구현
+          }}
+        />
+      ))}
     </div>
   );
 }

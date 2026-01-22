@@ -14,6 +14,13 @@ import { buildGraphFromStoredConnections } from '@/infra/storage/connectionStora
 import type { Coordinates } from '@/features/record/types';
 import { useGetRecordsByBounds } from '@/features/record/hooks/useGetRecordsByBounds';
 import type { Record as ApiRecord } from '@locus/shared';
+import {
+  expandBounds,
+  isWithinBounds,
+  isNearBoundary,
+  isSameGrid,
+  type Bounds,
+} from '@/features/home/utils/boundsUtils';
 
 export default function MapViewport({
   className = '',
@@ -38,6 +45,18 @@ export default function MapViewport({
     string | null
   >(null);
 
+  // 모든 가져온 기록을 저장 (확장된 bounds에서 가져온 전체 데이터)
+  // 타임스탬프를 함께 저장하여 오래된 순으로 정리 가능
+  const [allFetchedRecords, setAllFetchedRecords] = useState<
+    Map<string, { record: ApiRecord; timestamp: number }>
+  >(new Map());
+  // 현재 줌 레벨 추적
+  const [currentZoom, setCurrentZoom] = useState<number>(13);
+
+  // ref로 최신 bounds 값 추적 (무한 루프 방지)
+  const fetchBoundsRef = useRef<Bounds | null>(null);
+  const expandedBoundsRef = useRef<Bounds | null>(null);
+
   // 연결선 오버레이 관리
   const polylinesRef = useRef<naver.maps.Polyline[]>([]);
   // 연결된 기록 표시용 연결선 관리
@@ -61,41 +80,105 @@ export default function MapViewport({
     autoCenterToGeolocation: true,
   });
 
-  // 지도 bounds 상태 관리
-  const [mapBounds, setMapBounds] = useState<{
-    neLat: number;
-    neLng: number;
-    swLat: number;
-    swLng: number;
-    page?: number;
-    limit?: number;
-    sortOrder?: 'desc' | 'asc';
-  } | null>(null);
+  // 현재 화면 bounds 상태 관리 (실제 화면에 보이는 범위)
+  const [currentViewBounds, setCurrentViewBounds] = useState<Bounds | null>(
+    null,
+  );
+  // 확장된 bounds로 API 요청 (현재 화면의 4~9배 크기)
+  const [fetchBounds, setFetchBounds] = useState<Bounds | null>(null);
 
-  // 지도 범위 기반 기록 조회 (GET /records - bounds 기반)
+  // 확장된 bounds로 기록 조회 (GET /records - 확장 bounds 기반)
   const { data: recordsByBoundsData } = useGetRecordsByBounds(
-    mapBounds
+    fetchBounds
       ? {
-          neLat: mapBounds.neLat,
-          neLng: mapBounds.neLng,
-          swLat: mapBounds.swLat,
-          swLng: mapBounds.swLng,
-          page: mapBounds.page ?? 1,
-          limit: mapBounds.limit ?? 50,
-          sortOrder: mapBounds.sortOrder ?? 'desc',
+          neLat: fetchBounds.neLat,
+          neLng: fetchBounds.neLng,
+          swLat: fetchBounds.swLat,
+          swLng: fetchBounds.swLng,
+          page: 1,
+          limit: 500, // 충분히 큰 값으로 설정
+          sortOrder: 'desc',
         }
       : null,
     {
-      enabled: isMapLoaded && mapBounds !== null,
+      enabled: isMapLoaded && fetchBounds !== null,
     },
   );
 
-  // API에서 받아온 기록을 핀 데이터로 변환
-  const apiPins = useMemo<PinMarkerData[]>(() => {
-    if (!recordsByBoundsData?.records) {
+  // API에서 받아온 데이터를 allFetchedRecords에 누적 저장
+  useEffect(() => {
+    if (!recordsByBoundsData?.records || !fetchBounds) {
+      return;
+    }
+
+    const now = Date.now();
+
+    setAllFetchedRecords((prev) => {
+      const newMap = new Map(prev);
+      recordsByBoundsData.records.forEach((record: ApiRecord) => {
+        // 이미 존재하는 경우 타임스탬프는 유지 (오래된 순 정렬을 위해)
+        const existing = newMap.get(record.publicId);
+        newMap.set(record.publicId, {
+          record,
+          timestamp: existing?.timestamp ?? now,
+        });
+      });
+      return newMap;
+    });
+
+    // ref도 업데이트
+    expandedBoundsRef.current = fetchBounds;
+  }, [recordsByBoundsData, fetchBounds]);
+
+  // 메모리 관리: 줌 레벨이 낮거나 데이터가 너무 많으면 정리
+  useEffect(() => {
+    const MAX_RECORDS = 1000; // 최대 기록 수
+    const LOW_ZOOM_THRESHOLD = 7; // 전국 단위 줌 레벨
+
+    setAllFetchedRecords((prev) => {
+      // 줌 레벨이 낮으면 (전국 단위) 모든 데이터 비우기
+      if (currentZoom < LOW_ZOOM_THRESHOLD) {
+        return new Map();
+      }
+
+      // 1000개를 넘으면 오래된 순으로 정리
+      if (prev.size > MAX_RECORDS) {
+        const sorted = Array.from(prev.entries()).sort(
+          (a, b) => a[1].timestamp - b[1].timestamp,
+        );
+        // 오래된 것부터 제거 (최대 개수만큼만 유지)
+        const toKeep = sorted.slice(-MAX_RECORDS);
+        return new Map(toKeep);
+      }
+
+      return prev;
+    });
+  }, [currentZoom]);
+
+  // 클라이언트 필터링: 현재 화면 bounds에 맞는 기록만 필터링
+  const visibleApiRecords = useMemo<ApiRecord[]>(() => {
+    if (!currentViewBounds || allFetchedRecords.size === 0) {
       return [];
     }
-    return recordsByBoundsData.records.map((record: ApiRecord) => ({
+
+    const visible: ApiRecord[] = [];
+    allFetchedRecords.forEach(({ record }) => {
+      if (
+        isWithinBounds(
+          record.location.latitude,
+          record.location.longitude,
+          currentViewBounds,
+        )
+      ) {
+        visible.push(record);
+      }
+    });
+    return visible;
+  }, [currentViewBounds, allFetchedRecords]);
+
+  // 필터링된 기록을 핀 데이터로 변환
+  const apiPins = useMemo<PinMarkerData[]>(() => {
+    return visibleApiRecords.map((record: ApiRecord) => ({
       id: record.publicId,
       position: {
         lat: record.location.latitude,
@@ -103,7 +186,7 @@ export default function MapViewport({
       },
       variant: 'record' as const,
     }));
-  }, [recordsByBoundsData]);
+  }, [visibleApiRecords]);
 
   const allPins = useMemo<PinMarkerData[]>(() => {
     const pins = [...apiPins];
@@ -125,16 +208,13 @@ export default function MapViewport({
     return pins;
   }, [apiPins, createdRecordPins]);
 
-  // API에서 받아온 기록을 RecordType으로 변환
+  // 필터링된 기록을 RecordType으로 변환
   const apiRecords = useMemo<Record<string | number, RecordType>>(() => {
-    if (!recordsByBoundsData?.records) {
-      return {};
-    }
     const records: Record<string | number, RecordType> = {} as Record<
       string | number,
       RecordType
     >;
-    recordsByBoundsData.records.forEach((record: ApiRecord) => {
+    visibleApiRecords.forEach((record: ApiRecord) => {
       records[record.publicId] = {
         id: record.publicId,
         text: record.title,
@@ -147,7 +227,7 @@ export default function MapViewport({
       };
     });
     return records;
-  }, [recordsByBoundsData]);
+  }, [visibleApiRecords]);
 
   // 새로 저장된 기록도 포함한 전체 기록 데이터
   const allRecords = useMemo<Record<string | number, RecordType>>(() => {
@@ -335,6 +415,7 @@ export default function MapViewport({
   };
 
   // 지도 bounds 업데이트 함수 (useCallback으로 메모이제이션하여 stale closure 방지)
+  // ref를 사용하여 무한 루프 방지
   const updateMapBounds = useCallback(() => {
     if (!isMapLoaded || !mapInstanceRef.current) {
       return;
@@ -342,21 +423,61 @@ export default function MapViewport({
 
     const map = mapInstanceRef.current;
     const bounds = map.getBounds();
+    const zoom = map.getZoom();
 
     if (bounds) {
+      // 줌 레벨 업데이트 (값이 실제로 변경되었을 때만)
+      setCurrentZoom((prevZoom) => {
+        if (prevZoom !== zoom) {
+          return zoom;
+        }
+        return prevZoom;
+      });
+
       // Naver Maps의 LatLngBounds는 getNE()와 getSW() 메서드를 제공
       const ne = (bounds as naver.maps.LatLngBounds).getNE(); // 북동쪽 모서리
       const sw = (bounds as naver.maps.LatLngBounds).getSW(); // 남서쪽 모서리
 
-      setMapBounds({
+      const currentBounds: Bounds = {
         neLat: roundTo4Decimals(ne.lat()),
         neLng: roundTo4Decimals(ne.lng()),
         swLat: roundTo4Decimals(sw.lat()),
         swLng: roundTo4Decimals(sw.lng()),
-        page: 1,
-        limit: 50,
-        sortOrder: 'desc',
+      };
+
+      // 현재 화면 bounds 업데이트 (값이 실제로 변경되었을 때만)
+      setCurrentViewBounds((prev) => {
+        if (
+          !prev ||
+          prev.neLat !== currentBounds.neLat ||
+          prev.neLng !== currentBounds.neLng ||
+          prev.swLat !== currentBounds.swLat ||
+          prev.swLng !== currentBounds.swLng
+        ) {
+          return currentBounds;
+        }
+        return prev;
       });
+
+      // 확장된 bounds 계산 (줌 레벨에 따라 동적 조정)
+      const expanded = expandBounds(currentBounds, zoom);
+
+      // ref에서 최신 값 가져오기
+      const currentFetchBounds = fetchBoundsRef.current;
+      const currentExpandedBounds = expandedBoundsRef.current;
+
+      // fetchBounds가 없거나, 현재 bounds가 확장된 bounds의 경계선에 접근했을 때만 업데이트
+      const shouldUpdate =
+        !currentFetchBounds ||
+        !currentExpandedBounds ||
+        isNearBoundary(currentBounds, currentExpandedBounds) ||
+        !isSameGrid(expanded, currentFetchBounds);
+
+      if (shouldUpdate) {
+        fetchBoundsRef.current = expanded;
+        expandedBoundsRef.current = expanded;
+        setFetchBounds(expanded);
+      }
     }
   }, [isMapLoaded, mapInstanceRef]);
 
@@ -625,7 +746,7 @@ export default function MapViewport({
           mapInstanceRef.current &&
           allPins.map((pin) => (
             <PinOverlay
-              key={`${pin.id}-${pin.position.lat}-${pin.position.lng}`}
+              key={pin.id}
               map={mapInstanceRef.current!}
               pin={pin}
               isSelected={selectedPinId === pin.id}
