@@ -64,6 +64,7 @@ export interface RecordSummaryBottomSheetProps {
   isOpen: boolean;
   onClose: () => void;
   record: Record;
+  isDeleting?: boolean;
   onEdit?: () => void;
   onDelete?: () => void;
 }

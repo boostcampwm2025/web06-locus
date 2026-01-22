@@ -37,6 +37,7 @@ export default function RecordSummaryBottomSheet({
   isOpen,
   onClose,
   record,
+  isDeleting = false,
   onEdit,
   onDelete,
 }: RecordSummaryBottomSheetProps) {
@@ -80,10 +81,11 @@ export default function RecordSummaryBottomSheet({
               <ActionButton
                 variant="secondary"
                 onClick={onDelete}
-                className="flex-1 flex items-center justify-center gap-2 bg-red-50 text-red-600 hover:bg-red-100 focus-visible:ring-red-500"
+                disabled={isDeleting}
+                className="flex-1 flex items-center justify-center gap-2 bg-red-50 text-red-600 hover:bg-red-100 focus-visible:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <TrashIcon className="w-4 h-4" />
-                삭제
+                {isDeleting ? '삭제 중...' : '삭제'}
               </ActionButton>
             )}
           </div>

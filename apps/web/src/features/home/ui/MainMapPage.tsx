@@ -20,6 +20,7 @@ import {
 import type { StoredRecordPin } from '@/infra/types/storage';
 import { useGeocodeSearch } from '@/features/home/hooks/useGeocodeSearch';
 import { useQueryClient } from '@tanstack/react-query';
+import { useDeleteRecord } from '@/features/record/hooks/useDeleteRecord';
 
 export default function MainMapPage() {
   const location = useLocation();
@@ -29,7 +30,10 @@ export default function MainMapPage() {
   const [savedRecord, setSavedRecord] = useState<Record | null>(null);
   const [isDetailSheetOpen, setIsDetailSheetOpen] = useState(false);
   const [isSearchActive, setIsSearchActive] = useState(false);
+
+  // 알림 상태 관리
   const [showSuccessToast, setShowSuccessToast] = useState(false);
+  const [showDeleteErrorToast, setShowDeleteErrorToast] = useState(false);
 
   // 생성된 기록들을 누적해서 관리
   const [createdRecordPins, setCreatedRecordPins] = useState<
@@ -55,8 +59,7 @@ export default function MainMapPage() {
   );
 
   /**
-   * 1. 지오코딩 API 훅 연결
-   * useGeocodeSearch 내부에서 searchValue(address)와 300ms 디바운스가 작동.
+   * 1. 지오코딩 API 훅
    */
   const {
     address: searchValue,
@@ -67,7 +70,7 @@ export default function MainMapPage() {
   } = useGeocodeSearch('');
 
   /**
-   * 2. 지오코딩 결과 발생 시 지도 중심 이동
+   * 2. 검색 결과에 따른 지도 중심 이동
    */
   useEffect(() => {
     const firstAddr = geocodeData?.data?.addresses?.[0];
@@ -76,13 +79,16 @@ export default function MainMapPage() {
         lat: parseFloat(firstAddr.latitude),
         lng: parseFloat(firstAddr.longitude),
       });
-      // 검색 결과가 반영되면 검색 모드를 끄거나 유지할 수 있음.
-      // setIsSearchActive(false);
     }
   }, [geocodeData]);
 
   /**
-   * 3. localStorage 및 캐시 무효화 동기화 로직
+   * 3. 기록 삭제 훅
+   */
+  const deleteRecordMutation = useDeleteRecord();
+
+  /**
+   * 4. 캐시 및 로컬 스토리지 동기화
    */
   useEffect(() => {
     const updateCreatedRecordPins = () => {
@@ -103,7 +109,6 @@ export default function MainMapPage() {
         event?.type === 'updated' &&
         Array.isArray(queryKey) &&
         queryKey.length > 0 &&
-        typeof queryKey[0] === 'string' &&
         queryKey[0] === 'records' &&
         event.query.state.status === 'success'
       ) {
@@ -115,7 +120,7 @@ export default function MainMapPage() {
   }, [queryClient]);
 
   /**
-   * 4. location.state 처리 (저장 완료 후 진입 시)
+   * 5. 생성 직후 데이터 수신 (Navigation State)
    */
   useEffect(() => {
     const state = location.state as MainMapPageLocationState | null;
@@ -163,8 +168,9 @@ export default function MainMapPage() {
     }
   }, [location.state, navigate, location.pathname]);
 
-  /** 이벤트 핸들러 */
+  /** 핸들러 */
   const handleDetailSheetClose = () => {
+    if (deleteRecordMutation.isPending) return; // 삭제 중엔 닫기 방지
     setIsDetailSheetOpen(false);
     setSavedRecord(null);
   };
@@ -173,7 +179,7 @@ export default function MainMapPage() {
 
   const handleSearchCancel = () => {
     setIsSearchActive(false);
-    setSearchValue(''); // 훅 내부 address 초기화
+    setSearchValue('');
     setTargetLocation(null);
   };
 
@@ -186,9 +192,9 @@ export default function MainMapPage() {
         onSearchClick={handleSearchClick}
         isSearchActive={isSearchActive}
         searchValue={searchValue}
-        onSearchChange={setSearchValue} // 훅의 setAddress와 직접 연결
+        onSearchChange={setSearchValue}
         onSearchCancel={handleSearchCancel}
-        onSearch={(value) => setSearchValue(value)} // 엔터 시 즉시 업데이트
+        onSearch={(value) => setSearchValue(value)}
       />
 
       <CategoryChips />
@@ -204,12 +210,18 @@ export default function MainMapPage() {
 
       <BottomTabBar activeTab="home" onTabChange={handleTabChange} />
 
-      {/* --- 토스트 메시지 영역 (겹침 방지를 위해 flex-col 처리) --- */}
+      {/* 알림 토스트 영역 */}
       <div className="absolute top-24 right-4 z-50 flex flex-col gap-2 pointer-events-none">
         {showSuccessToast && (
           <ToastErrorMessage
             message="기록이 성공적으로 저장되었습니다"
             variant="success"
+          />
+        )}
+        {showDeleteErrorToast && (
+          <ToastErrorMessage
+            message="기록 삭제에 실패했습니다."
+            variant="error"
           />
         )}
         {isGeocoding && (
@@ -229,10 +241,24 @@ export default function MainMapPage() {
           isOpen={isDetailSheetOpen}
           onClose={handleDetailSheetClose}
           record={savedRecord}
+          isDeleting={deleteRecordMutation.isPending}
           onEdit={() => setIsDetailSheetOpen(false)}
           onDelete={() => {
-            setIsDetailSheetOpen(false);
-            setSavedRecord(null);
+            if (savedRecord?.id) {
+              deleteRecordMutation.mutate(savedRecord.id, {
+                onSuccess: () => {
+                  setCreatedRecordPins((prev) =>
+                    prev.filter((pin) => pin.record.id !== savedRecord.id),
+                  );
+                  setIsDetailSheetOpen(false);
+                  setSavedRecord(null);
+                },
+                onError: () => {
+                  setShowDeleteErrorToast(true);
+                  setTimeout(() => setShowDeleteErrorToast(false), 3000);
+                },
+              });
+            }
           }}
         />
       )}
