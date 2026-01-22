@@ -317,23 +317,13 @@ export const ConnectedRecordsResponseSchema = SuccessResponseSchema.extend({
 
 /**
  * 기록 상세 조회 응답 스키마
+ * 실제 API 응답: { status: 'success', data: RecordWithImagesResponseSchema }
+ * data 안에 record 객체가 없고, data 자체가 record 객체임
  *
  * @api GET /records/{publicId}
  */
 export const RecordDetailResponseSchema = SuccessResponseSchema.extend({
-  data: z.object({
-    record: z.object({
-      publicId: z.string(),
-      title: z.string(),
-      content: z.string().nullable(),
-      location: LocationSchema,
-      tags: z.array(TagDetailResponseSchema),
-      images: z.array(ImageResponseSchema),
-      isFavorite: z.boolean(),
-      createdAt: z.string().datetime(),
-      updatedAt: z.string().datetime(),
-    }),
-  }),
+  data: RecordWithImagesResponseSchema,
 });
 
 // ============================================================================

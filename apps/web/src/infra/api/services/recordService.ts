@@ -106,7 +106,7 @@ export async function getRecordDetail(publicId: string): Promise<RecordDetail> {
     const validated = validateApiResponse(RecordDetailResponseSchema, response);
 
     logger.info('기록 상세 조회 성공', { publicId });
-    return validated.data.record;
+    return validated.data;
   } catch (error) {
     logger.error(
       error instanceof Error ? error : new Error('기록 상세 조회 실패'),
