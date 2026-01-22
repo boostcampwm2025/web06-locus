@@ -35,9 +35,6 @@ export default function RecordWritePage({
   onTakePhoto,
   onSelectFromLibrary,
 }: RecordWritePageProps) {
-  // 기본 태그 목록 (mock)
-  const availableTags = ['식사', '카페', '운동', '업무'];
-
   const {
     formData,
     isAddingTag,
@@ -49,12 +46,14 @@ export default function RecordWritePage({
     startAddTag,
     cancelAddTag,
     confirmAddTag,
+    isCreatingTag,
     canSave,
-  } = useRecordForm(availableTags);
+  } = useRecordForm();
 
   const [isImageSelectSheetOpen, setIsImageSelectSheetOpen] = useState(false);
   const [savedRecord, setSavedRecord] = useState<Record | null>(null);
   const [isDetailSheetOpen, setIsDetailSheetOpen] = useState(false);
+  const [selectedImages, setSelectedImages] = useState<File[]>([]);
 
   // 핀 위치를 state로 관리 (드래그로 조정 가능)
   const [currentCoordinates, setCurrentCoordinates] = useState<
@@ -73,8 +72,24 @@ export default function RecordWritePage({
   };
 
   const handleSelectFromLibrary = () => {
-    // TODO: 라이브러리에서 선택 기능 구현
+    // 파일 선택 다이얼로그 열기
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.multiple = true;
+    input.onchange = (e) => {
+      const files = Array.from((e.target as HTMLInputElement).files ?? []);
+      if (files.length > 0) {
+        setSelectedImages((prev) => [...prev, ...files]);
+      }
+      setIsImageSelectSheetOpen(false);
+    };
+    input.click();
     onSelectFromLibrary?.();
+  };
+
+  const handleRemoveImage = (index: number) => {
+    setSelectedImages((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleSave = async () => {
@@ -101,7 +116,7 @@ export default function RecordWritePage({
           },
           tags: formData.tags,
         },
-        images: [], // TODO: 이미지 기능 구현 후 추가
+        images: selectedImages,
       });
 
       // API 응답을 Record 타입으로 변환
@@ -151,7 +166,6 @@ export default function RecordWritePage({
       />
       <RecordWriteForm
         formData={formData}
-        availableTags={availableTags}
         isAddingTag={isAddingTag}
         newTagInput={newTagInput}
         onTitleChange={handleTitleChange}
@@ -161,9 +175,12 @@ export default function RecordWritePage({
         onTagInputChange={(e) => {
           setNewTagInput(e.target.value);
         }}
-        onConfirmAddTag={confirmAddTag}
+        onConfirmAddTag={() => void confirmAddTag()}
+        isCreatingTag={isCreatingTag}
         onCancelAddTag={cancelAddTag}
         onAddImage={handleAddImage}
+        selectedImages={selectedImages}
+        onRemoveImage={handleRemoveImage}
         onSave={() => void handleSave()}
         onCancel={onCancel}
         canSave={canSave}
@@ -304,7 +321,6 @@ function RecordWriteMap({
 
 function RecordWriteForm({
   formData,
-  availableTags,
   isAddingTag,
   newTagInput,
   onTitleChange,
@@ -315,10 +331,13 @@ function RecordWriteForm({
   onConfirmAddTag,
   onCancelAddTag,
   onAddImage,
+  selectedImages = [],
+  onRemoveImage,
   onSave,
   onCancel,
   canSave,
   isSaving = false,
+  isCreatingTag = false,
 }: RecordWriteFormProps) {
   return (
     <div className="flex-[0.6] bg-white rounded-t-3xl shadow-lg overflow-y-auto">
@@ -343,45 +362,60 @@ function RecordWriteForm({
         />
 
         {/* 이미지 섹션 */}
-        <ImageUploadButton label="이미지" onClick={onAddImage} />
+        <div>
+          <ImageUploadButton label="이미지" onClick={onAddImage} />
+          {selectedImages.length > 0 && (
+            <div className="mt-3 flex gap-2 overflow-x-auto">
+              {selectedImages.map((image, index) => (
+                <div key={index} className="relative shrink-0">
+                  <img
+                    src={URL.createObjectURL(image)}
+                    alt={`선택된 이미지 ${index + 1}`}
+                    className="w-20 h-20 object-cover rounded-lg"
+                  />
+                  {onRemoveImage && (
+                    <button
+                      type="button"
+                      onClick={() => onRemoveImage(index)}
+                      className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition-colors"
+                      aria-label="이미지 제거"
+                    >
+                      <XIcon className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
 
         {/* 태그 섹션 */}
         <FormSection title="태그">
           <div className="flex items-center gap-2 flex-wrap">
-            {availableTags.map((tag) => (
+            {/* 선택된 태그들 표시 */}
+            {formData.tags.map((tag) => (
               <CategoryChip
                 key={tag}
                 label={tag}
-                isSelected={formData.tags.includes(tag)}
+                isSelected={true}
                 onClick={() => {
                   onTagToggle(tag);
                 }}
               />
             ))}
-            {/* 사용자가 추가한 태그만 표시 (availableTags에 없는 것) */}
-            {formData.tags
-              .filter((tag) => !availableTags.includes(tag))
-              .map((tag) => (
-                <CategoryChip
-                  key={tag}
-                  label={tag}
-                  isSelected={true}
-                  onClick={() => {
-                    // 커스텀 태그는 클릭해도 아무 동작 안 함
-                  }}
-                />
-              ))}
             {isAddingTag ? (
               <>
                 <input
                   type="text"
                   value={newTagInput}
                   onChange={onTagInputChange}
-                  placeholder="태그 입력"
-                  className="px-4 py-2 rounded-full text-sm font-medium border border-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent text-gray-900 placeholder:text-gray-400"
+                  placeholder="태그 입력 (최대 5자)"
+                  maxLength={5}
+                  disabled={isCreatingTag}
+                  className="px-4 py-2 rounded-full text-sm font-medium border border-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent text-gray-900 placeholder:text-gray-400 disabled:opacity-50 disabled:cursor-not-allowed"
                   autoFocus
                   onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
+                    if (e.key === 'Enter' && !isCreatingTag) {
                       e.preventDefault();
                       onConfirmAddTag();
                     } else if (e.key === 'Escape') {
@@ -392,9 +426,10 @@ function RecordWriteForm({
                 <button
                   type="button"
                   onClick={onConfirmAddTag}
-                  className="px-4 py-2 rounded-full text-sm font-medium bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors"
+                  disabled={isCreatingTag}
+                  className="px-4 py-2 rounded-full text-sm font-medium bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  추가
+                  {isCreatingTag ? '생성 중...' : '추가'}
                 </button>
                 <button
                   type="button"

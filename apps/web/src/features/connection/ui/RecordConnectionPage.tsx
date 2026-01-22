@@ -6,7 +6,7 @@ import type {
 } from '../types/recordConnection';
 import { useRecordConnection } from '../domain/useRecordConnection';
 import { useCreateConnection } from '../hooks/useCreateConnection';
-import { convertMockRecordsToConnectionItems } from '@/features/record/domain/record.mock';
+// TODO: API 연동 - 기록 검색 API 사용
 import RecordSelectionHeader from './RecordSelectionHeader';
 import RecordSearchInput from './RecordSearchInput';
 import RecommendedRecordsSection from './RecommendedRecordsSection';
@@ -37,10 +37,13 @@ export default function RecordConnectionPage({
   // 연결 생성 mutation
   const createConnectionMutation = useCreateConnection();
 
-  // mock 데이터 사용 (기록 조회 API가 없으므로)
+  // TODO: API 연동 - 기록 검색 API 사용
+  // 현재는 빈 배열 반환 (API 연동 전까지)
   const trimmedQuery = searchQuery.trim();
   const recordsWithRelatedTag = useMemo<RecordConnectionItem[]>(() => {
-    return convertMockRecordsToConnectionItems(trimmedQuery || undefined);
+    // TODO: GET /records/search API 호출하여 기록 목록 가져오기
+    return [];
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [trimmedQuery]);
 
   const emptyMessage = trimmedQuery
