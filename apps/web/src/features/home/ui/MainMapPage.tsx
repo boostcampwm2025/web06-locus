@@ -1,30 +1,30 @@
 import { useState, useEffect, lazy, Suspense } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import AppHeader from '@/shared/ui/header/AppHeader';
 import CategoryChip from '@/shared/ui/category/CategoryChip';
 import BottomTabBar from '@/shared/ui/navigation/BottomTabBar';
 import MapLoadingSkeleton from '@/shared/ui/loading/MapLoadingSkeleton';
-import { useGetTags } from '@/features/record/hooks/useGetTags';
 import ActionSheet from '@/shared/ui/dialog/ActionSheet';
-import TagManagementModal from '@/features/record/ui/TagManagementModal';
-import { useAuthStore } from '@/features/auth/domain/authStore';
-
-// 지도 컴포넌트를 동적 임포트
-const MapViewport = lazy(() => import('./MapViewport'));
-import RecordSummaryBottomSheet from '@/features/record/ui/RecordSummaryBottomSheet';
 import ToastErrorMessage from '@/shared/ui/alert/ToastErrorMessage';
-import type { Record, Coordinates } from '@/features/record/types';
-import type { MainMapPageLocationState } from '@features/home/types/mainMapPage';
+import RecordSummaryBottomSheet from '@/features/record/ui/RecordSummaryBottomSheet';
+import TagManagementModal from '@/features/record/ui/TagManagementModal';
+import { useGetTags } from '@/features/record/hooks/useGetTags';
+import { useDeleteRecord } from '@/features/record/hooks/useDeleteRecord';
+import { useAuthStore } from '@/features/auth/domain/authStore';
 import { useBottomTabNavigation } from '@/shared/hooks/useBottomTabNavigation';
+import { useGeocodeSearch } from '@/features/home/hooks/useGeocodeSearch';
 import { ROUTES } from '@/router/routes';
 import {
   getStoredRecordPins,
   addStoredRecordPin,
 } from '@/infra/storage/recordStorage';
+import type { Record, Coordinates } from '@/features/record/types';
+import type { MainMapPageLocationState } from '@features/home/types/mainMapPage';
 import type { StoredRecordPin } from '@/infra/types/storage';
-import { useGeocodeSearch } from '@/features/home/hooks/useGeocodeSearch';
-import { useQueryClient } from '@tanstack/react-query';
-import { useDeleteRecord } from '@/features/record/hooks/useDeleteRecord';
+
+// 지도 컴포넌트를 동적 임포트
+const MapViewport = lazy(() => import('./MapViewport'));
 
 export default function MainMapPage() {
   const location = useLocation();
