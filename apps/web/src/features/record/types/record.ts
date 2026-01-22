@@ -106,7 +106,6 @@ import type { ChangeEvent } from 'react';
  */
 export interface RecordWriteFormProps {
   formData: RecordFormData;
-  availableTags: string[];
   isAddingTag: boolean;
   newTagInput: string;
   onTitleChange: (e: ChangeEvent<HTMLInputElement>) => void;
@@ -117,10 +116,13 @@ export interface RecordWriteFormProps {
   onConfirmAddTag: () => void;
   onCancelAddTag: () => void;
   onAddImage: () => void;
+  selectedImages?: File[];
+  onRemoveImage?: (index: number) => void;
   onSave: () => void;
   onCancel: () => void;
   canSave: boolean;
   isSaving?: boolean;
+  isCreatingTag?: boolean;
 }
 
 /**

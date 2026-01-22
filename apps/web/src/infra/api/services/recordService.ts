@@ -23,19 +23,16 @@ export async function createRecord(
   request: CreateRecordRequest,
   images: File[] = [],
 ): Promise<RecordWithImages> {
-  // 1. Request 검증 (서버 보내기 전에 프론트에서 계약 보장)
+  // 1. Request 검증
   const validatedRequest = CreateRecordRequestSchema.parse(request);
 
-  // 2. API로 보낼 payload 구성 (UI/도메인 데이터와 전송 데이터 분리)
+  // 2. API payload 구성
   const payload = buildCreateRecordPayload(validatedRequest);
 
-  // 3. 전송 방식 분기
-  const response =
-    images.length === 0
-      ? await postCreateRecordAsJson(payload)
-      : await postCreateRecordAsFormData(payload, images);
+  // 3. 이미지 유무와 상관없이 FormData로 전송
+  const response = await postCreateRecordAsFormData(payload, images);
 
-  // 4. Response 검증 + data 추출
+  // 4. Response 검증
   return parseCreateRecordResponse(response);
 }
 
@@ -103,17 +100,6 @@ function buildCreateRecordPayload(request: CreateRecordRequest) {
 }
 
 /**
- * JSON 방식으로 기록 생성 요청
- * (백엔드가 @Body()로 직접 받는 경우)
- */
-async function postCreateRecordAsJson(payload: unknown): Promise<unknown> {
-  return await apiClient<unknown>(API_ENDPOINTS.RECORDS, {
-    method: 'POST',
-    body: JSON.stringify(payload),
-  });
-}
-
-/**
  * FormData 방식으로 기록 생성 요청
  * - data: JSON 문자열
  * - images: 파일 배열
@@ -124,15 +110,14 @@ async function postCreateRecordAsFormData(
 ): Promise<unknown> {
   const formData = new FormData();
 
-  // JSON을 별도 필드로 담는다 (서버에서 'data'를 파싱)
   formData.append('data', JSON.stringify(payload));
 
-  // 이미지 파일 추가 (같은 key로 여러 번 append → files[]로 수신)
-  images.forEach((image) => {
-    formData.append('images', image);
-  });
+  if (images && images.length > 0) {
+    images.forEach((image) => {
+      formData.append('images', image);
+    });
+  }
 
-  // FormData는 Content-Type을 직접 설정하면 안 됨 (boundary는 브라우저가 설정)
   return await apiClient<unknown>(API_ENDPOINTS.RECORDS, {
     method: 'POST',
     body: formData,

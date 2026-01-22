@@ -105,13 +105,11 @@ export default function MapViewport({
     }));
   }, [recordsByBoundsData]);
 
-  // 새로 저장된 기록 핀과 API에서 받아온 핀 합치기
   const allPins = useMemo<PinMarkerData[]>(() => {
     const pins = [...apiPins];
+
     const serverIds = new Set(pins.map((pin) => String(pin.id)));
 
-    // 생성된 모든 기록을 핀으로 추가 (중복 제거)
-    // 서버 데이터(apiPins)에 이미 포함된 ID는 무시하여 삭제된 핀이 다시 그려지지 않도록 함
     createdRecordPins.forEach((pinData) => {
       const recordId = String(pinData.record.id);
 
@@ -123,6 +121,7 @@ export default function MapViewport({
         });
       }
     });
+
     return pins;
   }, [apiPins, createdRecordPins]);
 
