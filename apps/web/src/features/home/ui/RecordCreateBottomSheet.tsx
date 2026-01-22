@@ -2,14 +2,30 @@ import { BaseBottomSheet } from '@/shared/ui/bottomSheet';
 import { ActionButton } from '@/shared/ui/button';
 import { LocationIcon } from '@/shared/ui/icons/LocationIcon';
 import type { RecordCreateBottomSheetProps } from '../types/recordCreateBottomSheet';
+import { useReverseGeocode } from '../hooks/useReverseGeocode';
 
 export default function RecordCreateBottomSheet({
   isOpen,
   onClose,
   locationName,
   address,
+  coordinates,
   onConfirm,
 }: RecordCreateBottomSheetProps) {
+  // 같은 좌표에 대한 요청은 자동으로 캐시되어 불필요한 API 호출 방지
+
+  const { data: reverseGeocodeData, isLoading } = useReverseGeocode({
+    latitude: coordinates?.lat ?? null,
+    longitude: coordinates?.lng ?? null,
+    enabled: isOpen && coordinates !== undefined,
+  });
+
+  // 표시할 name과 address 결정 (역지오코딩 결과 우선, 없으면 기본값)
+  const displayName =
+    reverseGeocodeData?.data?.name ?? locationName ?? '선택한 위치';
+  const displayAddress =
+    reverseGeocodeData?.data?.address ?? address ?? '주소 정보 없음';
+
   return (
     <BaseBottomSheet isOpen={isOpen} onClose={onClose} height="small">
       <div className="flex flex-col items-center px-6 pb-6 pt-4">
@@ -25,13 +41,15 @@ export default function RecordCreateBottomSheet({
           이 위치가 맞나요?
         </h2>
 
-        {/* 위치 이름 */}
-        <h3 className="mb-1 text-center text-xl font-normal text-gray-900">
-          {locationName}
+        {/* 위치 이름 (크게) */}
+        <h3 className="mb-1 text-center text-2xl font-semibold text-gray-900">
+          {isLoading ? '위치 정보 불러오는 중...' : displayName}
         </h3>
 
-        {/* 주소 */}
-        <p className="mb-6 text-center text-sm text-gray-500">{address}</p>
+        {/* 주소 (작게) */}
+        <p className="mb-6 text-center text-sm text-gray-500">
+          {displayAddress}
+        </p>
 
         {/* 액션 버튼들 */}
         <div className="flex w-full flex-col gap-2.5">
