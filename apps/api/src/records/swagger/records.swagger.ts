@@ -99,6 +99,37 @@ export const GetRecordsSwagger = () =>
     ApiErrorResponse(),
   );
 
+export const GetRecordsByLocationSwagger = () =>
+  applyDecorators(
+    ApiExtraModels(RecordListResponseDto),
+    ApiBearerAuth(),
+    ApiOperation({
+      summary: '위치 기반 기록 조회',
+      description:
+        '특정 좌표를 기준으로 지정된 반경 내의 모든 기록을 조회합니다. 동일한 위치에서 생성된 기록들을 찾거나, 특정 장소의 기록들을 확인할 때 사용됩니다.',
+    }),
+    ApiSuccessResponse(RecordListResponseDto, HttpStatus.OK),
+    ApiFailResponse(HttpStatus.BAD_REQUEST, [
+      {
+        code: RecordErrorCode.INVALID_LATITUDE,
+        message: '위도 값이 유효하지 않습니다. (-90 ~ 90)',
+      },
+      {
+        code: RecordErrorCode.INVALID_LONGITUDE,
+        message: '경도 값이 유효하지 않습니다. (-180 ~ 180)',
+      },
+      {
+        code: RecordErrorCode.INVALID_RADIUS,
+        message: '반경 값이 유효하지 않습니다. (5 ~ 50)',
+      },
+    ]),
+    ApiFailResponse(HttpStatus.UNAUTHORIZED, {
+      code: 'AUTH_TOKEN_MISSING',
+      message: '인증 토큰이 없거나 유효하지 않습니다.',
+    }),
+    ApiErrorResponse(),
+  );
+
 export const DeleteRecordSwagger = () =>
   applyDecorators(
     ApiBearerAuth(),

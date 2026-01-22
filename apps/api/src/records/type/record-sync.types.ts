@@ -35,7 +35,7 @@ export const createRecordSyncPayload = (
     content: record.content,
     isFavorite: record.isFavorite,
     locationName: record.locationName,
-    tags: record.tags,
+    tags: [],
     hasImages: false, // todo: 수정 필요 !!record.images?.length,
     thumbnailImage: null, // todo: 수정 필요 record.images?.[0]?.url || null,
     connectionsCount: 0,

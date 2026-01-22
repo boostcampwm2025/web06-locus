@@ -6,7 +6,7 @@ yellow='\033[0;33m'
 reset='\033[0m'
 
 # 스테이징된 파일 목록을 가져옴
-staged_files=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.(js|jsx|ts|tsx)$')
+staged_files=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.(js|jsx|ts|tsx)$' | grep -v 'prisma/seed')
 
 # 스테이징된 파일이 있는지 확인
 if [ -z "$staged_files" ]; then

@@ -20,6 +20,7 @@ import { FilesInterceptor } from '@nestjs/platform-express';
 import { RecordsService } from './records.service';
 import { CreateRecordDto } from './dto/create-record.dto';
 import { GetRecordsQueryDto } from './dto/get-records-query.dto';
+import { GetRecordsByLocationDto } from './dto/get-records-by-location.dto';
 import { RecordResponseDto } from './dto/record-response.dto';
 import { RecordListResponseDto } from './dto/records-list-reponse.dto';
 import { JwtAuthGuard } from '@/jwt/guard/jwt.auth.guard';
@@ -31,6 +32,7 @@ import {
   CreateRecordSwagger,
   DeleteRecordSwagger,
   GetRecordsSwagger,
+  GetRecordsByLocationSwagger,
 } from './swagger/records.swagger';
 import { JsonBody } from '@/common/decorators/json-body.decorator';
 
@@ -47,6 +49,16 @@ export class RecordsController {
     @Query() query: GetRecordsQueryDto,
   ): Promise<RecordListResponseDto> {
     return await this.recordsService.getRecordsInBounds(userId, query);
+  }
+
+  @Get('location')
+  @UseGuards(JwtAuthGuard)
+  @GetRecordsByLocationSwagger()
+  async getRecordsByLocation(
+    @CurrentUser('sub') userId: bigint,
+    @Query() query: GetRecordsByLocationDto,
+  ): Promise<RecordListResponseDto> {
+    return await this.recordsService.getRecordsByLocation(userId, query);
   }
 
   @Post()
