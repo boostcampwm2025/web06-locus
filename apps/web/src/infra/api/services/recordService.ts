@@ -5,6 +5,7 @@ import {
   CreateRecordResponseSchema,
   GetRecordsByBoundsRequestSchema,
   RecordsByBoundsResponseSchema,
+  RecordDetailResponseSchema,
   validateApiResponse,
 } from '@locus/shared';
 import type {
@@ -12,7 +13,9 @@ import type {
   RecordWithImages,
   GetRecordsByBoundsRequest,
   Record,
+  RecordDetail,
 } from '@locus/shared';
+import { logger } from '@/shared/utils/logger';
 
 /**
  * 기록 생성 API 호출
@@ -81,6 +84,39 @@ export async function getRecordsByBounds(
     response,
   );
   return validated.data;
+}
+
+/**
+ * 기록 상세 조회 API 호출
+ * - GET /records/{publicId}
+ */
+export async function getRecordDetail(publicId: string): Promise<RecordDetail> {
+  try {
+    logger.info('기록 상세 조회 시작', { publicId });
+
+    // 1. API 호출
+    const response = await apiClient<unknown>(
+      API_ENDPOINTS.RECORDS_BY_ID(publicId),
+      {
+        method: 'GET',
+      },
+    );
+
+    // 2. Response 검증 + data 추출
+    const validated = validateApiResponse(RecordDetailResponseSchema, response);
+
+    logger.info('기록 상세 조회 성공', { publicId });
+    return validated.data.record;
+  } catch (error) {
+    logger.error(
+      error instanceof Error ? error : new Error('기록 상세 조회 실패'),
+      {
+        publicId,
+        error: String(error),
+      },
+    );
+    throw error;
+  }
 }
 
 /**

@@ -82,7 +82,14 @@ export async function handleApiErrorForSentry(
 
   if (!shouldSend) return;
 
-  const responseClone = response.clone();
+  // Response body가 이미 사용되었을 수 있으므로 clone 시도
+  let responseClone: Response;
+
+  try {
+    responseClone = response.clone();
+  } catch {
+    return;
+  }
   const errorText = await responseClone.text();
 
   void sentry.captureException(new Error(message), {
