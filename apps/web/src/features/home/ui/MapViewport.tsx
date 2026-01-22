@@ -337,17 +337,24 @@ export default function MapViewport({
           const polyline = new naver.maps.Polyline({
             map,
             path: [fromPos, toPos],
-            strokeColor: '#6366f1', // indigo-500
-            strokeWeight: 2,
-            strokeOpacity: 0.6,
+            strokeColor: '#6366f1',
+            strokeWeight: 3,
+            strokeOpacity: 0.5,
+            strokeStyle: 'shortdash',
+            strokeLineCap: 'round',
+            strokeLineJoin: 'round',
             zIndex: 0,
           });
           polylinesRef.current.push(polyline);
+
+          setTimeout(() => {
+            polyline.setMap(null);
+          }, 5000);
         }
       });
     };
 
-    void drawGraph();
+    drawGraph();
 
     // 정리 함수
     return () => {
@@ -584,7 +591,7 @@ export default function MapViewport({
     map.setZoom(15); // 검색 결과 위치로 이동 시 줌 레벨 조정
   }, [isMapLoaded, mapInstanceRef, targetLocation]);
 
-  // 연결된 기록 표시 (3초간만)
+  // 연결된 기록 표시 (8초간만)
   useEffect(() => {
     if (!isMapLoaded || !mapInstanceRef.current || !connectedRecords) {
       // connectedRecords가 없으면 연결선 제거
@@ -629,19 +636,19 @@ export default function MapViewport({
     connectionPolylineRef.current = new naver.maps.Polyline({
       map,
       path: [fromPos, toPos],
-      strokeColor: '#10b981', // green-500
-      strokeWeight: 3,
-      strokeOpacity: 0.8,
+      strokeColor: '#9333ea', // purple-600 (보라색 핀에 맞춘 진한 보라색)
+      strokeWeight: 5, // 더 두껍게
+      strokeOpacity: 0.9, // 더 선명하게
       zIndex: 1, // 그래프 연결선보다 위에 표시
     });
 
-    // 3초 후 자동 제거
+    // 8초 후 자동 제거
     const timer = setTimeout(() => {
       if (connectionPolylineRef.current) {
         connectionPolylineRef.current.setMap(null);
         connectionPolylineRef.current = null;
       }
-    }, 3000);
+    }, 8000);
 
     // 정리 함수
     return () => {

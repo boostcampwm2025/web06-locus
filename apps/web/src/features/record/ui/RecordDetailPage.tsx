@@ -243,12 +243,14 @@ function RecordContent({
   return (
     <div className="pb-10">
       {imageUrl && (
-        <div className="w-full mb-6">
-          <img
-            src={imageUrl}
-            alt={title}
-            className="w-full h-auto object-cover max-h-[400px]"
-          />
+        <div className="w-full mb-6 px-4">
+          <div className="w-full aspect-[4/3] rounded-lg overflow-hidden">
+            <img
+              src={imageUrl}
+              alt={title}
+              className="w-full h-full object-cover"
+            />
+          </div>
         </div>
       )}
       <div className="px-4">

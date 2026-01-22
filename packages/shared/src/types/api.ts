@@ -36,11 +36,10 @@ export type ConnectedRecordDetail = z.infer<
 
 /**
  * 기록 상세 조회 응답의 record 타입
- * @api GET /records/{publicId} - 응답의 data.record
+ * @api GET /records/{publicId} - 응답의 data (data 자체가 record 객체)
+ * RecordDetailResponseSchema의 data는 RecordWithImagesResponseSchema와 동일
  */
-export type RecordDetail = z.infer<
-  typeof RecordDetailResponseSchema
->['data']['record'];
+export type RecordDetail = z.infer<typeof RecordWithImagesResponseSchema>;
 
 /**
  * Request 타입 (BE 입력 검증용)
