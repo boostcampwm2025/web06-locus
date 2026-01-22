@@ -96,7 +96,7 @@ export default function MapViewport({
           swLat: fetchBounds.swLat,
           swLng: fetchBounds.swLng,
           page: 1,
-          limit: 500, // 충분히 큰 값으로 설정
+          limit: 100, // 충분히 큰 값으로 설정
           sortOrder: 'desc',
         }
       : null,
