@@ -13,6 +13,7 @@ export const API_ENDPOINTS = {
   AUTH_SIGNUP: '/auth/signup/request',
   AUTH_SIGNUP_VERIFY: '/auth/signup/confirm',
   AUTH_LOGIN: '/auth/login',
+  AUTH_REISSUE: '/auth/reissue',
   AUTH_LOGOUT: '/auth/logout',
 
   // Users
