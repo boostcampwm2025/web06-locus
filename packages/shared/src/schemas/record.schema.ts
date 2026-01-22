@@ -24,6 +24,8 @@ export const RecordResponseSchema = z.object({
   content: z.string().nullable().optional(),
   location: LocationSchema,
   tags: z.array(z.string()),
+  images: z.array(ImageResponseSchema).optional(),
+  isFavorite: z.boolean().optional(),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
 });

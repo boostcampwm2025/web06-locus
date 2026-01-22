@@ -116,7 +116,20 @@ function RecordDetailPageRoute() {
   }
 
   // API 응답을 RecordDetailPageProps로 변환
-  // bounds 기반 조회 응답에는 images와 isFavorite가 없을 수 있음
+  // 이미지가 있는 경우 첫 번째 이미지의 medium URL 사용
+  const recordWithImages = record as ApiRecord & {
+    images?: {
+      thumbnail: { url: string };
+      medium: { url: string };
+      original: { url: string };
+    }[];
+    isFavorite?: boolean;
+  };
+  const mediumImageUrl =
+    recordWithImages.images && recordWithImages.images.length > 0
+      ? recordWithImages.images[0].medium.url
+      : undefined;
+
   const recordProps = {
     title: record.title,
     date: new Date(record.createdAt),
@@ -126,9 +139,9 @@ function RecordDetailPageRoute() {
     },
     tags: record.tags,
     description: record.content ?? '',
-    imageUrl: undefined, // bounds 기반 조회 응답에는 images가 없음
+    imageUrl: mediumImageUrl,
     connectionCount: 0, // TODO: 그래프 API로 연결 개수 가져오기
-    isFavorite: false, // bounds 기반 조회 응답에는 isFavorite가 없음
+    isFavorite: recordWithImages.isFavorite ?? false,
   };
 
   const handleDelete = () => {

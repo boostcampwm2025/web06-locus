@@ -79,17 +79,33 @@ export default function RecordConnectionPage({
         })
       : recordsByBoundsData.records;
 
-    return filteredRecords.map((record: ApiRecord) => ({
-      id: record.publicId,
-      title: record.title,
-      location: {
-        name: record.location.name ?? '',
-        address: record.location.address ?? '',
-      },
-      date: new Date(record.createdAt),
-      tags: record.tags,
-      isRelated: Boolean(trimmedQuery), // 검색어가 있으면 관련 기록으로 표시
-    }));
+    return filteredRecords.map((record: ApiRecord) => {
+      // 이미지가 있는 경우 첫 번째 이미지의 thumbnail URL 사용 (목록이므로)
+      const recordWithImages = record as ApiRecord & {
+        images?: {
+          thumbnail: { url: string };
+          medium: { url: string };
+          original: { url: string };
+        }[];
+      };
+      const thumbnailUrl =
+        recordWithImages.images && recordWithImages.images.length > 0
+          ? recordWithImages.images[0].thumbnail.url
+          : undefined;
+
+      return {
+        id: record.publicId,
+        title: record.title,
+        location: {
+          name: record.location.name ?? '',
+          address: record.location.address ?? '',
+        },
+        date: new Date(record.createdAt),
+        tags: record.tags,
+        isRelated: Boolean(trimmedQuery), // 검색어가 있으면 관련 기록으로 표시
+        imageUrl: thumbnailUrl,
+      };
+    });
   }, [recordsByBoundsData, trimmedQuery]);
 
   const emptyMessage = isLoadingRecords
