@@ -1,4 +1,4 @@
-import { Suspense, lazy } from 'react';
+import { Suspense, lazy, useMemo } from 'react';
 import {
   Routes,
   Route,
@@ -69,6 +69,11 @@ function RecordDetailPageRoute() {
     isError,
   } = useGetRecordDetail(id ?? null);
 
+  // 연결 그래프 조회 (연결 개수 계산용)
+  const { data: graphData } = useRecordGraph(id ?? null, {
+    enabled: !!id,
+  });
+
   if (!id) {
     logger.warn('기록 상세 페이지: ID가 없음');
     return (
@@ -100,6 +105,22 @@ function RecordDetailPageRoute() {
   // 타입 단언 (useQuery의 타입 추론 문제 해결)
   const detail = recordDetail;
 
+  // 연결 개수 계산 (그래프 API의 edges에서 계산)
+  const connectionCount =
+    graphData?.data?.edges && id
+      ? (() => {
+          const connectedIds = new Set<string>();
+          graphData.data.edges.forEach((edge) => {
+            if (edge.fromRecordPublicId === id) {
+              connectedIds.add(edge.toRecordPublicId);
+            } else if (edge.toRecordPublicId === id) {
+              connectedIds.add(edge.fromRecordPublicId);
+            }
+          });
+          return connectedIds.size;
+        })()
+      : 0;
+
   // API 응답을 RecordDetailPageProps로 변환
   // 이미지가 있는 경우 첫 번째 이미지의 medium URL 사용
   const mediumImageUrl =
@@ -120,7 +141,7 @@ function RecordDetailPageRoute() {
     tags,
     description: detail.content ?? '',
     imageUrl: mediumImageUrl,
-    connectionCount: 0, // TODO: 그래프 API로 연결 개수 가져오기
+    connectionCount,
     isFavorite: detail.isFavorite,
   };
 
@@ -192,12 +213,62 @@ function ConnectionManagementPageRoute() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
+  // 기록 상세 조회 (baseRecord 정보용)
+  const { data: recordDetail, isLoading: isRecordDetailLoading } =
+    useGetRecordDetail(id ?? null);
+
   // 연결 그래프 조회
   const {
     data: graphData,
     isLoading: isGraphLoading,
     isError: isGraphError,
-  } = useRecordGraph(id ?? null);
+  } = useRecordGraph(id ?? null, {
+    enabled: !!id,
+  });
+
+  // 연결된 기록 publicId 추출
+  const connectedRecordIds = useMemo(() => {
+    if (!graphData?.data?.edges || !id) return [];
+    const connectedIds = new Set<string>();
+    graphData.data.edges.forEach((edge) => {
+      if (edge.fromRecordPublicId === id) {
+        connectedIds.add(edge.toRecordPublicId);
+      } else if (edge.toRecordPublicId === id) {
+        connectedIds.add(edge.fromRecordPublicId);
+      }
+    });
+    return Array.from(connectedIds);
+  }, [graphData?.data?.edges, id]);
+
+  // 연결된 기록 목록 변환 (그래프 API의 nodes에서 위치 정보만 사용)
+  // TODO: 각 연결된 기록의 상세 정보를 개별 API로 가져와야 함.
+  // 현재는 그래프 API의 nodes에서 위치 정보만 사용
+  const connectedRecords = useMemo(() => {
+    if (!graphData?.data?.nodes || connectedRecordIds.length === 0) return [];
+
+    return connectedRecordIds
+      .map((connectedId) => {
+        const node = graphData.data.nodes.find(
+          (n) => n.publicId === connectedId,
+        );
+        if (!node) return null;
+
+        return {
+          id: connectedId,
+          title: '', // 그래프 API는 위치 정보만 제공
+          location: {
+            name: '', // 위치 정보는 있지만 name/address는 없음
+            address: '',
+          },
+          date: new Date(), // 그래프 API에는 날짜 정보 없음
+          tags: [], // 그래프 API에는 태그 정보 없음
+          imageUrl: undefined,
+        };
+      })
+      .filter(
+        (record): record is NonNullable<typeof record> => record !== null,
+      );
+  }, [graphData?.data?.nodes, connectedRecordIds]);
 
   if (!id) {
     return (
@@ -207,13 +278,13 @@ function ConnectionManagementPageRoute() {
     );
   }
 
-  // 그래프 데이터 로딩 중
-  if (isGraphLoading) {
+  // 로딩 중
+  if (isRecordDetailLoading || isGraphLoading) {
     return <RouteLoadingFallback />;
   }
 
-  // 그래프 데이터 에러
-  if (isGraphError || !graphData?.data) {
+  // 에러 처리
+  if (isGraphError) {
     return (
       <div className="flex items-center justify-center h-screen">
         <p className="text-gray-400">연결된 기록을 불러올 수 없습니다.</p>
@@ -221,54 +292,27 @@ function ConnectionManagementPageRoute() {
     );
   }
 
-  // 시작 노드 찾기
-  const startNode = graphData.data.nodes.find((node) => node.publicId === id);
-
-  // 연결된 기록 목록 (시작 노드 제외)
-  const connectedNodeIds = new Set(
-    graphData.data.edges.flatMap((edge) => {
-      const ids: string[] = [];
-      if (edge.fromRecordPublicId === id) {
-        ids.push(edge.toRecordPublicId);
-      }
-      if (edge.toRecordPublicId === id) {
-        ids.push(edge.fromRecordPublicId);
-      }
-      return ids;
-    }),
-  );
-
-  const connectedNodes = graphData.data.nodes.filter(
-    (node) => node.publicId !== id && connectedNodeIds.has(node.publicId),
-  );
-
-  // TODO: 각 연결된 기록의 상세 정보(제목, 태그 등)를 가져오는 API 호출 필요
-  // 현재는 위치 정보만 사용
-  const baseRecord = {
-    id,
-    title: '', // TODO: GET /records/:id로 상세 정보 가져오기
-    location: startNode
-      ? {
-          name: '', // TODO: 역지오코딩 또는 상세 정보에서 가져오기
-          address: '', // TODO: 역지오코딩 또는 상세 정보에서 가져오기
-        }
-      : {
-          name: '',
-          address: '',
+  // baseRecord 정보 구성
+  const baseRecord = recordDetail
+    ? {
+        id,
+        title: recordDetail.title,
+        location: {
+          name: recordDetail.location.name ?? '',
+          address: recordDetail.location.address ?? '',
         },
-    date: new Date(), // TODO: 상세 정보에서 가져오기
-    tags: [], // TODO: 상세 정보에서 가져오기
-    connectionCount: connectedNodes.length,
-  };
-
-  const connectedRecords: {
-    id: string;
-    title: string;
-    location: { name: string; address: string };
-    date: Date;
-    tags: string[];
-    imageUrl?: string;
-  }[] = []; // TODO: API에서 가져올 데이터
+        date: new Date(recordDetail.createdAt),
+        tags: recordDetail.tags?.map((tag) => tag.name) ?? [],
+        connectionCount: connectedRecordIds.length,
+      }
+    : {
+        id,
+        title: '',
+        location: { name: '', address: '' },
+        date: new Date(),
+        tags: [],
+        connectionCount: 0,
+      };
 
   return (
     <Suspense fallback={<RouteLoadingFallback />}>
