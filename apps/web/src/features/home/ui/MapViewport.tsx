@@ -1,80 +1,26 @@
-import { useState, useMemo, useEffect, useRef } from 'react';
+import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { MapViewportProps } from '@features/home/types/mapViewport';
 import type { PinMarkerData } from '@/shared/types/marker';
 import { PinOverlay } from '@/infra/map/marker';
+import DraggablePinOverlay from '@/infra/map/marker/DraggablePinOverlay';
 import RecordCreateBottomSheet from './RecordCreateBottomSheet';
 import RecordSummaryBottomSheet from '@/features/record/ui/RecordSummaryBottomSheet';
 import { ROUTES } from '@/router/routes';
 import { useMapInstance } from '@/shared/hooks/useMapInstance';
 import type { Record as RecordType } from '@/features/record/types';
 import { useRecordGraph } from '@/features/connection/hooks/useRecordGraph';
-import { MOCK_RECORDS } from '@/features/record/domain/record.mock';
 import { buildGraphFromStoredConnections } from '@/infra/storage/connectionStorage';
-
-// TODO: 지도 SDK 연동 시 제거할 mock 데이터
-const MOCK_PINS: PinMarkerData[] = [
-  {
-    id: 2,
-    position: { lat: 37.5796, lng: 126.977 },
-    variant: 'record',
-  },
-  {
-    id: 3,
-    position: { lat: 37.5512, lng: 126.9882 },
-    variant: 'record',
-  },
-  {
-    id: 4,
-    position: { lat: 37.5665, lng: 126.978 },
-    variant: 'record',
-  },
-  {
-    id: 5,
-    position: { lat: 37.5326, lng: 127.0246 },
-    variant: 'record',
-  },
-  {
-    id: 6,
-    position: { lat: 37.4979, lng: 127.0276 },
-    variant: 'record',
-  },
-  {
-    id: 7,
-    position: { lat: 37.5663, lng: 126.9779 },
-    variant: 'record',
-  },
-  {
-    id: 8,
-    position: { lat: 37.5509, lng: 126.9885 },
-    variant: 'record',
-  },
-  {
-    id: 9,
-    position: { lat: 37.5704, lng: 126.9918 },
-    variant: 'record',
-  },
-  {
-    id: 10,
-    position: { lat: 37.5172, lng: 127.0473 },
-    variant: 'record',
-  },
-  {
-    id: 11,
-    position: { lat: 37.5668, lng: 126.9784 },
-    variant: 'record',
-  },
-  {
-    id: 12,
-    position: { lat: 37.545, lng: 126.9896 },
-    variant: 'record',
-  },
-];
+import type { Coordinates } from '@/features/record/types';
+import { useGetRecordsByBounds } from '@/features/record/hooks/useGetRecordsByBounds';
+import type { Record as ApiRecord } from '@locus/shared';
 
 export default function MapViewport({
   className = '',
   createdRecordPins = [],
   connectedRecords,
+  targetLocation,
+  onTargetLocationChange,
 }: MapViewportProps) {
   const navigate = useNavigate();
   const [isBottomSheetOpen, setIsBottomSheetOpen] = useState(false);
@@ -115,39 +61,103 @@ export default function MapViewport({
     autoCenterToGeolocation: true,
   });
 
-  // 새로 저장된 기록 핀과 기존 핀 합치기
-  const allPins = useMemo<PinMarkerData[]>(() => {
-    const pins = [...MOCK_PINS];
-    const existingIds = new Set(pins.map((pin) => String(pin.id)));
+  // 지도 bounds 상태 관리
+  const [mapBounds, setMapBounds] = useState<{
+    neLat: number;
+    neLng: number;
+    swLat: number;
+    swLng: number;
+    page?: number;
+    limit?: number;
+    sortOrder?: 'desc' | 'asc';
+  } | null>(null);
 
-    // 생성된 모든 기록을 핀으로 추가 (중복 제거)
-    createdRecordPins.forEach((pinData) => {
-      if (pinData.coordinates) {
-        const recordId = String(pinData.record.id);
-        // 이미 존재하는 id가 아니면 추가
-        if (!existingIds.has(recordId)) {
-          const newPin = {
-            id: pinData.record.id,
-            position: pinData.coordinates,
-            variant: 'record' as const,
-          };
-          pins.push(newPin);
-          existingIds.add(recordId);
+  // 지도 범위 기반 기록 조회 (GET /records - bounds 기반)
+  const { data: recordsByBoundsData } = useGetRecordsByBounds(
+    mapBounds
+      ? {
+          neLat: mapBounds.neLat,
+          neLng: mapBounds.neLng,
+          swLat: mapBounds.swLat,
+          swLng: mapBounds.swLng,
+          page: mapBounds.page ?? 1,
+          limit: mapBounds.limit ?? 50,
+          sortOrder: mapBounds.sortOrder ?? 'desc',
         }
+      : null,
+    {
+      enabled: isMapLoaded && mapBounds !== null,
+    },
+  );
+
+  // API에서 받아온 기록을 핀 데이터로 변환
+  const apiPins = useMemo<PinMarkerData[]>(() => {
+    if (!recordsByBoundsData?.records) {
+      return [];
+    }
+    return recordsByBoundsData.records.map((record: ApiRecord) => ({
+      id: record.publicId,
+      position: {
+        lat: record.location.latitude,
+        lng: record.location.longitude,
+      },
+      variant: 'record' as const,
+    }));
+  }, [recordsByBoundsData]);
+
+  const allPins = useMemo<PinMarkerData[]>(() => {
+    const pins = [...apiPins];
+
+    const serverIds = new Set(pins.map((pin) => String(pin.id)));
+
+    createdRecordPins.forEach((pinData) => {
+      const recordId = String(pinData.record.id);
+
+      if (pinData.coordinates && !serverIds.has(recordId)) {
+        pins.push({
+          id: pinData.record.id,
+          position: pinData.coordinates,
+          variant: 'record' as const,
+        });
       }
     });
+
     return pins;
-  }, [createdRecordPins]);
+  }, [apiPins, createdRecordPins]);
+
+  // API에서 받아온 기록을 RecordType으로 변환
+  const apiRecords = useMemo<Record<string | number, RecordType>>(() => {
+    if (!recordsByBoundsData?.records) {
+      return {};
+    }
+    const records: Record<string | number, RecordType> = {} as Record<
+      string | number,
+      RecordType
+    >;
+    recordsByBoundsData.records.forEach((record: ApiRecord) => {
+      records[record.publicId] = {
+        id: record.publicId,
+        text: record.title,
+        tags: record.tags,
+        location: {
+          name: record.location.name ?? '',
+          address: record.location.address ?? '',
+        },
+        createdAt: new Date(record.createdAt),
+      };
+    });
+    return records;
+  }, [recordsByBoundsData]);
 
   // 새로 저장된 기록도 포함한 전체 기록 데이터
   const allRecords = useMemo<Record<string | number, RecordType>>(() => {
-    const records = { ...MOCK_RECORDS };
+    const records = { ...apiRecords } as Record<string | number, RecordType>;
     // 생성된 모든 기록 추가
     createdRecordPins.forEach((pinData) => {
       records[pinData.record.id] = pinData.record;
     });
     return records;
-  }, [createdRecordPins]);
+  }, [apiRecords, createdRecordPins]);
 
   // 선택된 기록의 그래프 조회
   const isGraphQueryEnabled = !!selectedRecordPublicId && isMapLoaded;
@@ -263,14 +273,14 @@ export default function MapViewport({
     allPins,
   ]);
 
-  // 지도 클릭 이벤트: 다른 곳 클릭 시 연결선 제거
+  // 지도 클릭 이벤트: 다른 곳 클릭 시 연결선 제거 또는 기록 생성 바텀시트 열기
   useEffect(() => {
     if (!isMapLoaded || !mapInstanceRef.current) {
       return;
     }
 
     const map = mapInstanceRef.current;
-    const handleMapClick = () => {
+    const handleMapClick = (e: naver.maps.PointerEvent) => {
       // 핀 클릭은 이벤트 전파가 막혀있으므로, 지도 클릭만 처리
       if (selectedRecordPublicId) {
         setSelectedRecordPublicId(null);
@@ -282,6 +292,19 @@ export default function MapViewport({
           polyline.setMap(null);
         });
         polylinesRef.current = [];
+      } else {
+        // 빈 공간 클릭 시 기록 생성 바텀시트 열기
+        const latlng = e.coord as naver.maps.LatLng;
+        // 역지오코딩은 나중에 구현하고, 일단 기본값 사용
+        setSelectedLocation({
+          name: '선택한 위치',
+          address: '',
+          coordinates: {
+            lat: latlng.lat(),
+            lng: latlng.lng(),
+          },
+        });
+        setIsBottomSheetOpen(true);
       }
     };
 
@@ -305,6 +328,88 @@ export default function MapViewport({
     // ref는 변경되어도 재렌더링을 트리거하지 않으므로 dependency에서 제외
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isMapLoaded, selectedRecordPublicId]);
+
+  // 좌표를 소수점 4째 자리로 반올림하는 헬퍼 함수
+  const roundTo4Decimals = (value: number): number => {
+    return Math.round(value * 10000) / 10000;
+  };
+
+  // 지도 bounds 업데이트 함수 (useCallback으로 메모이제이션하여 stale closure 방지)
+  const updateMapBounds = useCallback(() => {
+    if (!isMapLoaded || !mapInstanceRef.current) {
+      return;
+    }
+
+    const map = mapInstanceRef.current;
+    const bounds = map.getBounds();
+
+    if (bounds) {
+      // Naver Maps의 LatLngBounds는 getNE()와 getSW() 메서드를 제공
+      const ne = (bounds as naver.maps.LatLngBounds).getNE(); // 북동쪽 모서리
+      const sw = (bounds as naver.maps.LatLngBounds).getSW(); // 남서쪽 모서리
+
+      setMapBounds({
+        neLat: roundTo4Decimals(ne.lat()),
+        neLng: roundTo4Decimals(ne.lng()),
+        swLat: roundTo4Decimals(sw.lat()),
+        swLng: roundTo4Decimals(sw.lng()),
+        page: 1,
+        limit: 50,
+        sortOrder: 'desc',
+      });
+    }
+  }, [isMapLoaded, mapInstanceRef]);
+
+  // 지도 이동/줌 변경 시 bounds 업데이트
+  // idle 이벤트 사용: 사용자가 지도를 움직이다가 멈췄을 때만 한 번 호출 (debounce 불필요)
+  useEffect(() => {
+    if (!isMapLoaded || !mapInstanceRef.current) {
+      return;
+    }
+
+    const map = mapInstanceRef.current;
+
+    // 초기 bounds 설정
+    updateMapBounds();
+
+    // idle 이벤트: 지도 이동/줌이 완료된 후 한 번만 호출
+    const idleListener = naver.maps.Event.addListener(map, 'idle', () => {
+      updateMapBounds();
+    });
+
+    // size_changed 이벤트: 지도 크기 변경 시 즉시 업데이트
+    const sizeChangedListener = naver.maps.Event.addListener(
+      map,
+      'size_changed',
+      () => {
+        updateMapBounds();
+      },
+    );
+
+    return () => {
+      naver.maps.Event.removeListener(idleListener);
+      naver.maps.Event.removeListener(sizeChangedListener);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isMapLoaded, updateMapBounds]);
+
+  // 검색 결과 위치로 지도 이동
+  useEffect(() => {
+    if (!isMapLoaded || !mapInstanceRef.current || !targetLocation) {
+      return;
+    }
+
+    const map = mapInstanceRef.current;
+    const naverMaps = window.naver?.maps;
+    if (!naverMaps) return;
+
+    const targetPosition = new naverMaps.LatLng(
+      targetLocation.lat,
+      targetLocation.lng,
+    );
+    map.setCenter(targetPosition);
+    map.setZoom(15); // 검색 결과 위치로 이동 시 줌 레벨 조정
+  }, [isMapLoaded, mapInstanceRef, targetLocation]);
 
   // 연결된 기록 표시 (3초간만)
   useEffect(() => {
@@ -331,7 +436,7 @@ export default function MapViewport({
 
     if (!fromRecord || !toRecord) return;
 
-    // MOCK_PINS에서 위치 찾기
+    // allPins에서 위치 찾기
     const fromPin = allPins.find(
       (pin) => String(pin.id) === connectedRecords.fromId,
     );
@@ -474,12 +579,53 @@ export default function MapViewport({
             />
           )}
 
+        {/* 검색 결과 위치 파란 핀 (드래그 가능) */}
+        {isMapLoaded && mapInstanceRef.current && targetLocation && (
+          <DraggablePinOverlay
+            key="search-location"
+            map={mapInstanceRef.current}
+            pin={{
+              id: 'search-location',
+              position: targetLocation,
+              variant: 'current',
+            }}
+            isSelected={false}
+            onClick={() => {
+              // 검색 결과 위치 클릭 시 기록 작성 페이지로 이동
+              void navigate(ROUTES.RECORD, {
+                state: {
+                  location: {
+                    name: '검색한 위치',
+                    address: '',
+                    coordinates: targetLocation,
+                  },
+                },
+              });
+            }}
+            onDragEnd={(newPosition: Coordinates) => {
+              // 드래그 종료 시 위치 업데이트
+              if (onTargetLocationChange) {
+                onTargetLocationChange(newPosition);
+              }
+              // 지도 중심도 함께 이동
+              if (mapInstanceRef.current) {
+                const naverMaps = window.naver?.maps;
+                if (naverMaps) {
+                  mapInstanceRef.current.setCenter(
+                    new naverMaps.LatLng(newPosition.lat, newPosition.lng),
+                  );
+                }
+              }
+            }}
+          />
+        )}
+
         {/* 지도에 고정된 핀 마커들 (기록 핀) */}
         {isMapLoaded &&
           mapInstanceRef.current &&
           allPins.map((pin) => (
             <PinOverlay
-              key={pin.id}
+              key={`${pin.id}-${pin.position.lat}-${pin.position.lng}`}
               map={mapInstanceRef.current!}
               pin={pin}
               isSelected={selectedPinId === pin.id}

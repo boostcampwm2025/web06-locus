@@ -64,6 +64,7 @@ export interface RecordSummaryBottomSheetProps {
   isOpen: boolean;
   onClose: () => void;
   record: Record;
+  isDeleting?: boolean;
   onEdit?: () => void;
   onDelete?: () => void;
 }
@@ -106,7 +107,6 @@ import type { ChangeEvent } from 'react';
  */
 export interface RecordWriteFormProps {
   formData: RecordFormData;
-  availableTags: string[];
   isAddingTag: boolean;
   newTagInput: string;
   onTitleChange: (e: ChangeEvent<HTMLInputElement>) => void;
@@ -115,12 +115,16 @@ export interface RecordWriteFormProps {
   onAddTagClick: () => void;
   onTagInputChange: (e: ChangeEvent<HTMLInputElement>) => void;
   onConfirmAddTag: () => void;
+  onKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void;
   onCancelAddTag: () => void;
   onAddImage: () => void;
+  selectedImages?: File[];
+  onRemoveImage?: (index: number) => void;
   onSave: () => void;
   onCancel: () => void;
   canSave: boolean;
   isSaving?: boolean;
+  isCreatingTag?: boolean;
 }
 
 /**
@@ -177,6 +181,8 @@ export interface RecordDetailPageProps {
   onBack?: () => void;
   onFavoriteToggle?: () => void;
   onMenuClick?: () => void;
+  onEdit?: () => void;
+  onDelete?: () => void;
   onConnectionManage?: () => void;
   onConnectionMode?: () => void;
   className?: string;

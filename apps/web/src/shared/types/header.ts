@@ -9,6 +9,7 @@ export interface AppHeaderProps {
   searchValue?: string;
   onSearchChange?: (value: string) => void;
   onSearchCancel?: () => void;
+  onSearch?: (value: string) => void;
   className?: string;
 }
 
@@ -43,6 +44,7 @@ export interface AppHeaderSearchModeProps {
   value: string;
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onCancel: () => void;
+  onSearch?: (value: string) => void;
   placeholder: string;
   className?: string;
 }
@@ -64,4 +66,13 @@ export interface AppHeaderNormalModeProps {
 export interface AuthPageHeaderProps {
   title?: string;
   subtitle?: React.ReactNode;
+}
+
+/**
+ * 뒤로가기 헤더 컴포넌트 Props
+ */
+export interface BackHeaderProps {
+  title: string;
+  onBack?: () => void;
+  className?: string;
 }

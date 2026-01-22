@@ -6,12 +6,24 @@ import type {
 } from '../types/recordConnection';
 import { useRecordConnection } from '../domain/useRecordConnection';
 import { useCreateConnection } from '../hooks/useCreateConnection';
-import { convertMockRecordsToConnectionItems } from '@/features/record/domain/record.mock';
+import { useGetRecordsByBounds } from '@/features/record/hooks/useGetRecordsByBounds';
+import type { Record as ApiRecord } from '@locus/shared';
 import RecordSelectionHeader from './RecordSelectionHeader';
 import RecordSearchInput from './RecordSearchInput';
 import RecommendedRecordsSection from './RecommendedRecordsSection';
 import ConnectActionButton from './ConnectActionButton';
 import RecordSelectionContextSheet from './RecordSelectionContextSheet';
+
+// 한국 전체를 커버하는 넓은 bounds (전체 기록 조회용)
+const KOREA_WIDE_BOUNDS = {
+  neLat: 38.6, // 북한 포함
+  neLng: 131.9, // 동해
+  swLat: 33.1, // 제주도 남쪽
+  swLng: 124.6, // 서해
+  page: 1,
+  limit: 100, // 충분히 많은 기록 가져오기
+  sortOrder: 'desc' as const,
+};
 
 export default function RecordConnectionPage({
   onBack,
@@ -37,15 +49,70 @@ export default function RecordConnectionPage({
   // 연결 생성 mutation
   const createConnectionMutation = useCreateConnection();
 
-  // mock 데이터 사용 (기록 조회 API가 없으므로)
+  // 바운딩 박스 기반 전체 기록 조회
+  const { data: recordsByBoundsData, isLoading: isLoadingRecords } =
+    useGetRecordsByBounds(KOREA_WIDE_BOUNDS);
+
+  // API 응답을 RecordConnectionItem으로 변환
   const trimmedQuery = searchQuery.trim();
   const recordsWithRelatedTag = useMemo<RecordConnectionItem[]>(() => {
-    return convertMockRecordsToConnectionItems(trimmedQuery || undefined);
-  }, [trimmedQuery]);
+    if (!recordsByBoundsData?.records) {
+      return [];
+    }
 
-  const emptyMessage = trimmedQuery
-    ? '검색 결과가 없습니다'
-    : '추천 기록이 없습니다';
+    // 검색어가 있으면 필터링, 없으면 전체 표시
+    const filteredRecords = trimmedQuery
+      ? recordsByBoundsData.records.filter((record: ApiRecord) => {
+          const query = trimmedQuery.toLowerCase();
+          const isTitleMatch = record.title.toLowerCase().includes(query);
+          const isLocationNameMatch =
+            record.location.name?.toLowerCase().includes(query) ?? false;
+          const isAddressMatch =
+            record.location.address?.toLowerCase().includes(query) ?? false;
+          const isTagMatch = record.tags.some((tag) =>
+            tag.toLowerCase().includes(query),
+          );
+
+          return (
+            isTitleMatch || isLocationNameMatch || isAddressMatch || isTagMatch
+          );
+        })
+      : recordsByBoundsData.records;
+
+    return filteredRecords.map((record: ApiRecord) => {
+      // 이미지가 있는 경우 첫 번째 이미지의 thumbnail URL 사용 (목록이므로)
+      const recordWithImages = record as ApiRecord & {
+        images?: {
+          thumbnail: { url: string };
+          medium: { url: string };
+          original: { url: string };
+        }[];
+      };
+      const thumbnailUrl =
+        recordWithImages.images && recordWithImages.images.length > 0
+          ? recordWithImages.images[0].thumbnail.url
+          : undefined;
+
+      return {
+        id: record.publicId,
+        title: record.title,
+        location: {
+          name: record.location.name ?? '',
+          address: record.location.address ?? '',
+        },
+        date: new Date(record.createdAt),
+        tags: record.tags,
+        isRelated: Boolean(trimmedQuery), // 검색어가 있으면 관련 기록으로 표시
+        imageUrl: thumbnailUrl,
+      };
+    });
+  }, [recordsByBoundsData, trimmedQuery]);
+
+  const emptyMessage = isLoadingRecords
+    ? '기록을 불러오는 중...'
+    : trimmedQuery
+      ? '검색 결과가 없습니다'
+      : '기록이 없습니다';
 
   const handleConnect = async () => {
     if (!isConnectEnabled) return;

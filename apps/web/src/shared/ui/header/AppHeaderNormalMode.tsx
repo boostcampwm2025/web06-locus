@@ -2,9 +2,11 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { Logo } from '@/shared/ui/icons/Logo';
 import { SearchIcon } from '@/shared/ui/icons/SearchIcon';
 import { FilterIcon } from '@/shared/ui/icons/FilterIcon';
+import { LogoutIcon } from '@/shared/ui/icons/LogoutIcon';
 import type { AppHeaderNormalModeProps } from '@/shared/types/header';
 import AppHeaderTitle from './AppHeaderTitle';
 import { ROUTES } from '@/router/routes';
+import { useAuthStore } from '@/features/auth/domain/authStore';
 
 /**
  * 일반 모드 헤더 컴포넌트
@@ -19,6 +21,7 @@ export default function AppHeaderNormalMode({
 }: AppHeaderNormalModeProps) {
   const navigate = useNavigate();
   const location = useLocation();
+  const logout = useAuthStore((state) => state.logout);
 
   const handleLogoClick = () => {
     if (onLogoClick) {
@@ -29,6 +32,11 @@ export default function AppHeaderNormalMode({
         state: { returnPath: location.pathname },
       });
     }
+  };
+
+  const handleLogoutClick = async () => {
+    await logout();
+    void navigate(ROUTES.LOGIN);
   };
 
   return (
@@ -65,6 +73,17 @@ export default function AppHeaderNormalMode({
           className="p-2 rounded-full hover:bg-gray-100 transition-colors"
         >
           <SearchIcon className="w-6 h-6 text-gray-700" />
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            void handleLogoutClick();
+          }}
+          aria-label="로그아웃"
+          className="p-2 rounded-full hover:bg-gray-100 transition-colors"
+        >
+          <LogoutIcon className="w-6 h-6 text-gray-700" />
         </button>
       </div>
     </header>

@@ -1,6 +1,6 @@
-import { getAccessToken } from '../storage/tokenStorage';
-import { API_BASE_URL } from './constants';
-import { sentry } from '@/shared/utils/sentryWrapper';
+import { getAccessToken, setAccessToken } from '../storage/tokenStorage';
+import { API_BASE_URL, API_ENDPOINTS } from './constants';
+import { logger } from '@/shared/utils/logger';
 import { handleApiErrorForSentry } from './apiErrorHandler';
 import {
   ClientError,
@@ -12,67 +12,256 @@ export interface ApiClientOptions extends RequestInit {
   requireAuth?: boolean;
 }
 
+// 리프레시 토큰 재발급 중인지 추적 (무한 루프 방지)
+let isRefreshing = false;
+// 재발급 대기 중인 요청들
+const failedQueue: {
+  resolve: (value: unknown) => void;
+  reject: (error: Error) => void;
+  url: string;
+  options: RequestInit;
+}[] = [];
+
+/**
+ * API 클라이언트
+ * @param endpoint - API 엔드포인트
+ * @param options - API 옵션
+ * @returns API 응답
+ */
 export const apiClient = async <T = unknown>(
   endpoint: string,
   options: ApiClientOptions = {},
 ): Promise<T> => {
   const { requireAuth = true, headers = {}, ...restOptions } = options;
-
-  // FormData인 경우 Content-Type을 자동으로 설정하지 않음 (브라우저가 boundary 포함하여 설정)
-  const isFormData = restOptions.body instanceof FormData;
-  const requestHeaders = prepareHeaders(headers, requireAuth, isFormData);
+  const method = (options.method ?? 'GET').toUpperCase();
   const url = buildApiUrl(endpoint);
-  const method = options.method ?? 'GET';
+
+  const requestHeaders = prepareHeaders(
+    headers,
+    requireAuth,
+    restOptions.body,
+    method,
+  );
   const startTime = Date.now();
 
-  // API 요청 Breadcrumb 추가
-  void sentry.addBreadcrumb({
-    category: 'api',
-    message: `API ${method} ${endpoint}`,
-    level: 'info',
-    data: {
-      url,
+  trackApiBreadcrumb(method, endpoint, url);
+
+  try {
+    const response = await fetch(url, {
+      ...restOptions,
+      headers: requestHeaders,
+    });
+
+    trackResponseBreadcrumb(
       method,
-    },
-  });
+      endpoint,
+      response.status,
+      Date.now() - startTime,
+    );
 
-  const response = await fetch(url, {
-    ...restOptions,
-    headers: requestHeaders,
-  });
+    // 1. 401 Unauthorized 처리 (리프레시 로직)
+    if (response.status === 401 && requireAuth) {
+      return await handleTokenRefreshFlow<T>(
+        url,
+        restOptions,
+        requestHeaders,
+        endpoint,
+        options,
+      );
+    }
 
-  const duration = Date.now() - startTime;
+    // 2. 기타 에러 처리
+    if (!response.ok) {
+      return await handleErrorResponse(response, endpoint, url, options);
+    }
 
-  // API 응답 Breadcrumb 추가
-  void sentry.addBreadcrumb({
-    category: 'api',
-    message: `API ${method} ${endpoint} - ${response.status}`,
-    level: response.ok ? 'info' : 'error',
-    data: {
-      status: response.status,
-      duration,
-    },
-  });
-
-  if (response.status === 401) {
-    await handleUnauthorized();
+    // 3. 성공 응답 파싱
+    return await parseResponse<T>(response);
+  } catch (error: unknown) {
+    if (error instanceof Error && error.name === 'AbortError') {
+      return {} as T;
+    }
+    throw error;
   }
-
-  if (!response.ok) {
-    await handleErrorResponse(response, endpoint, url, options);
-  }
-
-  return parseResponse<T>(response);
 };
 
 /**
- * Headers를 Record<string, string>로 변환
- * @param headers - HeadersInit
- * @returns Record<string, string>
+ * 401 발생 시 토큰 재발급 및 요청 재시도를 제어하는 하위 함수
+ */
+async function handleTokenRefreshFlow<T>(
+  url: string,
+  options: RequestInit,
+  currentHeaders: Record<string, string>,
+  endpoint: string,
+  apiOptions: ApiClientOptions,
+): Promise<T> {
+  // 이미 재발급 중이면 대기 큐로
+  if (isRefreshing) {
+    return new Promise<T>((resolve, reject) => {
+      failedQueue.push({
+        resolve: (value) => resolve(value as T),
+        reject,
+        url,
+        options: { ...options, headers: currentHeaders },
+      });
+    });
+  }
+
+  isRefreshing = true;
+
+  try {
+    const newAccessToken = await executeRefresh();
+
+    // 대기 중인 요청들 재시도 (비동기)
+    void retryFailedRequests(newAccessToken);
+
+    // 현재 실패했던 요청 재시도
+    const retryHeaders = {
+      ...currentHeaders,
+      Authorization: `Bearer ${newAccessToken}`,
+    };
+    const retryResponse = await fetch(url, {
+      ...options,
+      headers: retryHeaders,
+    });
+
+    if (retryResponse.ok) {
+      return await parseResponse<T>(retryResponse);
+    }
+
+    // 재시도도 실패하면 에러 처리
+    return await handleErrorResponse(retryResponse, endpoint, url, apiOptions);
+  } catch (error) {
+    await handleUnauthorized(); // 스토어 비우기
+    throw error;
+  } finally {
+    isRefreshing = false;
+  }
+}
+
+/**
+ * 리프레시 토큰 재발급 API 호출 본체
+ */
+async function executeRefresh(): Promise<string> {
+  const response = await fetch(buildApiUrl(API_ENDPOINTS.AUTH_REISSUE), {
+    method: 'POST',
+    credentials: 'include',
+  });
+
+  if (!response.ok) {
+    throw new Error('토큰 재발급 실패');
+  }
+
+  const data = (await response.json()) as { accessToken: string };
+  setAccessToken(data.accessToken);
+  return data.accessToken;
+}
+
+/**
+ * 재발급 대기 중인 요청들을 재시도
+ */
+async function retryFailedRequests(newAccessToken: string): Promise<void> {
+  const queue = [...failedQueue];
+  failedQueue.length = 0; // 큐 비우기
+
+  await Promise.allSettled(
+    queue.map(async ({ url, options, resolve, reject }) => {
+      try {
+        // 새로운 accessToken으로 헤더 업데이트
+        const headers = new Headers(options.headers);
+        headers.set('Authorization', `Bearer ${newAccessToken}`);
+
+        const response = await fetch(url, {
+          ...options,
+          headers,
+        });
+
+        if (response.ok) {
+          const data = await parseResponse(response);
+          resolve(data);
+        } else {
+          reject(new Error(`Request failed with status ${response.status}`));
+        }
+      } catch (error) {
+        reject(error instanceof Error ? error : new Error('Request failed'));
+      }
+    }),
+  );
+}
+
+/**
+ * API 요청 로깅 (개발 환경에서만 콘솔 출력)
+ */
+function trackApiBreadcrumb(method: string, endpoint: string, url: string) {
+  if (import.meta.env.MODE === 'development') {
+    console.info(`[API] ${method} ${endpoint}`, { url, method });
+  }
+}
+
+/**
+ * API 응답 로깅
+ * - 성공 응답: 개발 환경에서만 콘솔 출력
+ * - 실패 응답: Sentry breadcrumb 추가 (에러 추적 시 컨텍스트 제공)
+ */
+function trackResponseBreadcrumb(
+  method: string,
+  endpoint: string,
+  status: number,
+  duration: number,
+) {
+  const isSuccess = status >= 200 && status < 300;
+
+  if (isSuccess) {
+    // 성공 응답은 개발 환경에서만 콘솔 출력 (Sentry 등록 안 함)
+    if (import.meta.env.MODE === 'development') {
+      console.info(`[API] ${method} ${endpoint} - ${status}`, {
+        status,
+        duration,
+      });
+    }
+  } else {
+    // 실패 응답만 Sentry breadcrumb 추가
+    logger.info(`API ${method} ${endpoint} - ${status}`, {
+      status,
+      duration,
+    });
+  }
+}
+
+/**
+ * 헤더 준비
+ */
+function prepareHeaders(
+  headers: HeadersInit,
+  requireAuth: boolean,
+  body: RequestInit['body'],
+  method: string,
+): Record<string, string> {
+  const normalized = normalizeHeaders(headers);
+
+  const isFormData = body instanceof FormData;
+  const isSafeMethod = ['GET', 'HEAD'].includes(method);
+  const hasBody = body !== undefined && body !== null;
+
+  if (hasBody && !isFormData && !isSafeMethod && !normalized['Content-Type']) {
+    normalized['Content-Type'] = 'application/json';
+  }
+
+  if (requireAuth) {
+    const accessToken = getAccessToken();
+    if (accessToken) {
+      normalized.Authorization = `Bearer ${accessToken}`;
+    }
+  }
+
+  return normalized;
+}
+
+/**
+ * 헤더 노멀라이즈
  */
 function normalizeHeaders(headers: HeadersInit): Record<string, string> {
   const result: Record<string, string> = {};
-
   if (headers instanceof Headers) {
     headers.forEach((value, key) => {
       result[key] = value;
@@ -82,65 +271,29 @@ function normalizeHeaders(headers: HeadersInit): Record<string, string> {
       result[key] = value;
     });
   } else {
-    Object.assign(result, headers);
+    // Record 형식을 안전하게 복사
+    Object.entries(headers).forEach(([key, value]) => {
+      result[key] = value;
+    });
   }
-
   return result;
 }
 
-/**
- * 요청 헤더 준비 (기본 헤더 + 사용자 헤더 + 인증 헤더)
- * @param headers - HeadersInit
- * @param requireAuth - 인증 필요 여부
- * @param isFormData - FormData 여부 (FormData인 경우 Content-Type 자동 설정 안 함)
- * @returns Record<string, string>
- */
-function prepareHeaders(
-  headers: HeadersInit,
-  requireAuth: boolean,
-  isFormData = false,
-): Record<string, string> {
-  const requestHeaders: Record<string, string> = {
-    ...normalizeHeaders(headers),
-  };
-
-  // FormData가 아닌 경우에만 Content-Type 설정
-  if (!isFormData && !requestHeaders['Content-Type']) {
-    requestHeaders['Content-Type'] = 'application/json';
-  }
-
-  if (requireAuth) {
-    const accessToken = getAccessToken();
-    if (accessToken) {
-      requestHeaders.Authorization = `Bearer ${accessToken}`;
-    }
-  }
-
-  return requestHeaders;
-}
-
-/**
- * API URL 생성
- * @param endpoint - API 엔드포인트
- * @param absolute - 절대 URL로 반환할지 여부 (기본값: false, 상대 경로)
- * @returns 완전한 API URL
- */
 export function buildApiUrl(endpoint: string, absolute = false): string {
-  // 이미 절대 URL인 경우 그대로 반환
-  if (endpoint.startsWith('http')) {
-    return endpoint;
-  }
+  if (endpoint.startsWith('http')) return endpoint;
 
-  // API_BASE_URL이 절대 URL인 경우 (환경 변수로 개발/프로덕션 서버 URL 설정)
-  if (API_BASE_URL.startsWith('http')) {
-    return `${API_BASE_URL}${endpoint}`;
-  }
+  const baseUrl = API_BASE_URL.startsWith('http')
+    ? API_BASE_URL
+    : `${typeof window !== 'undefined' ? window.location.origin : ''}${API_BASE_URL}`;
 
-  // 상대 경로로 API_BASE_URL prefix 추가
-  const relativeUrl = `${API_BASE_URL}${endpoint}`;
+  const fullUrl = `${baseUrl.replace(/\/$/, '')}/${endpoint.replace(/^\//, '')}`;
 
-  // 절대 URL이 필요한 경우 (예: window.location.href)
-  return absolute ? `${window.location.origin}${relativeUrl}` : relativeUrl;
+  return absolute
+    ? fullUrl
+    : fullUrl.replace(
+        typeof window !== 'undefined' ? window.location.origin : '',
+        '',
+      );
 }
 
 async function handleUnauthorized(): Promise<void> {
@@ -148,6 +301,9 @@ async function handleUnauthorized(): Promise<void> {
   useAuthStore.getState().clearAuth();
 }
 
+/**
+ * 에러 처리
+ */
 async function handleErrorResponse(
   response: Response,
   endpoint: string,
@@ -160,101 +316,62 @@ async function handleErrorResponse(
   try {
     await handleApiErrorForSentry(response, endpoint, url, options);
   } catch (err) {
-    console.error('Sentry 전송 실패:', err);
+    console.error('Sentry logging failed:', err);
   }
 
-  // 메시지 및 코드 결정 (우선순위 전략)
   const errorCode = errorBody?.code;
   const errorMessage = determineErrorMessage(status, errorBody);
 
-  // 에러 클래스 분기 처리
-  const errorResponse = errorBody ?? undefined;
   const ErrorClass = status >= 500 ? ServerError : ClientError;
-  throw new ErrorClass(errorMessage, status, errorCode, errorResponse);
+  throw new ErrorClass(errorMessage, status, errorCode, errorBody ?? undefined);
 }
 
 /**
- * JSON 또는 Text 응답 안전하게 파싱
+ * 에러 바디 파싱
  */
 async function parseErrorBody(
   response: Response,
 ): Promise<ApiErrorResponse | null> {
-  // JSON이 아니면 null 반환
   const contentType = response.headers.get('content-type');
-  if (!contentType?.includes('application/json')) {
-    return null;
-  }
+  if (!contentType?.includes('application/json')) return null;
 
   try {
-    const text = await response.clone().text();
-    const parsed = JSON.parse(text) as unknown;
-
-    // 유효한 ApiErrorResponse 형식인지 확인
-    if (!isValidApiErrorResponse(parsed)) {
-      return null;
+    // unknown으로 먼저 받고, 타입 가드로 검증.
+    const data = (await response.json()) as unknown;
+    if (isValidApiErrorResponse(data)) {
+      return data;
     }
-
-    return parsed;
+    return null;
   } catch {
     return null;
   }
 }
 
-/**
- * 파싱된 객체가 유효한 ApiErrorResponse 형식인지 확인
- */
 function isValidApiErrorResponse(value: unknown): value is ApiErrorResponse {
-  if (typeof value !== 'object' || value === null) {
-    return false;
-  }
-
-  if (!('status' in value)) {
-    return false;
-  }
-
-  return value.status === 'fail' || value.status === 'error';
+  return typeof value === 'object' && value !== null && 'status' in value;
 }
 
-/**
- * 상황별 최적의 에러 메시지 결정
- */
 function determineErrorMessage(
   status: number,
   body: ApiErrorResponse | null,
 ): string {
-  if (!body) {
-    // body가 null인 경우 기본 메시지 반환
-    return status >= 500
-      ? '서버에 일시적인 문제가 발생했습니다.'
-      : '요청 처리 중 오류가 발생했습니다.';
-  }
-
-  // 1. 백엔드에서 준 메시지가 있으면 최우선
-  if ('message' in body && body.message) {
-    return body.message;
-  }
-
-  // 2. Fail 상태인데 메시지가 없으면 code라도 반환
-  if (body.status === 'fail' && body.code) {
-    return body.code;
-  }
-
-  // 3. 마지막 수단: 상태 코드별 기본 메시지
-  return status >= 500
-    ? '서버에 일시적인 문제가 발생했습니다.'
-    : '요청 처리 중 오류가 발생했습니다.';
+  if (body?.message) return body.message;
+  return status >= 500 ? '서버 오류' : '잘못된 요청';
 }
 
 /**
- * 응답 파싱
- * json 형태가 아닌 경우 text 형태로 처리하도록 한다
- * @param response - Response
- * @returns T
+ * 응답 파싱 (Unsafe Return 해결)
  */
 async function parseResponse<T>(response: Response): Promise<T> {
   const contentType = response.headers.get('content-type');
+
+  if (response.status === 204) return {} as T;
+
   if (!contentType?.includes('application/json')) {
-    return (await response.text()) as T;
+    const text = await response.text();
+    return text as unknown as T; // 단계적 캐스팅으로 unsafe return 방지
   }
-  return (await response.json()) as T;
+
+  const json = (await response.json()) as unknown;
+  return json as T; // unknown에서 T로 단언
 }
