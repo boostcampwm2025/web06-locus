@@ -26,7 +26,7 @@ export const SELECT_RECORDS_IN_BOUNDS_SQL = (
       is_favorite AS "isFavorite",
       created_at AS "createdAt",
       updated_at AS "updatedAt"
-    FROM records
+    FROM locus.records
     WHERE user_id = ${userId}
       AND location IS NOT NULL
       AND ST_Within(
@@ -46,7 +46,7 @@ export const COUNT_RECORDS_IN_BOUNDS_SQL = (
   neLat: number,
 ) => Prisma.sql`
   SELECT COUNT(*)::int AS count
-  FROM records
+  FROM locus.records
   WHERE user_id = ${userId}
     AND location IS NOT NULL
     AND ST_Within(
@@ -60,7 +60,7 @@ export const UPDATE_RECORD_LOCATION_SQL = (
   longitude: number,
   latitude: number,
 ) => Prisma.sql`
-  UPDATE records
+  UPDATE locus.records
   SET location = ST_SetSRID(
     ST_MakePoint(${longitude}, ${latitude}),
     4326
@@ -84,7 +84,7 @@ export const GET_RECORD_LOCATION_SQL = (recordId: bigint) => Prisma.sql`
   SELECT
     ST_X(location::geometry) as longitude,
     ST_Y(location::geometry) as latitude
-  FROM records
+  FROM locus.records
   WHERE id = ${recordId}
 `;
 
@@ -113,7 +113,7 @@ export const SELECT_RECORDS_BY_LOCATION_SQL = (
       is_favorite AS "isFavorite",
       created_at AS "createdAt",
       updated_at AS "updatedAt"
-    FROM records
+    FROM locus.records
     WHERE user_id = ${userId}
       AND location IS NOT NULL
       AND ST_DWithin(
@@ -133,7 +133,7 @@ export const COUNT_RECORDS_BY_LOCATION_SQL = (
   radiusMeters: number,
 ) => Prisma.sql`
   SELECT COUNT(*)::int AS count
-  FROM records
+  FROM locus.records
   WHERE user_id = ${userId}
     AND location IS NOT NULL
     AND ST_DWithin(
