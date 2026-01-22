@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import type { RecordConnectionItem } from '../types/recordConnection';
 import { useCreateConnection } from './useCreateConnection';
-import { convertMockRecordsToConnectionItems } from '@/features/record/domain/record.mock';
+// TODO: API 연동 - 기록 검색 API 사용
 import { addStoredConnection } from '@/infra/storage/connectionStorage';
 
 interface UseRecordConnectionPageOptions {
@@ -22,13 +22,13 @@ export function useRecordConnectionPage({
 }: UseRecordConnectionPageOptions) {
   const createConnectionMutation = useCreateConnection();
 
-  // 검색된 기록 목록
+  // TODO: API 연동 - 기록 검색 API 사용
+  // 현재는 빈 배열 반환 (API 연동 전까지)
   const trimmedQuery = searchQuery.trim();
   const recordsWithRelatedTag = useMemo<RecordConnectionItem[]>(() => {
-    const result: RecordConnectionItem[] = convertMockRecordsToConnectionItems(
-      trimmedQuery || undefined,
-    );
-    return result;
+    // TODO: GET /records/search API 호출하여 기록 목록 가져오기
+    return [];
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [trimmedQuery]);
 
   // 빈 상태 메시지

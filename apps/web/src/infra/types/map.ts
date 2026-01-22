@@ -58,3 +58,29 @@ export interface DragState {
   dragging: boolean;
   grabOffset: { x: number; y: number } | null; // (마우스/터치 포인터 - 핀 중심) 오프셋
 }
+
+/**
+ * 지오코딩 API 응답의 주소 정보
+ */
+export interface GeocodeAddress {
+  roadAddress: string;
+  jibunAddress: string;
+  englishAddress: string;
+  latitude: string;
+  longitude: string;
+}
+
+/**
+ * 지오코딩 API 응답
+ */
+export interface GeocodeResponse {
+  status: 'success';
+  data: {
+    meta: {
+      totalCount: number;
+      page: number;
+      count: number;
+    };
+    addresses: GeocodeAddress[];
+  };
+}
