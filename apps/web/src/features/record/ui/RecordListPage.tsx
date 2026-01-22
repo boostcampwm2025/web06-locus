@@ -8,7 +8,8 @@ import type { Location } from '@/features/record/types';
 import type { Category } from '@/shared/types/category';
 import { ROUTES } from '@/router/routes';
 import { useBottomTabNavigation } from '@/shared/hooks/useBottomTabNavigation';
-import { convertMockRecordsToRecordListItems } from '../domain/record.mock';
+import { useGetRecordsByBounds } from '@/features/record/hooks/useGetRecordsByBounds';
+import type { Record as ApiRecord } from '@locus/shared';
 
 export interface RecordListItem {
   id: string;
@@ -40,6 +41,17 @@ const defaultCategories: Category[] = [
   { id: 'shopping', label: '쇼핑' },
 ];
 
+// 한국 전체를 커버하는 넓은 bounds (임시로 전체 기록 조회용)
+const KOREA_WIDE_BOUNDS = {
+  neLat: 38.6, // 북한 포함
+  neLng: 131.9, // 동해
+  swLat: 33.1, // 제주도 남쪽
+  swLng: 124.6, // 서해
+  page: 1,
+  limit: 100, // 충분히 많은 기록 가져오기
+  sortOrder: 'desc' as const,
+};
+
 export default function RecordListPage({
   records: propRecords,
   categories = defaultCategories,
@@ -54,14 +66,34 @@ export default function RecordListPage({
   const [isSearchActive, setIsSearchActive] = useState(false);
   const [searchValue, setSearchValue] = useState('');
 
-  // mock 데이터 사용 (기록 조회 API가 없으므로)
+  // API에서 기록 목록 가져오기 (넓은 bounds 사용)
+  const {
+    data: recordsByBoundsData,
+    isLoading,
+    isError,
+  } = useGetRecordsByBounds(KOREA_WIDE_BOUNDS);
+
+  // API 응답을 RecordListItem으로 변환
   const records = useMemo<RecordListItem[]>(() => {
     // propRecords가 제공된 경우 우선 사용 (테스트/스토리북용)
     if (propRecords) return propRecords;
 
-    const result = convertMockRecordsToRecordListItems();
-    return result as RecordListItem[];
-  }, [propRecords]);
+    if (!recordsByBoundsData?.records) {
+      return [];
+    }
+
+    return recordsByBoundsData.records.map((record: ApiRecord) => ({
+      id: record.publicId,
+      title: record.title,
+      location: {
+        name: record.location.name ?? '',
+        address: record.location.address ?? '',
+      },
+      date: new Date(record.createdAt),
+      tags: record.tags,
+      connectionCount: 0, // TODO: 연결 개수 API 연동 필요
+    }));
+  }, [propRecords, recordsByBoundsData]);
 
   const handleSearchClick = () => {
     setIsSearchActive(true);
@@ -112,7 +144,15 @@ export default function RecordListPage({
 
       {/* 리스트 */}
       <div className="flex-1 overflow-y-auto flex flex-col">
-        {records.length === 0 ? (
+        {isLoading ? (
+          <div className="flex-1 flex items-center justify-center text-gray-400">
+            기록을 불러오는 중...
+          </div>
+        ) : isError ? (
+          <div className="flex-1 flex items-center justify-center text-red-400">
+            기록을 불러오는데 실패했습니다.
+          </div>
+        ) : records.length === 0 ? (
           <div className="flex-1 flex items-center justify-center text-gray-400">
             기록이 없습니다
           </div>
