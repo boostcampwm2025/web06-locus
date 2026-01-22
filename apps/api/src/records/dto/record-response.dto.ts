@@ -51,6 +51,14 @@ export class LocationResponseDto {
   address: string;
 }
 
+export class RecordTagDto {
+  @ApiProperty({ description: '태그 공개 ID', example: 'tag_7K9mP2nQ5xL' })
+  publicId: string;
+
+  @ApiProperty({ description: '태그 이름', example: '산책' })
+  name: string;
+}
+
 export class RecordResponseDto {
   @ApiProperty({ description: '기록 공개 ID', example: 'rec_7K9mP2nQ5xL' })
   publicId: string;
@@ -70,10 +78,9 @@ export class RecordResponseDto {
 
   @ApiProperty({
     description: '태그 목록',
-    example: ['산책', '한강', '석양'],
-    type: [String],
+    type: [RecordTagDto],
   })
-  tags: string[];
+  tags: RecordTagDto[];
 
   @ApiProperty({
     description: '이미지 목록',
@@ -108,6 +115,49 @@ export class RecordResponseDto {
         address: record.locationAddress,
       },
       tags: [],
+      images: record.images.map((img) => ({
+        publicId: img.publicId,
+        thumbnail: {
+          url: img.thumbnailUrl,
+          width: img.thumbnailWidth,
+          height: img.thumbnailHeight,
+          size: img.thumbnailSize,
+        },
+        medium: {
+          url: img.mediumUrl,
+          width: img.mediumWidth,
+          height: img.mediumHeight,
+          size: img.mediumSize,
+        },
+        original: {
+          url: img.originalUrl,
+          width: img.originalWidth,
+          height: img.originalHeight,
+          size: img.originalSize,
+        },
+        order: img.order,
+      })),
+      isFavorite: record.isFavorite,
+      createdAt: record.createdAt.toISOString(),
+      updatedAt: record.updatedAt.toISOString(),
+    };
+  }
+
+  static of(
+    record: RecordResponseSource,
+    tags: RecordTagDto[],
+  ): RecordResponseDto {
+    return {
+      publicId: record.publicId,
+      title: record.title,
+      content: record.content,
+      location: {
+        latitude: record.latitude,
+        longitude: record.longitude,
+        name: record.locationName,
+        address: record.locationAddress,
+      },
+      tags,
       images: record.images.map((img) => ({
         publicId: img.publicId,
         thumbnail: {
