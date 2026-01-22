@@ -46,6 +46,7 @@ export default function RecordWritePage({
     startAddTag,
     cancelAddTag,
     confirmAddTag,
+    handleKeyDown,
     isCreatingTag,
     canSave,
   } = useRecordForm();
@@ -176,6 +177,7 @@ export default function RecordWritePage({
           setNewTagInput(e.target.value);
         }}
         onConfirmAddTag={() => void confirmAddTag()}
+        onKeyDown={handleKeyDown}
         isCreatingTag={isCreatingTag}
         onCancelAddTag={cancelAddTag}
         onAddImage={handleAddImage}
@@ -329,6 +331,7 @@ function RecordWriteForm({
   onAddTagClick,
   onTagInputChange,
   onConfirmAddTag,
+  onKeyDown,
   onCancelAddTag,
   onAddImage,
   selectedImages = [],
@@ -414,14 +417,7 @@ function RecordWriteForm({
                   disabled={isCreatingTag}
                   className="px-4 py-2 rounded-full text-sm font-medium border border-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent text-gray-900 placeholder:text-gray-400 disabled:opacity-50 disabled:cursor-not-allowed"
                   autoFocus
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && !isCreatingTag) {
-                      e.preventDefault();
-                      onConfirmAddTag();
-                    } else if (e.key === 'Escape') {
-                      onCancelAddTag();
-                    }
-                  }}
+                  onKeyDown={onKeyDown}
                 />
                 <button
                   type="button"
