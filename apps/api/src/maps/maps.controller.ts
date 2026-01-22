@@ -2,6 +2,8 @@ import { Controller, Get, Query, UseGuards } from '@nestjs/common';
 import { MapsService } from './maps.service';
 import { GeocodeRequestDto } from './dto/geocode.request.dto';
 import { GeocodeResponseDto } from './dto/geocode.response.dto';
+import { ReverseGeocodeRequestDto } from './dto/reverse-geocode.request.dto';
+import { ReverseGeocodeResponseDto } from './dto/reverse-geocode.response.dto';
 import { JwtAuthGuard } from '@/jwt/guard/jwt.auth.guard';
 
 @Controller('maps')
@@ -28,5 +30,16 @@ export class MapsController {
     };
 
     return response;
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('reverse-geocode')
+  async getAddress(
+    @Query() requestDto: ReverseGeocodeRequestDto,
+  ): Promise<ReverseGeocodeResponseDto> {
+    return this.MapsService.getAddressFromCoordinates(
+      requestDto.latitude,
+      requestDto.longitude,
+    );
   }
 }
