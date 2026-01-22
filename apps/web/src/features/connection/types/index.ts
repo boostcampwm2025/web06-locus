@@ -10,3 +10,14 @@ export type {
   RecordConnectionListProps,
   RecordSelectionContextSheetProps,
 } from './recordConnection';
+
+export type {
+  BaseRecord,
+  ConnectedRecord,
+  ConnectionManagementPageProps,
+  BaseRecordSectionProps,
+  ConnectionSearchInputProps,
+  ConnectionMapVisualizationProps,
+  ConnectedRecordListProps,
+  ConnectedRecordCardProps,
+} from './connectionManagement';

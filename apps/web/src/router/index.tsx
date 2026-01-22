@@ -5,6 +5,7 @@ import {
   Navigate,
   useParams,
   useNavigate,
+  generatePath,
 } from 'react-router-dom';
 import ProtectedRoute from './ProtectedRoute';
 import PublicRoute from './PublicRoute';
@@ -34,6 +35,9 @@ const RecordDetailPage = lazy(
 const RecordConnectionPage = lazy(
   () => import('@/features/connection/ui/RecordConnectionPage'),
 );
+const ConnectionManagementPage = lazy(
+  () => import('@/features/connection/ui/ConnectionManagementPage'),
+);
 const RecordWritePageRoute = lazy(() => import('./RecordWritePageRoute'));
 const OnboardingPage = lazy(
   () => import('@/features/onboarding/pages/OnboardingPage'),
@@ -50,7 +54,7 @@ const RouteLoadingFallback = () => {
  * 내부에서 lazy 컴포넌트를 사용하므로 Suspense로 감쌈
  */
 function RecordDetailPageRoute() {
-  useParams<{ id: string }>();
+  const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
   const mockRecord = {
@@ -73,13 +77,19 @@ function RecordDetailPageRoute() {
         onFavoriteToggle={() => {
           void undefined;
         }}
-        onMenuClick={() => {
-          void undefined;
-        }}
+        // onMenuClick을 전달하지 않으면 내부에서 ActionSheet를 열도록 함
         onConnectionManage={() => {
-          void undefined;
+          if (id) {
+            void navigate(generatePath(ROUTES.CONNECTION_MANAGEMENT, { id }));
+          }
         }}
         onConnectionMode={() => void navigate(ROUTES.CONNECTION)}
+        onEdit={() => {
+          // TODO: API 연동 후 구현 예정
+        }}
+        onDelete={() => {
+          // TODO: API 연동 후 구현 예정
+        }}
       />
     </Suspense>
   );
@@ -95,6 +105,106 @@ function RecordConnectionPageRoute() {
           void navigate(ROUTES.HOME, {
             state: { connectedRecords: { fromId: dep, toId: arr } },
           });
+        }}
+      />
+    </Suspense>
+  );
+}
+
+function ConnectionManagementPageRoute() {
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+
+  // TODO: API 연동 후 실제 데이터 가져오기
+  const mockBaseRecord = {
+    id: id ?? '1',
+    title: '서울숲 산책',
+    location: {
+      name: '서울숲',
+      address: '서울특별시 성동구 뚝섬로 273',
+    },
+    date: new Date('2025-12-13'),
+    tags: ['자연', '공원'],
+    connectionCount: 5,
+  };
+
+  const mockConnectedRecords = [
+    {
+      id: '2',
+      title: '경복궁 나들이',
+      location: {
+        name: '경복궁',
+        address: '서울특별시 종로구 사직로 161',
+      },
+      date: new Date('2025-12-15'),
+      tags: ['역사', '명소'],
+      imageUrl: undefined,
+    },
+    {
+      id: '3',
+      title: '한옥의 고즈넉한 분위기와 골목길이 인',
+      location: {
+        name: '북촌 한옥마을',
+        address: '서울특별시 종로구 계동길 37',
+      },
+      date: new Date('2025-12-14'),
+      tags: ['문화', '전통'],
+      imageUrl: undefined,
+    },
+    {
+      id: '4',
+      title: '이태원 맛집 탐방',
+      location: {
+        name: '이태원',
+        address: '서울특별시 용산구 이태원로27길 26',
+      },
+      date: new Date('2025-12-12'),
+      tags: ['음식', '맛집'],
+      imageUrl: undefined,
+    },
+    {
+      id: '5',
+      title: '명동 스피',
+      location: {
+        name: '명동',
+        address: '서울특별시 중구 명동길 26',
+      },
+      date: new Date('2025-12-11'),
+      tags: ['쇼핑', '관광'],
+      imageUrl: undefined,
+    },
+    {
+      id: '6',
+      title: '남산 타워 전망',
+      location: {
+        name: '남산타워',
+        address: '서울특별시 용산구 남산공원길 105',
+      },
+      date: new Date('2025-12-10'),
+      tags: ['전망', '관광'],
+      imageUrl: undefined,
+    },
+  ];
+
+  return (
+    <Suspense fallback={<RouteLoadingFallback />}>
+      <ConnectionManagementPage
+        baseRecord={mockBaseRecord}
+        connectedRecords={mockConnectedRecords}
+        onBack={() => {
+          if (id) {
+            void navigate(generatePath(ROUTES.RECORD_DETAIL, { id }));
+          } else {
+            void navigate(-1);
+          }
+        }}
+        onRecordClick={(recordId) => {
+          void navigate(generatePath(ROUTES.RECORD_DETAIL, { id: recordId }));
+        }}
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        onRecordRemove={(_recordId) => {
+          // TODO: API 연동 후 구현
+          void undefined;
         }}
       />
     </Suspense>
@@ -196,6 +306,14 @@ export function AppRoutes() {
           element={
             <ProtectedRoute>
               <RecordConnectionPageRoute />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path={ROUTES.CONNECTION_MANAGEMENT}
+          element={
+            <ProtectedRoute>
+              <ConnectionManagementPageRoute />
             </ProtectedRoute>
           }
         />

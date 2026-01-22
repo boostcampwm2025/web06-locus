@@ -177,6 +177,8 @@ export interface RecordDetailPageProps {
   onBack?: () => void;
   onFavoriteToggle?: () => void;
   onMenuClick?: () => void;
+  onEdit?: () => void;
+  onDelete?: () => void;
   onConnectionManage?: () => void;
   onConnectionMode?: () => void;
   className?: string;

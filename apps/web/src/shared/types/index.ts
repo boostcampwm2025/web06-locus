@@ -14,6 +14,7 @@ export type {
   AppHeaderNormalModeProps,
   UseSearchInputOptions,
   UseSearchInputReturn,
+  BackHeaderProps,
 } from './header';
 export type {
   Category,
@@ -54,3 +55,8 @@ export type {
   ToastContextType,
 } from './toast';
 export type { AuthPageHeaderProps } from './header';
+export type {
+  ActionSheetItem,
+  ActionSheetProps,
+  ConfirmDialogProps,
+} from './dialog';
