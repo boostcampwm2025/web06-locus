@@ -29,4 +29,11 @@ export const API_ENDPOINTS = {
   // Connections
   CONNECTIONS: '/connections',
   CONNECTIONS_BY_ID: (publicId: string) => `/connections/${publicId}`,
+
+  // Tags
+  TAGS: '/tags',
+  TAGS_BY_ID: (publicId: string) => `/tags/${publicId}`,
+
+  // Maps
+  MAPS_GEOCODE: '/maps/geocode',
 } as const;

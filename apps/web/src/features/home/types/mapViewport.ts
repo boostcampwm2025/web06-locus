@@ -11,4 +11,6 @@ export interface MapViewportProps {
     fromId: string;
     toId: string;
   } | null;
+  targetLocation?: Coordinates | null;
+  onTargetLocationChange?: (coordinates: Coordinates) => void;
 }
