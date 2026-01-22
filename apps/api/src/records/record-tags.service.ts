@@ -1,10 +1,13 @@
 import { Injectable } from '@nestjs/common';
-import { Prisma, PrismaClient } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import { RecordTagDto } from './dto/record-response.dto';
 import { TagNotFoundException } from '@/tags/exception/tags.exception';
+import { PrismaService } from '@/prisma/prisma.service';
 
 @Injectable()
 export class RecordTagsService {
+  constructor(private readonly prisma: PrismaService) {}
+
   async createRecordTags(
     tx: Prisma.TransactionClient,
     userId: bigint,
@@ -45,11 +48,8 @@ export class RecordTagsService {
     return tags.map(({ publicId, name }) => ({ publicId, name }));
   }
 
-  async getRecordTags(
-    prisma: PrismaClient,
-    recordId: bigint,
-  ): Promise<RecordTagDto[]> {
-    const recordTags = await prisma.recordTag.findMany({
+  async getRecordTags(recordId: bigint): Promise<RecordTagDto[]> {
+    const recordTags = await this.prisma.recordTag.findMany({
       where: { recordId },
       select: {
         tag: {

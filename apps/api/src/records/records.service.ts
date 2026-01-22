@@ -256,10 +256,7 @@ export class RecordsService {
     const [recordWithImages] = await this.attachImagesToRecords([
       recordWithLocation,
     ]);
-    const tags = await this.recordTagsService.getRecordTags(
-      this.prisma,
-      record.id,
-    );
+    const tags = await this.recordTagsService.getRecordTags(record.id);
 
     return RecordResponseDto.of(recordWithImages, tags);
   }
