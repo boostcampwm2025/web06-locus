@@ -18,153 +18,210 @@ import {
   addStoredRecordPin,
 } from '@/infra/storage/recordStorage';
 import type { StoredRecordPin } from '@/infra/types/storage';
+import { useGeocodeSearch } from '@/features/home/hooks/useGeocodeSearch';
+import { useQueryClient } from '@tanstack/react-query';
 
 export default function MainMapPage() {
   const location = useLocation();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+
   const [savedRecord, setSavedRecord] = useState<Record | null>(null);
   const [isDetailSheetOpen, setIsDetailSheetOpen] = useState(false);
   const [isSearchActive, setIsSearchActive] = useState(false);
-  const [searchValue, setSearchValue] = useState('');
   const [showSuccessToast, setShowSuccessToast] = useState(false);
-  // 생성된 기록들을 누적해서 관리 (조회 API가 없으므로)
-  // localStorage에서 초기 로드
+
+  // 생성된 기록들을 누적해서 관리
   const [createdRecordPins, setCreatedRecordPins] = useState<
     {
       record: Record;
       coordinates?: Coordinates;
     }[]
   >(() => {
-    // localStorage에서 불러오기
     const stored = getStoredRecordPins();
     return stored.map((storedPin) => ({
       record: storedPin.record,
       coordinates: storedPin.coordinates,
     }));
   });
+
   const [connectedRecords, setConnectedRecords] = useState<{
     fromId: string;
     toId: string;
   } | null>(null);
 
-  // location.state에서 저장된 record 또는 연결된 기록 확인
+  const [targetLocation, setTargetLocation] = useState<Coordinates | null>(
+    null,
+  );
+
+  /**
+   * 1. 지오코딩 API 훅 연결
+   * useGeocodeSearch 내부에서 searchValue(address)와 300ms 디바운스가 작동.
+   */
+  const {
+    address: searchValue,
+    setAddress: setSearchValue,
+    data: geocodeData,
+    isLoading: isGeocoding,
+    error: geocodeError,
+  } = useGeocodeSearch('');
+
+  /**
+   * 2. 지오코딩 결과 발생 시 지도 중심 이동
+   */
+  useEffect(() => {
+    const firstAddr = geocodeData?.data?.addresses?.[0];
+    if (firstAddr) {
+      setTargetLocation({
+        lat: parseFloat(firstAddr.latitude),
+        lng: parseFloat(firstAddr.longitude),
+      });
+      // 검색 결과가 반영되면 검색 모드를 끄거나 유지할 수 있음.
+      // setIsSearchActive(false);
+    }
+  }, [geocodeData]);
+
+  /**
+   * 3. localStorage 및 캐시 무효화 동기화 로직
+   */
+  useEffect(() => {
+    const updateCreatedRecordPins = () => {
+      const stored = getStoredRecordPins();
+      setCreatedRecordPins(
+        stored.map((storedPin) => ({
+          record: storedPin.record,
+          coordinates: storedPin.coordinates,
+        })),
+      );
+    };
+
+    updateCreatedRecordPins();
+
+    const unsubscribe = queryClient.getQueryCache().subscribe((event) => {
+      const queryKey: unknown = event?.query?.queryKey;
+      if (
+        event?.type === 'updated' &&
+        Array.isArray(queryKey) &&
+        queryKey.length > 0 &&
+        typeof queryKey[0] === 'string' &&
+        queryKey[0] === 'records' &&
+        event.query.state.status === 'success'
+      ) {
+        updateCreatedRecordPins();
+      }
+    });
+
+    return () => unsubscribe();
+  }, [queryClient]);
+
+  /**
+   * 4. location.state 처리 (저장 완료 후 진입 시)
+   */
   useEffect(() => {
     const state = location.state as MainMapPageLocationState | null;
 
     if (state?.savedRecord) {
-      const savedRecord: Record = {
+      const newRecord: Record = {
         id: state.savedRecord.id,
         text: state.savedRecord.text,
         tags: state.savedRecord.tags,
         location: state.savedRecord.location,
         createdAt: state.savedRecord.createdAt,
       };
-      setSavedRecord(savedRecord);
-      setIsDetailSheetOpen(true);
-      const pinData = {
-        record: savedRecord,
-        coordinates: state.savedRecord.coordinates,
-      };
-      // 생성된 기록을 배열에 추가 (기존 기록 유지)
-      setCreatedRecordPins((prev) => [...prev, pinData]);
 
-      // localStorage에 저장 (publicId 명시적으로 저장)
+      setSavedRecord(newRecord);
+      setIsDetailSheetOpen(true);
+
+      setCreatedRecordPins((prev) => [
+        ...prev,
+        { record: newRecord, coordinates: state.savedRecord?.coordinates },
+      ]);
+
       const storedPin: StoredRecordPin = {
-        record: savedRecord,
+        record: newRecord,
         coordinates: state.savedRecord.coordinates,
-        publicId: savedRecord.id, // record.id가 publicId
+        publicId: newRecord.id,
       };
       addStoredRecordPin(storedPin);
 
       setShowSuccessToast(true);
-      // state를 초기화하여 뒤로가기 시 다시 표시되지 않도록
       void navigate(location.pathname, { replace: true, state: {} });
 
-      // 3초 후 토스트 메시지 자동 닫기
-      const timer = setTimeout(() => {
-        setShowSuccessToast(false);
-      }, 3000);
-
+      const timer = setTimeout(() => setShowSuccessToast(false), 3000);
       return () => clearTimeout(timer);
     }
 
     if (state?.connectedRecords) {
-      const connectedRecords = {
+      setConnectedRecords({
         fromId: state.connectedRecords.fromId,
         toId: state.connectedRecords.toId,
-      };
-      setConnectedRecords(connectedRecords);
-      // state를 초기화하여 뒤로가기 시 다시 표시되지 않도록
+      });
       void navigate(location.pathname, { replace: true, state: {} });
 
-      // 3초 후 연결 표시 제거
-      const timer = setTimeout(() => {
-        setConnectedRecords(null);
-      }, 3000);
-
+      const timer = setTimeout(() => setConnectedRecords(null), 3000);
       return () => clearTimeout(timer);
     }
   }, [location.state, navigate, location.pathname]);
 
+  /** 이벤트 핸들러 */
   const handleDetailSheetClose = () => {
     setIsDetailSheetOpen(false);
     setSavedRecord(null);
   };
 
-  const handleEdit = () => {
-    // TODO: 수정 기능 구현
-    setIsDetailSheetOpen(false);
-  };
+  const handleSearchClick = () => setIsSearchActive(true);
 
-  const handleDelete = () => {
-    // TODO: 삭제 기능 구현
-    setIsDetailSheetOpen(false);
-    setSavedRecord(null);
+  const handleSearchCancel = () => {
+    setIsSearchActive(false);
+    setSearchValue(''); // 훅 내부 address 초기화
+    setTargetLocation(null);
   };
 
   const { handleTabChange } = useBottomTabNavigation();
 
-  const handleSearchClick = () => {
-    setIsSearchActive(true);
-  };
-
-  const handleSearchCancel = () => {
-    setIsSearchActive(false);
-    setSearchValue('');
-  };
-
-  const handleTitleClick = () => {
-    void navigate(ROUTES.HOME);
-  };
-
   return (
-    <div className="flex flex-col h-screen bg-white relative">
+    <div className="flex flex-col h-screen bg-white relative overflow-hidden">
       <AppHeader
-        onTitleClick={handleTitleClick}
+        onTitleClick={() => void navigate(ROUTES.HOME)}
         onSearchClick={handleSearchClick}
         isSearchActive={isSearchActive}
         searchValue={searchValue}
-        onSearchChange={setSearchValue}
+        onSearchChange={setSearchValue} // 훅의 setAddress와 직접 연결
         onSearchCancel={handleSearchCancel}
+        onSearch={(value) => setSearchValue(value)} // 엔터 시 즉시 업데이트
       />
+
       <CategoryChips />
+
       <Suspense fallback={<MapLoadingSkeleton />}>
         <MapViewport
           createdRecordPins={createdRecordPins}
           connectedRecords={connectedRecords}
+          targetLocation={targetLocation}
+          onTargetLocationChange={setTargetLocation}
         />
       </Suspense>
+
       <BottomTabBar activeTab="home" onTabChange={handleTabChange} />
 
-      {/* 성공 토스트 메시지 */}
-      {showSuccessToast && (
-        <div className="absolute top-20 right-4 z-50 animate-fade-in">
+      {/* --- 토스트 메시지 영역 (겹침 방지를 위해 flex-col 처리) --- */}
+      <div className="absolute top-24 right-4 z-50 flex flex-col gap-2 pointer-events-none">
+        {showSuccessToast && (
           <ToastErrorMessage
             message="기록이 성공적으로 저장되었습니다"
             variant="success"
           />
-        </div>
-      )}
+        )}
+        {isGeocoding && (
+          <ToastErrorMessage message="주소를 검색하는 중..." variant="info" />
+        )}
+        {geocodeError && (
+          <ToastErrorMessage
+            message="주소를 찾을 수 없습니다."
+            variant="error"
+          />
+        )}
+      </div>
 
       {/* 기록 요약 바텀시트 */}
       {savedRecord && (
@@ -172,8 +229,11 @@ export default function MainMapPage() {
           isOpen={isDetailSheetOpen}
           onClose={handleDetailSheetClose}
           record={savedRecord}
-          onEdit={handleEdit}
-          onDelete={handleDelete}
+          onEdit={() => setIsDetailSheetOpen(false)}
+          onDelete={() => {
+            setIsDetailSheetOpen(false);
+            setSavedRecord(null);
+          }}
         />
       )}
     </div>

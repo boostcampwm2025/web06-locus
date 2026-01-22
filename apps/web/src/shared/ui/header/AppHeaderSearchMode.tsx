@@ -9,9 +9,16 @@ export default function AppHeaderSearchMode({
   value,
   onChange,
   onCancel,
+  onSearch,
   placeholder,
   className = '',
 }: AppHeaderSearchModeProps) {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && value.trim().length > 0) {
+      onSearch?.(value.trim());
+    }
+  };
+
   return (
     <header
       className={`flex items-center gap-3 px-4 py-3 bg-white min-h-[72px] ${className}`}
@@ -22,6 +29,7 @@ export default function AppHeaderSearchMode({
           type="text"
           value={value}
           onChange={onChange}
+          onKeyDown={handleKeyDown}
           placeholder={placeholder}
           className="flex-1 bg-transparent border-none outline-none text-sm text-gray-900 placeholder:text-gray-400"
           autoFocus

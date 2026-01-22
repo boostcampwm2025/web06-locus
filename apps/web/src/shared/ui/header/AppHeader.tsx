@@ -17,6 +17,7 @@ export default function AppHeader({
   searchValue,
   onSearchChange,
   onSearchCancel,
+  onSearch,
   className = '',
 }: AppHeaderProps) {
   const searchInput = useSearchInput({
@@ -31,6 +32,7 @@ export default function AppHeader({
         value={searchInput.value}
         onChange={searchInput.onChange}
         onCancel={searchInput.onCancel}
+        onSearch={onSearch}
         placeholder={searchPlaceholder}
         className={className}
       />
