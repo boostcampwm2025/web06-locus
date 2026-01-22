@@ -7,7 +7,7 @@ import {
   RecordResponseSource,
 } from './dto/record-response.dto';
 import { GetRecordsQueryDto } from './dto/get-records-query.dto';
-import { LocationInfo, RecordModel } from './records.types';
+import { ImageModel, LocationInfo, RecordModel } from './records.types';
 import {
   LocationNotFoundException,
   ImageDeletionFailedException,
@@ -33,8 +33,11 @@ import {
   SELECT_RECORDS_IN_BOUNDS_SQL,
   UPDATE_RECORD_LOCATION_SQL,
   GET_RECORD_LOCATION_SQL,
+  SELECT_RECORDS_BY_LOCATION_SQL,
+  COUNT_RECORDS_BY_LOCATION_SQL,
 } from './sql/record-raw.query';
 import { UpdateRecordDto } from './dto/update-record.dto';
+import { GetRecordsByLocationDto } from './dto/get-records-by-location.dto';
 import { ImageProcessingService } from './services/image-processing.service';
 import { ObjectStorageService } from './services/object-storage.service';
 import {
@@ -44,7 +47,10 @@ import {
 } from './services/object-storage.types';
 import { nanoid } from 'nanoid';
 import { UsersService } from '@/users/users.service';
-import { RecordListResponseDto } from './dto/records-list-reponse.dto';
+import {
+  RecordListItemSource,
+  RecordListResponseDto,
+} from './dto/records-list-reponse.dto';
 
 @Injectable()
 export class RecordsService {
@@ -127,28 +133,12 @@ export class RecordsService {
         payload: createRecordSyncPayload(userId, updatedRecord),
       });
 
-      const images = await tx.image.findMany({
-        where: { recordId: updatedRecord.id },
-        orderBy: { order: 'asc' },
-        select: {
-          publicId: true,
-          order: true,
-          thumbnailUrl: true,
-          thumbnailWidth: true,
-          thumbnailHeight: true,
-          thumbnailSize: true,
-          mediumUrl: true,
-          mediumWidth: true,
-          mediumHeight: true,
-          mediumSize: true,
-          originalUrl: true,
-          originalWidth: true,
-          originalHeight: true,
-          originalSize: true,
-        },
-      });
+      const [recordWithImages] = await this.attachImagesToRecords(
+        [updatedRecord],
+        tx,
+      );
 
-      return { ...updatedRecord, images };
+      return recordWithImages;
     });
     return RecordResponseDto.from(record);
   }
@@ -202,7 +192,42 @@ export class RecordsService {
       ),
     ]);
 
-    return RecordListResponseDto.from(records, countResult[0].count);
+    const recordsWithImages = await this.attachImagesToRecords(records);
+
+    return RecordListResponseDto.of(recordsWithImages, countResult[0].count);
+  }
+
+  async getRecordsByLocation(
+    userId: bigint,
+    dto: GetRecordsByLocationDto,
+  ): Promise<RecordListResponseDto> {
+    const offset = (dto.page - 1) * dto.limit;
+
+    const [records, countResult] = await Promise.all([
+      this.prisma.$queryRaw<RecordModel[]>(
+        SELECT_RECORDS_BY_LOCATION_SQL(
+          userId,
+          dto.latitude,
+          dto.longitude,
+          dto.radius,
+          dto.sortOrder,
+          dto.limit,
+          offset,
+        ),
+      ),
+      this.prisma.$queryRaw<[{ count: number }]>(
+        COUNT_RECORDS_BY_LOCATION_SQL(
+          userId,
+          dto.latitude,
+          dto.longitude,
+          dto.radius,
+        ),
+      ),
+    ]);
+
+    const recordsWithImages = await this.attachImagesToRecords(records);
+
+    return RecordListResponseDto.of(recordsWithImages, countResult[0].count);
   }
 
   async getGraph(
@@ -447,28 +472,12 @@ export class RecordsService {
           payload: createRecordSyncPayload(userId, updated),
         });
 
-        const images = await tx.image.findMany({
-          where: { recordId: updated.id },
-          orderBy: { order: 'asc' },
-          select: {
-            publicId: true,
-            order: true,
-            thumbnailUrl: true,
-            thumbnailWidth: true,
-            thumbnailHeight: true,
-            thumbnailSize: true,
-            mediumUrl: true,
-            mediumWidth: true,
-            mediumHeight: true,
-            mediumSize: true,
-            originalUrl: true,
-            originalWidth: true,
-            originalHeight: true,
-            originalSize: true,
-          },
-        });
+        const [recordWithImages] = await this.attachImagesToRecords(
+          [updated],
+          tx,
+        );
 
-        return { ...updated, images };
+        return recordWithImages;
       });
 
       this.logger.log(
@@ -628,5 +637,53 @@ export class RecordsService {
       this.objectStorageService.extractKeyFromUrl(img.medium),
       this.objectStorageService.extractKeyFromUrl(img.original),
     ]);
+  }
+
+  private async attachImagesToRecords(
+    records: RecordModel[],
+    tx?: Prisma.TransactionClient,
+  ): Promise<RecordListItemSource[]> {
+    if (records.length === 0) {
+      return [];
+    }
+
+    const prismaClient = tx ?? this.prisma;
+    const recordIds = records.map((r) => r.id);
+
+    const images = await prismaClient.image.findMany({
+      where: { recordId: { in: recordIds } },
+      orderBy: { order: 'asc' },
+      select: {
+        recordId: true,
+        publicId: true,
+        order: true,
+        thumbnailUrl: true,
+        thumbnailWidth: true,
+        thumbnailHeight: true,
+        thumbnailSize: true,
+        mediumUrl: true,
+        mediumWidth: true,
+        mediumHeight: true,
+        mediumSize: true,
+        originalUrl: true,
+        originalWidth: true,
+        originalHeight: true,
+        originalSize: true,
+      },
+    });
+
+    const imagesByRecordId = new Map<bigint, ImageModel[]>();
+    for (const img of images) {
+      const { recordId, ...imageData } = img;
+      if (!imagesByRecordId.has(recordId)) {
+        imagesByRecordId.set(recordId, []);
+      }
+      imagesByRecordId.get(recordId)!.push(imageData);
+    }
+
+    return records.map((record) => ({
+      ...record,
+      images: imagesByRecordId.get(record.id) ?? [],
+    }));
   }
 }

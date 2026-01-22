@@ -7,7 +7,6 @@ export interface RecordModel {
   latitude: number;
   locationName: string;
   locationAddress: string;
-  tags: string[];
   isFavorite: boolean;
   createdAt: Date;
   updatedAt: Date;
