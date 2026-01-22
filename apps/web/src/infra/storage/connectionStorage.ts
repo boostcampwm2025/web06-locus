@@ -1,14 +1,16 @@
 import { getStoredRecordPins } from './recordStorage';
 import type { StoredConnection } from '../types/connection';
+import { getCurrentUserScopedKey } from './userScopedStorage';
 
-const STORAGE_KEY = 'locus_connections';
+const STORAGE_KEY_BASE = 'locus_connections';
 
 /**
  * localStorage에서 연결 목록 가져오기
  */
 export function getStoredConnections(): StoredConnection[] {
   try {
-    const stored = localStorage.getItem(STORAGE_KEY);
+    const key = getCurrentUserScopedKey(STORAGE_KEY_BASE);
+    const stored = localStorage.getItem(key);
     if (!stored) return [];
     return JSON.parse(stored) as StoredConnection[];
   } catch (error) {
@@ -33,7 +35,8 @@ export function addStoredConnection(connection: StoredConnection): void {
     );
     if (!isDuplicate) {
       existing.push(connection);
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(existing));
+      const key = getCurrentUserScopedKey(STORAGE_KEY_BASE);
+      localStorage.setItem(key, JSON.stringify(existing));
     }
   } catch (error) {
     console.error('연결 저장 실패:', error);
@@ -47,7 +50,8 @@ export function removeStoredConnection(publicId: string): void {
   try {
     const existing = getStoredConnections();
     const filtered = existing.filter((c) => c.publicId !== publicId);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(filtered));
+    const key = getCurrentUserScopedKey(STORAGE_KEY_BASE);
+    localStorage.setItem(key, JSON.stringify(filtered));
   } catch (error) {
     console.error('연결 삭제 실패:', error);
   }
