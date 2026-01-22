@@ -37,4 +37,5 @@ export const API_ENDPOINTS = {
 
   // Maps
   MAPS_GEOCODE: '/maps/geocode',
+  MAPS_REVERSE_GEOCODE: '/maps/reverse-geocode',
 } as const;

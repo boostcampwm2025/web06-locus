@@ -1,6 +1,7 @@
 import type { StoredRecordPin } from '@/infra/types/storage';
+import { getCurrentUserScopedKey } from './userScopedStorage';
 
-const STORAGE_KEY = 'locus_created_records';
+const STORAGE_KEY_BASE = 'locus_created_records';
 
 /**
  * localStorage에서 생성된 기록 목록 가져오기
@@ -8,7 +9,8 @@ const STORAGE_KEY = 'locus_created_records';
  */
 export function getStoredRecordPins(): StoredRecordPin[] {
   try {
-    const stored = localStorage.getItem(STORAGE_KEY);
+    const key = getCurrentUserScopedKey(STORAGE_KEY_BASE);
+    const stored = localStorage.getItem(key);
     if (!stored) return [];
     const parsed = JSON.parse(stored) as {
       record: {
@@ -46,7 +48,8 @@ export function addStoredRecordPin(pin: StoredRecordPin): void {
     const isDuplicate = existing.some((p) => p.publicId === pin.publicId);
     if (!isDuplicate) {
       existing.push(pin);
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(existing));
+      const key = getCurrentUserScopedKey(STORAGE_KEY_BASE);
+      localStorage.setItem(key, JSON.stringify(existing));
     }
   } catch (error) {
     console.error('기록 저장 실패:', error);
@@ -60,7 +63,8 @@ export function removeStoredRecordPin(publicId: string): void {
   try {
     const existing = getStoredRecordPins();
     const filtered = existing.filter((p) => p.publicId !== publicId);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(filtered));
+    const key = getCurrentUserScopedKey(STORAGE_KEY_BASE);
+    localStorage.setItem(key, JSON.stringify(filtered));
   } catch (error) {
     console.error('기록 삭제 실패:', error);
   }
@@ -71,7 +75,8 @@ export function removeStoredRecordPin(publicId: string): void {
  */
 export function clearStoredRecordPins(): void {
   try {
-    localStorage.removeItem(STORAGE_KEY);
+    const key = getCurrentUserScopedKey(STORAGE_KEY_BASE);
+    localStorage.removeItem(key);
   } catch (error) {
     console.error('기록 초기화 실패:', error);
   }

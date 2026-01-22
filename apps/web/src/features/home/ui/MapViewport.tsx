@@ -21,6 +21,11 @@ import {
   isSameGrid,
   type Bounds,
 } from '@/features/home/utils/boundsUtils';
+import {
+  loadMapState,
+  saveMapState,
+  type MapState,
+} from '@/infra/storage/mapStateStorage';
 
 export default function MapViewport({
   className = '',
@@ -62,6 +67,10 @@ export default function MapViewport({
   // 연결된 기록 표시용 연결선 관리
   const connectionPolylineRef = useRef<naver.maps.Polyline | null>(null);
 
+  // 저장된 지도 상태 불러오기
+  const savedMapState = useMemo(() => loadMapState(), []);
+  const hasRestoredMapStateRef = useRef(false);
+
   // 지도 인스턴스 관리
   const {
     mapContainerRef,
@@ -72,12 +81,15 @@ export default function MapViewport({
     longitude,
   } = useMapInstance({
     useGeolocation: true,
-    zoom: 13,
+    zoom: savedMapState?.zoom ?? 13,
+    defaultCenter: savedMapState
+      ? { lat: savedMapState.center.lat, lng: savedMapState.center.lng }
+      : undefined,
     zoomControl: true,
     zoomControlOptions: {
       position: 1, // naver.maps.Position.TOP_RIGHT
     },
-    autoCenterToGeolocation: true,
+    autoCenterToGeolocation: !savedMapState, // 저장된 상태가 있으면 자동 중심 이동 비활성화
   });
 
   // 현재 화면 bounds 상태 관리 (실제 화면에 보이는 범위)
@@ -478,8 +490,48 @@ export default function MapViewport({
         expandedBoundsRef.current = expanded;
         setFetchBounds(expanded);
       }
+
+      // 지도 상태 저장 (중심 좌표와 줌 레벨)
+      const center = map.getCenter();
+      const naverMaps = window.naver?.maps;
+      if (center && naverMaps && center instanceof naverMaps.LatLng) {
+        const mapState: MapState = {
+          zoom,
+          center: {
+            lat: roundTo4Decimals(center.lat()),
+            lng: roundTo4Decimals(center.lng()),
+          },
+        };
+        saveMapState(mapState);
+      }
     }
   }, [isMapLoaded, mapInstanceRef]);
+
+  // 저장된 지도 상태 복원 (초기 로드 시에만)
+  useEffect(() => {
+    if (
+      !isMapLoaded ||
+      !mapInstanceRef.current ||
+      !savedMapState ||
+      hasRestoredMapStateRef.current
+    ) {
+      return;
+    }
+
+    const map = mapInstanceRef.current;
+    const naverMaps = window.naver?.maps;
+    if (!naverMaps) return;
+
+    // 저장된 상태로 복원
+    const savedCenter = new naverMaps.LatLng(
+      savedMapState.center.lat,
+      savedMapState.center.lng,
+    );
+    map.setCenter(savedCenter);
+    map.setZoom(savedMapState.zoom);
+    hasRestoredMapStateRef.current = true;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isMapLoaded, savedMapState]);
 
   // 지도 이동/줌 변경 시 bounds 업데이트
   // idle 이벤트 사용: 사용자가 지도를 움직이다가 멈췄을 때만 한 번 호출 (debounce 불필요)
@@ -771,6 +823,7 @@ export default function MapViewport({
           onClose={handleCloseBottomSheet}
           locationName={selectedLocation.name}
           address={selectedLocation.address}
+          coordinates={selectedLocation.coordinates}
           onConfirm={handleConfirmRecord}
         />
       )}
