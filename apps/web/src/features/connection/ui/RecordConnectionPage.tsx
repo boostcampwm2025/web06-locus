@@ -7,6 +7,7 @@ import type {
 import { useRecordConnection } from '../domain/useRecordConnection';
 import { useCreateConnection } from '../hooks/useCreateConnection';
 import { useGetRecordsByBounds } from '@/features/record/hooks/useGetRecordsByBounds';
+import { useRecordGraph } from '@/features/connection/hooks/useRecordGraph';
 import type { Record as ApiRecord } from '@locus/shared';
 import RecordSelectionHeader from './RecordSelectionHeader';
 import RecordSearchInput from './RecordSearchInput';
@@ -52,6 +53,50 @@ export default function RecordConnectionPage({
   // 바운딩 박스 기반 전체 기록 조회
   const { data: recordsByBoundsData, isLoading: isLoadingRecords } =
     useGetRecordsByBounds(KOREA_WIDE_BOUNDS);
+
+  // 출발 기록의 연결 그래프 조회
+  const { data: departureGraphData } = useRecordGraph(departure?.id ?? null, {
+    enabled: !!departure?.id,
+  });
+
+  // 도착 기록의 연결 그래프 조회
+  const { data: arrivalGraphData } = useRecordGraph(arrival?.id ?? null, {
+    enabled: !!arrival?.id,
+  });
+
+  // 연결된 기록 ID 집합 생성
+  const connectedRecordIds = useMemo(() => {
+    const connectedIds = new Set<string>();
+
+    // 출발 기록과 연결된 기록들
+    if (departureGraphData?.data?.edges && departure?.id) {
+      departureGraphData.data.edges.forEach((edge) => {
+        if (edge.fromRecordPublicId === departure.id) {
+          connectedIds.add(edge.toRecordPublicId);
+        } else if (edge.toRecordPublicId === departure.id) {
+          connectedIds.add(edge.fromRecordPublicId);
+        }
+      });
+    }
+
+    // 도착 기록과 연결된 기록들
+    if (arrivalGraphData?.data?.edges && arrival?.id) {
+      arrivalGraphData.data.edges.forEach((edge) => {
+        if (edge.fromRecordPublicId === arrival.id) {
+          connectedIds.add(edge.toRecordPublicId);
+        } else if (edge.toRecordPublicId === arrival.id) {
+          connectedIds.add(edge.fromRecordPublicId);
+        }
+      });
+    }
+
+    return connectedIds;
+  }, [
+    departureGraphData?.data?.edges,
+    arrivalGraphData?.data?.edges,
+    departure?.id,
+    arrival?.id,
+  ]);
 
   // API 응답을 RecordConnectionItem으로 변환
   const trimmedQuery = searchQuery.trim();
@@ -103,10 +148,11 @@ export default function RecordConnectionPage({
         date: new Date(record.createdAt),
         tags: record.tags,
         isRelated: Boolean(trimmedQuery), // 검색어가 있으면 관련 기록으로 표시
+        isConnected: connectedRecordIds.has(record.publicId), // 이미 연결된 기록인지 여부
         imageUrl: thumbnailUrl,
       };
     });
-  }, [recordsByBoundsData, trimmedQuery]);
+  }, [recordsByBoundsData, trimmedQuery, connectedRecordIds]);
 
   const emptyMessage = isLoadingRecords
     ? '기록을 불러오는 중...'

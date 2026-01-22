@@ -1,4 +1,5 @@
 import { LocationIcon } from '@/shared/ui/icons/LocationIcon';
+import { ConnectionBadge } from '@/shared/ui/badge';
 import type {
   RecommendedRecordsSectionProps,
   RecordConnectionItem,
@@ -82,6 +83,7 @@ function RecordConnectionCard({
           <h3 className="text-base font-medium text-gray-900 line-clamp-1 flex-1">
             {record.title}
           </h3>
+          {record.isConnected && <ConnectionBadge />}
           {record.isRelated && (
             <span className="px-2.5 py-1 bg-green-100 text-green-700 text-xs font-medium rounded-full shrink-0">
               관련
