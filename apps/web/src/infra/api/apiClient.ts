@@ -143,18 +143,84 @@ async function handleTokenRefreshFlow<T>(
  * 리프레시 토큰 재발급 API 호출 본체
  */
 async function executeRefresh(): Promise<string> {
-  const response = await fetch(buildApiUrl(API_ENDPOINTS.AUTH_REISSUE), {
-    method: 'POST',
-    credentials: 'include',
+  const url = buildApiUrl(API_ENDPOINTS.AUTH_REISSUE);
+
+  // 쿠키 존재 여부 확인 (디버깅용)
+  // 주의: HttpOnly 쿠키는 document.cookie로 읽을 수 없음
+  const visibleCookies = document.cookie;
+  const hasVisibleRefreshToken = visibleCookies.includes('refreshToken');
+  const cookieCount = visibleCookies
+    ? visibleCookies.split(';').filter((c) => c.trim()).length
+    : 0;
+
+  logger.info('리프레시 토큰 재발급 시도', {
+    url,
+    hasVisibleRefreshToken,
+    cookieCount,
+    visibleCookies: visibleCookies.substring(0, 200), // 처음 200자만
+    note: 'HttpOnly 쿠키는 document.cookie로 읽을 수 없습니다. 실제 전송 여부는 Network 탭에서 확인하세요.',
   });
 
-  if (!response.ok) {
-    throw new Error('토큰 재발급 실패');
-  }
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      credentials: 'include',
+    });
 
-  const data = (await response.json()) as { accessToken: string };
-  setAccessToken(data.accessToken);
-  return data.accessToken;
+    // Response 헤더 확인 (Set-Cookie가 있는지)
+    const setCookieHeader = response.headers.get('Set-Cookie');
+    const hasSetCookie = !!setCookieHeader;
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      let errorData: unknown;
+      try {
+        errorData = JSON.parse(errorText);
+      } catch {
+        errorData = errorText;
+      }
+
+      logger.error(new Error(`토큰 재발급 실패: ${response.status}`), {
+        status: response.status,
+        statusText: response.statusText,
+        errorData,
+        url,
+        hasVisibleRefreshToken,
+        cookieCount,
+        hasSetCookie,
+        setCookieHeader: setCookieHeader?.substring(0, 100), // 처음 100자만
+        responseHeaders: {
+          'content-type': response.headers.get('content-type'),
+          'set-cookie': hasSetCookie ? 'present' : 'missing',
+        },
+      });
+      throw new Error('토큰 재발급 실패');
+    }
+
+    const data = (await response.json()) as { accessToken: string };
+    setAccessToken(data.accessToken);
+
+    logger.info('리프레시 토큰 재발급 성공', {
+      url,
+      hasNewAccessToken: !!data.accessToken,
+      hasSetCookie,
+      setCookieHeader: setCookieHeader?.substring(0, 100), // 처음 100자만
+    });
+    return data.accessToken;
+  } catch (error) {
+    logger.error(
+      error instanceof Error ? error : new Error('토큰 재발급 중 예외 발생'),
+      {
+        url,
+        hasVisibleRefreshToken,
+        cookieCount,
+        error: String(error),
+        errorName: error instanceof Error ? error.name : typeof error,
+        errorMessage: error instanceof Error ? error.message : String(error),
+      },
+    );
+    throw error;
+  }
 }
 
 /**
@@ -311,13 +377,16 @@ async function handleErrorResponse(
   options: ApiClientOptions,
 ): Promise<never> {
   const status = response.status;
-  const errorBody = await parseErrorBody(response);
 
+  // Sentry 로깅을 위해 먼저 clone (body를 읽기 전에)
   try {
     await handleApiErrorForSentry(response, endpoint, url, options);
   } catch (err) {
     console.error('Sentry logging failed:', err);
   }
+
+  // 에러 바디 파싱 (clone 후 또는 clone 실패 후)
+  const errorBody = await parseErrorBody(response);
 
   const errorCode = errorBody?.code;
   const errorMessage = determineErrorMessage(status, errorBody);
@@ -336,8 +405,10 @@ async function parseErrorBody(
   if (!contentType?.includes('application/json')) return null;
 
   try {
+    // Response body가 이미 사용되었을 수 있으므로 clone 시도
+    const responseToParse = response.bodyUsed ? response : response.clone();
     // unknown으로 먼저 받고, 타입 가드로 검증.
-    const data = (await response.json()) as unknown;
+    const data = (await responseToParse.json()) as unknown;
     if (isValidApiErrorResponse(data)) {
       return data;
     }
