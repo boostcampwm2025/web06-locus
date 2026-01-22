@@ -133,7 +133,7 @@ export interface RecordWriteFormProps {
   onAddTagClick: () => void;
   onTagInputChange: (e: ChangeEvent<HTMLInputElement>) => void;
   onConfirmAddTag: () => void;
-  onKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void;
+  onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => void;
   onCancelAddTag: () => void;
   onAddImage: () => void;
   selectedImages?: File[];

@@ -3,6 +3,7 @@ export interface AppHeaderProps {
   onTitleClick?: () => void;
   onSearchClick?: () => void;
   onFilterClick?: () => void;
+  onSettingsClick?: () => void;
   // 검색 모드 관련 props
   isSearchActive?: boolean;
   searchPlaceholder?: string;
@@ -57,6 +58,7 @@ export interface AppHeaderNormalModeProps {
   onTitleClick?: () => void;
   onSearchClick?: () => void;
   onFilterClick?: () => void;
+  onSettingsClick?: () => void;
   className?: string;
 }
 

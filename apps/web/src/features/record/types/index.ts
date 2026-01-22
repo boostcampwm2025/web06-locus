@@ -9,6 +9,7 @@ export type {
   RecordSummaryHeaderProps,
   RecordLocationCardProps,
   RecordTagsSectionProps,
+  RecordSummaryContentProps,
   RecordWriteHeaderProps,
   RecordWriteFormProps,
   RecordWriteMapProps,
