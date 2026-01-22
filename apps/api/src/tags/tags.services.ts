@@ -17,7 +17,7 @@ export class TagsService {
     userId: bigint,
     requestDto: CreateTagRequestDto,
   ): Promise<{ publicId: string; name: string; isSystem: boolean }> {
-    await this.validateTagName(requestDto.name);
+    await this.validateTagName(userId, requestDto.name);
 
     const created = await this.prismaService.tag.create({
       data: {
@@ -35,24 +35,26 @@ export class TagsService {
     return created;
   }
 
-  async findByName(name: string) {
+  async findByName(userId: bigint, name: string) {
     return await this.prismaService.tag.findFirst({
       where: {
+        userId: userId,
         name: name,
       },
     });
   }
 
-  async findByPublicId(publicId: string) {
+  async findByPublicId(userId: bigint, publicId: string) {
     return await this.prismaService.tag.findFirst({
       where: {
+        userId: userId,
         publicId: publicId,
       },
     });
   }
 
   async deleteOne(userId: bigint, publicId: string) {
-    const tag = await this.findByPublicId(publicId);
+    const tag = await this.findByPublicId(userId, publicId);
 
     if (tag === null) {
       throw new TagNotFoundException(publicId);
@@ -89,7 +91,7 @@ export class TagsService {
     });
   }
 
-  private async validateTagName(name: string) {
+  private async validateTagName(userId: bigint, name: string) {
     if (name.length === 0) {
       throw new InvalidTagNameException(name);
     }
@@ -98,7 +100,7 @@ export class TagsService {
       throw new InvalidTagNameException(name);
     }
 
-    if ((await this.findByName(name)) !== null) {
+    if ((await this.findByName(userId, name)) !== null) {
       throw new TagAlreadyExistsException(name);
     }
   }
