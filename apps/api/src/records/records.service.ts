@@ -194,7 +194,7 @@ export class RecordsService {
 
     const recordsWithImages = await this.attachImagesToRecords(records);
 
-    return RecordListResponseDto.from(recordsWithImages, countResult[0].count);
+    return RecordListResponseDto.of(recordsWithImages, countResult[0].count);
   }
 
   async getRecordsByLocation(
@@ -227,7 +227,7 @@ export class RecordsService {
 
     const recordsWithImages = await this.attachImagesToRecords(records);
 
-    return RecordListResponseDto.from(recordsWithImages, countResult[0].count);
+    return RecordListResponseDto.of(recordsWithImages, countResult[0].count);
   }
 
   async getGraph(

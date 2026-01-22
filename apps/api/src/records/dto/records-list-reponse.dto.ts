@@ -85,7 +85,7 @@ export class RecordListResponseDto {
   })
   totalCount: number;
 
-  static from(
+  static of(
     records: RecordListItemSource[],
     totalCount: number,
   ): RecordListResponseDto {
