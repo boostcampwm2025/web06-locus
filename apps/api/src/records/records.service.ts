@@ -201,6 +201,8 @@ export class RecordsService {
     userId: bigint,
     dto: GetRecordsByLocationDto,
   ): Promise<RecordListResponseDto> {
+    const offset = (dto.page - 1) * dto.limit;
+
     const [records, countResult] = await Promise.all([
       this.prisma.$queryRaw<RecordModel[]>(
         SELECT_RECORDS_BY_LOCATION_SQL(
@@ -210,7 +212,7 @@ export class RecordsService {
           dto.radius,
           dto.sortOrder,
           dto.limit,
-          dto.offset,
+          offset,
         ),
       ),
       this.prisma.$queryRaw<[{ count: number }]>(

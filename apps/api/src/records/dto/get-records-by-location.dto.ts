@@ -60,18 +60,18 @@ export class GetRecordsByLocationDto {
   limit = 10;
 
   @ApiPropertyOptional({
-    description: '건너뛸 기록 수',
-    example: 0,
-    minimum: 0,
-    default: 0,
+    description: '페이지 번호 (1부터 시작)',
+    example: 1,
+    minimum: 1,
+    default: 1,
   })
   @IsOptional()
   @Transform(({ value }: TransformFnParams) =>
-    value ? parseInt(value as string, 10) : 0,
+    value ? parseInt(value as string, 10) : 1,
   )
   @IsNumber()
-  @Min(0)
-  offset = 0;
+  @Min(1)
+  page = 1;
 
   @ApiPropertyOptional({
     description: '정렬 순서 (desc: 최신순, asc: 오래된순)',
