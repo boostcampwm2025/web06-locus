@@ -6,10 +6,12 @@ RUN pnpm install
 
 ARG VITE_NAVER_CLIENT_ID
 ARG VITE_API_BASE_URL
+ARG VITE_SENTRY_DSN
 
 # 빌드 명령 실행 직전에 .env 파일을 강제로 생성
 RUN echo "VITE_NAVER_CLIENT_ID=$VITE_NAVER_CLIENT_ID" > apps/web/.env.production && \
-    echo "VITE_API_BASE_URL=$VITE_API_BASE_URL" >> apps/web/.env.production
+    echo "VITE_API_BASE_URL=$VITE_API_BASE_URL" >> apps/web/.env.production && \
+    echo "VITE_SENTRY_DSN=$VITE_SENTRY_DSN" >> apps/web/.env.production
 
 RUN pnpm turbo run build --filter=@locus/web
 

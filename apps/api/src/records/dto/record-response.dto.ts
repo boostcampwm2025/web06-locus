@@ -107,7 +107,7 @@ export class RecordResponseDto {
         name: record.locationName,
         address: record.locationAddress,
       },
-      tags: record.tags,
+      tags: [],
       images: record.images.map((img) => ({
         publicId: img.publicId,
         thumbnail: {
