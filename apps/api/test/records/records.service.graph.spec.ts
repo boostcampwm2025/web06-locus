@@ -295,7 +295,7 @@ describe('RecordsService - getGraphNeighborDetail', () => {
     const records = [
       {
         id: 11n,
-        recordPublicId: 'rec_a',
+        publicId: 'rec_a',
         title: '기록 A',
         latitude: 37.1,
         longitude: 127.1,
@@ -306,7 +306,7 @@ describe('RecordsService - getGraphNeighborDetail', () => {
       },
       {
         id: 12n,
-        recordPublicId: 'rec_b',
+        publicId: 'rec_b',
         title: '기록 B',
         latitude: 37.2,
         longitude: 127.2,
