@@ -99,6 +99,30 @@ export const GetRecordsSwagger = () =>
     ApiErrorResponse(),
   );
 
+export const GetRecordDetailSwagger = () =>
+  applyDecorators(
+    ApiExtraModels(RecordResponseDto),
+    ApiBearerAuth(),
+    ApiOperation({
+      summary: '기록 상세 조회',
+      description: '특정 기록의 상세 정보를 조회합니다.',
+    }),
+    ApiSuccessResponse(RecordResponseDto, HttpStatus.OK),
+    ApiFailResponse(HttpStatus.UNAUTHORIZED, {
+      code: 'AUTH_TOKEN_MISSING',
+      message: '인증 토큰이 없거나 유효하지 않습니다.',
+    }),
+    ApiFailResponse(HttpStatus.FORBIDDEN, {
+      code: RecordErrorCode.RECORD_ACCESS_DENIED,
+      message: '해당 기록에 대한 권한이 없습니다.',
+    }),
+    ApiFailResponse(HttpStatus.NOT_FOUND, {
+      code: RecordErrorCode.RECORD_NOT_FOUND,
+      message: '기록을 찾을 수 없습니다.',
+    }),
+    ApiErrorResponse(),
+  );
+
 export const GetRecordsByLocationSwagger = () =>
   applyDecorators(
     ApiExtraModels(RecordListResponseDto),

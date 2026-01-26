@@ -31,6 +31,7 @@ import { MAX_FILE_COUNT, multerOptions } from './config/multer.config';
 import {
   CreateRecordSwagger,
   DeleteRecordSwagger,
+  GetRecordDetailSwagger,
   GetRecordsSwagger,
   GetRecordsByLocationSwagger,
   SearchRecordsSwagger,
@@ -85,6 +86,16 @@ export class RecordsController {
     @UploadedFiles() images?: Express.Multer.File[],
   ): Promise<RecordResponseDto> {
     return await this.recordsService.createRecord(userId, dto, images);
+  }
+
+  @Get(':publicId')
+  @UseGuards(JwtAuthGuard)
+  @GetRecordDetailSwagger()
+  async getRecordDetail(
+    @CurrentUser('sub') userId: bigint,
+    @Param('publicId') publicId: string,
+  ): Promise<RecordResponseDto> {
+    return await this.recordsService.getRecordDetail(userId, publicId);
   }
 
   @UseGuards(JwtAuthGuard)
