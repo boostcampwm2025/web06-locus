@@ -3,6 +3,7 @@ import { API_BASE_URL, API_ENDPOINTS } from './constants';
 import { logger } from '@/shared/utils/logger';
 import { handleApiErrorForSentry } from './apiErrorHandler';
 import {
+  AuthError,
   ClientError,
   ServerError,
   type ApiErrorResponse,
@@ -50,6 +51,7 @@ export const apiClient = async <T = unknown>(
     const response = await fetch(url, {
       ...restOptions,
       headers: requestHeaders,
+      credentials: 'include', // 쿠키 전송/수신을 위해 필수
     });
 
     trackResponseBreadcrumb(
@@ -91,18 +93,18 @@ export const apiClient = async <T = unknown>(
 async function handleTokenRefreshFlow<T>(
   url: string,
   options: RequestInit,
-  currentHeaders: Record<string, string>,
+  _currentHeaders: Record<string, string> | undefined,
   endpoint: string,
   apiOptions: ApiClientOptions,
 ): Promise<T> {
-  // 이미 재발급 중이면 대기 큐로
   if (isRefreshing) {
     return new Promise<T>((resolve, reject) => {
       failedQueue.push({
         resolve: (value) => resolve(value as T),
         reject,
         url,
-        options: { ...options, headers: currentHeaders },
+        // 큐에 넣을 때 당시의 options를 그대로 보존
+        options,
       });
     });
   }
@@ -112,27 +114,53 @@ async function handleTokenRefreshFlow<T>(
   try {
     const newAccessToken = await executeRefresh();
 
-    // 대기 중인 요청들 재시도 (비동기)
+    // newAccessToken이 없으면 재시도하지 않고 에러 throw
+    if (!newAccessToken) {
+      await handleUnauthorized();
+      throw new AuthError('세션이 만료되었습니다. 다시 로그인해주세요.');
+    }
+
+    // 1. 대기 중인 요청들 재시도
     void retryFailedRequests(newAccessToken);
 
-    // 현재 실패했던 요청 재시도
-    const retryHeaders = {
-      ...currentHeaders,
-      Authorization: `Bearer ${newAccessToken}`,
-    };
+    // 2. 현재 실패했던 본래 요청 재시도
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { headers: _, ...restOptions } = options;
+    const method = (options.method ?? 'GET').toUpperCase();
+
+    // prepareHeaders를 재사용하여 가장 깨끗한 상태의 헤더를 만듦
+    const retryHeaders = prepareHeaders(
+      apiOptions.headers ?? {}, // 초기 apiClient 호출 시 넘어온 원본 커스텀 헤더
+      true,
+      restOptions.body,
+      method,
+    );
+
+    // 발급받은 새 토큰을 명시적으로 주입 (강제 덮어쓰기)
+    retryHeaders.Authorization = `Bearer ${newAccessToken}`;
+
     const retryResponse = await fetch(url, {
-      ...options,
+      ...restOptions,
       headers: retryHeaders,
+      credentials: 'include', // 쿠키 전송/수신을 위해 필수
     });
 
     if (retryResponse.ok) {
       return await parseResponse<T>(retryResponse);
     }
 
-    // 재시도도 실패하면 에러 처리
     return await handleErrorResponse(retryResponse, endpoint, url, apiOptions);
   } catch (error) {
-    await handleUnauthorized(); // 스토어 비우기
+    // 에러 발생 시에도 대기 중인 요청들을 처리 (실패로 reject)
+    if (failedQueue.length > 0) {
+      const queue = [...failedQueue];
+      failedQueue.length = 0;
+      queue.forEach(({ reject }) => {
+        reject(error instanceof Error ? error : new Error(String(error)));
+      });
+    }
+
+    await handleUnauthorized();
     throw error;
   } finally {
     isRefreshing = false;
@@ -140,26 +168,51 @@ async function handleTokenRefreshFlow<T>(
 }
 
 /**
+ * 대기 중인 요청 재시도 로직 수정
+ */
+async function retryFailedRequests(newAccessToken: string): Promise<void> {
+  const queue = [...failedQueue];
+  failedQueue.length = 0;
+
+  await Promise.allSettled(
+    queue.map(async ({ url, options, resolve, reject }) => {
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { headers: _, ...restOptions } = options;
+        const method = (options.method ?? 'GET').toUpperCase();
+
+        const updatedHeaders = prepareHeaders(
+          {},
+          true,
+          restOptions.body,
+          method,
+        );
+
+        updatedHeaders.Authorization = `Bearer ${newAccessToken}`;
+
+        const response = await fetch(url, {
+          ...restOptions,
+          headers: updatedHeaders,
+          credentials: 'include', // 쿠키 전송/수신을 위해 필수
+        });
+
+        if (response.ok) {
+          resolve(await parseResponse(response));
+        } else {
+          reject(new Error(`Retry failed: ${response.status}`));
+        }
+      } catch (error) {
+        reject(error instanceof Error ? error : new Error('Request failed'));
+      }
+    }),
+  );
+}
+
+/**
  * 리프레시 토큰 재발급 API 호출 본체
  */
 async function executeRefresh(): Promise<string> {
   const url = buildApiUrl(API_ENDPOINTS.AUTH_REISSUE);
-
-  // 쿠키 존재 여부 확인 (디버깅용)
-  // 주의: HttpOnly 쿠키는 document.cookie로 읽을 수 없음
-  const visibleCookies = document.cookie;
-  const hasVisibleRefreshToken = visibleCookies.includes('refreshToken');
-  const cookieCount = visibleCookies
-    ? visibleCookies.split(';').filter((c) => c.trim()).length
-    : 0;
-
-  logger.info('리프레시 토큰 재발급 시도', {
-    url,
-    hasVisibleRefreshToken,
-    cookieCount,
-    visibleCookies: visibleCookies.substring(0, 200), // 처음 200자만
-    note: 'HttpOnly 쿠키는 document.cookie로 읽을 수 없습니다. 실제 전송 여부는 Network 탭에서 확인하세요.',
-  });
 
   try {
     const response = await fetch(url, {
@@ -185,8 +238,6 @@ async function executeRefresh(): Promise<string> {
         statusText: response.statusText,
         errorData,
         url,
-        hasVisibleRefreshToken,
-        cookieCount,
         hasSetCookie,
         setCookieHeader: setCookieHeader?.substring(0, 100), // 처음 100자만
         responseHeaders: {
@@ -194,65 +245,78 @@ async function executeRefresh(): Promise<string> {
           'set-cookie': hasSetCookie ? 'present' : 'missing',
         },
       });
-      throw new Error('토큰 재발급 실패');
+      await handleUnauthorized();
+      throw new AuthError('세션이 만료되었습니다. 다시 로그인해주세요.');
     }
 
-    const data = (await response.json()) as { accessToken: string };
-    setAccessToken(data.accessToken);
+    // 응답 body를 텍스트로 먼저 읽어서 확인
+    const responseText = await response.text();
+
+    let parsedData: {
+      status?: string;
+      data?: { accessToken?: string };
+      accessToken?: string;
+    };
+    try {
+      parsedData = JSON.parse(responseText) as {
+        status?: string;
+        data?: { accessToken?: string };
+        accessToken?: string;
+      };
+    } catch (parseError) {
+      logger.error(
+        new Error(
+          `토큰 재발급 응답 파싱 실패: ${parseError instanceof Error ? parseError.message : String(parseError)}`,
+        ),
+        { url, responseText: responseText.substring(0, 500) },
+      );
+      await handleUnauthorized();
+      throw new AuthError('세션이 만료되었습니다. 다시 로그인해주세요.');
+    }
+
+    // API 응답 구조에 따라 accessToken 추출
+    // 구조 1: { status: "success", data: { accessToken: string } }
+    // 구조 2: { accessToken: string }
+    const accessToken = parsedData.data?.accessToken ?? parsedData.accessToken;
+
+    // accessToken이 없으면 에러 throw
+    if (!accessToken) {
+      logger.error(
+        new Error('토큰 재발급 실패: 응답에 액세스 토큰이 없습니다'),
+        {
+          url,
+          parsedData: JSON.stringify(parsedData).substring(0, 500),
+        },
+      );
+      await handleUnauthorized();
+      throw new AuthError('세션이 만료되었습니다. 다시 로그인해주세요.');
+    }
+
+    setAccessToken(accessToken);
 
     logger.info('리프레시 토큰 재발급 성공', {
       url,
-      hasNewAccessToken: !!data.accessToken,
+      hasNewAccessToken: !!accessToken,
       hasSetCookie,
       setCookieHeader: setCookieHeader?.substring(0, 100), // 처음 100자만
+      accessTokenLength: accessToken?.length,
     });
-    return data.accessToken;
+    return accessToken;
   } catch (error) {
-    logger.error(
-      error instanceof Error ? error : new Error('토큰 재발급 중 예외 발생'),
-      {
-        url,
-        hasVisibleRefreshToken,
-        cookieCount,
-        error: String(error),
-        errorName: error instanceof Error ? error.name : typeof error,
-        errorMessage: error instanceof Error ? error.message : String(error),
-      },
-    );
+    // AuthError는 이미 handleUnauthorized가 호출되었으므로 다시 호출하지 않음
+    if (!(error instanceof AuthError)) {
+      logger.error(
+        error instanceof Error ? error : new Error('토큰 재발급 중 예외 발생'),
+        {
+          url,
+          error: String(error),
+          errorName: error instanceof Error ? error.name : typeof error,
+          errorMessage: error instanceof Error ? error.message : String(error),
+        },
+      );
+    }
     throw error;
   }
-}
-
-/**
- * 재발급 대기 중인 요청들을 재시도
- */
-async function retryFailedRequests(newAccessToken: string): Promise<void> {
-  const queue = [...failedQueue];
-  failedQueue.length = 0; // 큐 비우기
-
-  await Promise.allSettled(
-    queue.map(async ({ url, options, resolve, reject }) => {
-      try {
-        // 새로운 accessToken으로 헤더 업데이트
-        const headers = new Headers(options.headers);
-        headers.set('Authorization', `Bearer ${newAccessToken}`);
-
-        const response = await fetch(url, {
-          ...options,
-          headers,
-        });
-
-        if (response.ok) {
-          const data = await parseResponse(response);
-          resolve(data);
-        } else {
-          reject(new Error(`Request failed with status ${response.status}`));
-        }
-      } catch (error) {
-        reject(error instanceof Error ? error : new Error('Request failed'));
-      }
-    }),
-  );
 }
 
 /**
@@ -315,6 +379,7 @@ function prepareHeaders(
 
   if (requireAuth) {
     const accessToken = getAccessToken();
+
     if (accessToken) {
       normalized.Authorization = `Bearer ${accessToken}`;
     }
