@@ -9,6 +9,7 @@ import {
   RECORD_SEARCH_MAPPING,
 } from '../../src/records/constants/record-search.constant';
 import { ESDocumentNotFoundException } from '@/records/exceptions/record.exceptions';
+import { SearchRecordsDto } from '@/records/dto/search-records.dto';
 
 describe('RecordSearchService', () => {
   let service: RecordSearchService;
@@ -17,6 +18,7 @@ describe('RecordSearchService', () => {
     index: jest.fn(),
     update: jest.fn(),
     delete: jest.fn(),
+    search: jest.fn(),
     indices: {
       exists: jest.fn(),
       create: jest.fn(),
@@ -83,6 +85,160 @@ describe('RecordSearchService', () => {
 
       // when & then
       await expect(service.onModuleInit()).rejects.toThrow(error);
+    });
+  });
+
+  describe('search', () => {
+    test('검색어와 필터가 포함된 쿼리로 ES를 호출해야 한다', async () => {
+      // given
+      const userId = 1n;
+      const dto: SearchRecordsDto = {
+        keyword: '맛집',
+        tags: ['여행'],
+        hasImage: true,
+        isFavorite: false,
+        size: 10,
+      };
+
+      mockElasticsearchService.search.mockResolvedValue({
+        hits: {
+          total: { value: 1, relation: 'eq' },
+          hits: [{ _source: { publicId: 'rec_1' } }],
+        },
+      });
+
+      // when
+      await service.search(userId, dto);
+
+      // then
+      expect(mockElasticsearchService.search).toHaveBeenCalledWith(
+        expect.objectContaining({
+          size: 10,
+          query: expect.objectContaining({
+            bool: expect.objectContaining({
+              must: [
+                expect.objectContaining({
+                  multi_match: expect.objectContaining({ query: '맛집' }),
+                }),
+              ],
+              filter: expect.arrayContaining([
+                { term: { userId: 1 } },
+                { terms: { tags: ['여행'] } },
+                { term: { hasImages: true } },
+              ]),
+            }),
+          }),
+        }),
+      );
+    });
+
+    test('tags 필터가 있을 때만 쿼리에 terms 필터가 포함되어야 한다', async () => {
+      // given
+      const userId = 1n;
+      const dto: SearchRecordsDto = {
+        keyword: 'test',
+        tags: ['카페'],
+        hasImage: false,
+        isFavorite: false,
+      };
+      mockElasticsearchService.search.mockResolvedValue({
+        hits: { total: 0, hits: [] },
+      });
+
+      // when
+      await service.search(userId, dto);
+
+      // then
+      const lastCall = mockElasticsearchService.search.mock.calls[0][0];
+      const filters = lastCall.query.bool.filter;
+
+      expect(filters).toContainEqual({ terms: { tags: ['카페'] } });
+      expect(filters).not.toContainEqual({ term: { hasImages: true } });
+      expect(filters).not.toContainEqual({ term: { isFavorite: true } });
+    });
+
+    test('isFavorite이 true일 때만 isFavorite 필터가 포함되어 bear 한다', async () => {
+      // given
+      const userId = 1n;
+      const dto: SearchRecordsDto = {
+        keyword: 'test',
+        isFavorite: true,
+        hasImage: false,
+      };
+      mockElasticsearchService.search.mockResolvedValue({
+        hits: { total: 0, hits: [] },
+      });
+
+      // when
+      await service.search(userId, dto);
+
+      // then
+      const lastCall = mockElasticsearchService.search.mock.calls[0][0];
+      expect(lastCall.query.bool.filter).toContainEqual({
+        term: { isFavorite: true },
+      });
+    });
+
+    test('잘못된 형식의 cursor가 전달되면 에러를 던져야 한다', async () => {
+      // given
+      const userId = 1n;
+      const invalidCursor = 'invalid-base64-string';
+      const dto: SearchRecordsDto = {
+        keyword: 'test',
+        isFavorite: true,
+        hasImage: false,
+        cursor: invalidCursor,
+      };
+
+      // when & then
+      await expect(service.search(userId, dto)).rejects.toThrow();
+    });
+
+    test('Elasticsearch 서버 응답이 실패할 경우 예외를 전파해야 한다', async () => {
+      // given
+      const userId = 1n;
+      const dto: SearchRecordsDto = {
+        keyword: 'test',
+        isFavorite: true,
+        hasImage: false,
+      };
+      const esError = new Error('ES Server Down');
+      mockElasticsearchService.search.mockRejectedValue(esError);
+
+      // when & then
+      await expect(service.search(userId, dto)).rejects.toThrow(
+        'ES Server Down',
+      );
+    });
+
+    test('커서(cursor)가 있을 경우 search_after 파라미터를 포함해야 한다', async () => {
+      // given
+      const userId = 1n;
+      const cursorContent = ['sort_val_1', 'sort_val_2'];
+      const encodedCursor = Buffer.from(JSON.stringify(cursorContent)).toString(
+        'base64',
+      );
+      const dto: SearchRecordsDto = {
+        keyword: 'test',
+        cursor: encodedCursor,
+        hasImage: false,
+        isFavorite: false,
+        size: 20,
+      };
+
+      mockElasticsearchService.search.mockResolvedValue({
+        hits: { total: 0, hits: [] },
+      });
+
+      // when
+      await service.search(userId, dto);
+
+      // then
+      expect(mockElasticsearchService.search).toHaveBeenCalledWith(
+        expect.objectContaining({
+          search_after: cursorContent,
+        }),
+      );
     });
   });
 
