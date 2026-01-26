@@ -154,23 +154,28 @@ export class RecordsService {
     userId: bigint,
     dto: SearchRecordsDto,
   ): Promise<SearchRecordListResponseDto> {
+    const originalSize = dto.size ?? 20;
     const {
       hits: { hits, total },
-    } = await this.recordSearchService.search(userId, dto);
+    } = await this.recordSearchService.search(userId, {
+      ...dto,
+      size: originalSize + 1,
+    });
 
     const totalCount = typeof total === 'number' ? total : (total?.value ?? 0);
-    const hasMore = hits.length === (dto.size ?? 20);
+    const hasMore = hits.length > originalSize;
+    const finalHits = hasMore ? hits.slice(0, originalSize) : hits;
 
     let nextCursor: string | null = null;
-    if (hasMore && hits.length > 0) {
-      const lastSortValues = hits[hits.length - 1].sort;
+    if (hasMore && finalHits.length > 0) {
+      const lastSortValues = finalHits[finalHits.length - 1].sort;
       nextCursor = Buffer.from(JSON.stringify(lastSortValues)).toString(
         'base64',
       );
     }
 
     return SearchRecordListResponseDto.of(
-      hits,
+      finalHits,
       hasMore,
       nextCursor,
       totalCount,
