@@ -16,7 +16,7 @@ export function useGetRecordDetail(
 ) {
   return useQuery<RecordDetail, Error>({
     queryKey: ['record', 'detail', publicId],
-    queryFn: async () => {
+    queryFn: async (): Promise<RecordDetail> => {
       if (!publicId) {
         throw new Error('기록 ID가 필요합니다.');
       }

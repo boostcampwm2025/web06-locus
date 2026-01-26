@@ -9,6 +9,7 @@ import ActionButton from '@/shared/ui/button/ActionButton';
 import { useGetRecordDetail } from '../hooks/useGetRecordDetail';
 import { logger } from '@/shared/utils/logger';
 import LoadingPage from '@/shared/ui/loading/LoadingPage';
+import type { RecordDetail } from '@locus/shared';
 import type {
   RecordSummaryBottomSheetProps,
   RecordSummaryHeaderProps,
@@ -37,7 +38,7 @@ export default function RecordSummaryBottomSheet({
   });
 
   // 타입 단언 (useQuery의 타입 추론 문제 해결)
-  const recordDetail = recordDetailRaw ?? undefined;
+  const recordDetail: RecordDetail | undefined = recordDetailRaw ?? undefined;
 
   // 로딩 상태 처리
   if (isOpen && typeof record === 'string' && isLoading) {
@@ -75,17 +76,24 @@ export default function RecordSummaryBottomSheet({
           tags: record.tags,
           content: record.text,
         }
-      : {
-          title: extractTitle(recordDetail!.title),
-          date: recordDetail!.createdAt,
-          location: {
-            name: recordDetail!.location.name ?? '',
-            address: recordDetail!.location.address ?? '',
-          },
-          // RecordDetail의 tags는 TagDetailResponseSchema[] 형태이므로 name을 추출
-          tags: recordDetail!.tags?.map((tag) => tag.name),
-          content: recordDetail!.content ?? '',
-        };
+      : recordDetail
+        ? {
+            title: extractTitle(recordDetail.title),
+            date: recordDetail.createdAt,
+            location: {
+              name: recordDetail.location.name ?? '',
+              address: recordDetail.location.address ?? '',
+            },
+            tags: recordDetail.tags?.map((tag) => tag.name) ?? [],
+            content: recordDetail.content ?? '',
+          }
+        : {
+            title: '',
+            date: new Date(),
+            location: { name: '', address: '' },
+            tags: [],
+            content: '',
+          };
 
   return (
     <BaseBottomSheet isOpen={isOpen} onClose={onClose} height="summary">
