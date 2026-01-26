@@ -53,3 +53,30 @@ JOIN records rb ON rb.id = e.b_id
 
 ORDER BY row_type, node_public_id, from_public_id, to_public_id;
 `;
+
+export const GRAPH_NEIGHBOR_ROWS_SQL = (
+  startRecordId: bigint,
+): Prisma.Sql => Prisma.sql`
+  WITH neighbors AS ( 
+    SELECT to_record_id as record_id
+    FROM locus.connections
+    WHERE from_record_id=${startRecordId}
+  )
+
+  SELECT 
+    r.id,
+    r.public_id AS "publicId",
+    r.title     AS "title",
+
+    ST_Y(r.location::geometry) AS "latitude",
+    ST_X(r.location::geometry) AS "longitude",
+
+    r.location_name    AS "locationName",
+    r.location_address AS "locationAddress",
+    r.created_at       AS "createdAt",
+    r.updated_at       AS "updatedAt"
+  FROM neighbors n
+  JOIN locus.records r
+    ON r.id = n.record_id
+  ORDER BY r.created_at DESC;
+`;
