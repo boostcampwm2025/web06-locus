@@ -1,5 +1,5 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import { Cron, CronExpression } from '@nestjs/schedule';
+import { Cron } from '@nestjs/schedule';
 import { RABBITMQ_CONSTANTS } from '@/common/constants/rabbitmq.constants';
 import { ClientProxy } from '@nestjs/microservices';
 import { lastValueFrom } from 'rxjs';
@@ -19,7 +19,7 @@ export class NotificationScheduler {
   ) {}
 
   // 매분마다 실행되어 해당 시간의 사용자들에게 알림 작업을 큐에 추가
-  @Cron(CronExpression.EVERY_MINUTE)
+  @Cron('0 * 6-23 * * *')
   async scheduleNotificationsBatch() {
     const now = new Date();
     const currentTime = formatDateToTime(now);
