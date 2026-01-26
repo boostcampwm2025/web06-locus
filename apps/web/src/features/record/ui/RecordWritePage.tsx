@@ -17,6 +17,7 @@ import RecordSummaryBottomSheet from './RecordSummaryBottomSheet';
 import { useRecordForm } from './hook/useRecordForm';
 import { useRecordMap } from './hook/useRecordMap';
 import { useCreateRecord } from '../hooks/useCreateRecord';
+import { useGetTags } from '../hooks/useGetTags';
 import DraggablePinOverlay from '@/infra/map/marker/DraggablePinOverlay';
 import type {
   RecordWritePageProps,
@@ -35,9 +36,6 @@ export default function RecordWritePage({
   onTakePhoto,
   onSelectFromLibrary,
 }: RecordWritePageProps) {
-  // 기본 태그 목록 (mock)
-  const availableTags = ['식사', '카페', '운동', '업무'];
-
   const {
     formData,
     isAddingTag,
@@ -49,12 +47,15 @@ export default function RecordWritePage({
     startAddTag,
     cancelAddTag,
     confirmAddTag,
+    handleKeyDown,
+    isCreatingTag,
     canSave,
-  } = useRecordForm(availableTags);
+  } = useRecordForm();
 
   const [isImageSelectSheetOpen, setIsImageSelectSheetOpen] = useState(false);
   const [savedRecord, setSavedRecord] = useState<Record | null>(null);
   const [isDetailSheetOpen, setIsDetailSheetOpen] = useState(false);
+  const [selectedImages, setSelectedImages] = useState<File[]>([]);
 
   // 핀 위치를 state로 관리 (드래그로 조정 가능)
   const [currentCoordinates, setCurrentCoordinates] = useState<
@@ -62,6 +63,7 @@ export default function RecordWritePage({
   >(initialCoordinates);
 
   const createRecordMutation = useCreateRecord();
+  const { data: allTags = [] } = useGetTags();
 
   const handleAddImage = () => {
     setIsImageSelectSheetOpen(true);
@@ -73,8 +75,24 @@ export default function RecordWritePage({
   };
 
   const handleSelectFromLibrary = () => {
-    // TODO: 라이브러리에서 선택 기능 구현
+    // 파일 선택 다이얼로그 열기
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.multiple = true;
+    input.onchange = (e) => {
+      const files = Array.from((e.target as HTMLInputElement).files ?? []);
+      if (files.length > 0) {
+        setSelectedImages((prev) => [...prev, ...files]);
+      }
+      setIsImageSelectSheetOpen(false);
+    };
+    input.click();
     onSelectFromLibrary?.();
+  };
+
+  const handleRemoveImage = (index: number) => {
+    setSelectedImages((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleSave = async () => {
@@ -90,6 +108,14 @@ export default function RecordWritePage({
     }
 
     try {
+      // 태그 이름을 publicId로 변환
+      const tagPublicIds = formData.tags
+        .map((tagName) => {
+          const tag = allTags.find((t) => t.name === tagName);
+          return tag?.publicId;
+        })
+        .filter((publicId): publicId is string => !!publicId);
+
       // API 호출
       const response = await createRecordMutation.mutateAsync({
         request: {
@@ -99,16 +125,17 @@ export default function RecordWritePage({
             latitude: currentCoordinates.lat,
             longitude: currentCoordinates.lng,
           },
-          tags: formData.tags,
+          tags: tagPublicIds,
         },
-        images: [], // TODO: 이미지 기능 구현 후 추가
+        images: selectedImages,
       });
 
       // API 응답을 Record 타입으로 변환
+      // response.tags는 객체 배열이므로 태그 이름만 추출
       const record: Record = {
         id: response.publicId,
         text: response.title,
-        tags: response.tags,
+        tags: response.tags.map((tag) => tag.name),
         location: {
           name: response.location.name ?? initialLocation.name,
           address: response.location.address ?? initialLocation.address,
@@ -151,7 +178,6 @@ export default function RecordWritePage({
       />
       <RecordWriteForm
         formData={formData}
-        availableTags={availableTags}
         isAddingTag={isAddingTag}
         newTagInput={newTagInput}
         onTitleChange={handleTitleChange}
@@ -161,9 +187,13 @@ export default function RecordWritePage({
         onTagInputChange={(e) => {
           setNewTagInput(e.target.value);
         }}
-        onConfirmAddTag={confirmAddTag}
+        onConfirmAddTag={() => void confirmAddTag()}
+        onKeyDown={handleKeyDown}
+        isCreatingTag={isCreatingTag}
         onCancelAddTag={cancelAddTag}
         onAddImage={handleAddImage}
+        selectedImages={selectedImages}
+        onRemoveImage={handleRemoveImage}
         onSave={() => void handleSave()}
         onCancel={onCancel}
         canSave={canSave}
@@ -304,7 +334,6 @@ function RecordWriteMap({
 
 function RecordWriteForm({
   formData,
-  availableTags,
   isAddingTag,
   newTagInput,
   onTitleChange,
@@ -313,12 +342,16 @@ function RecordWriteForm({
   onAddTagClick,
   onTagInputChange,
   onConfirmAddTag,
+  onKeyDown,
   onCancelAddTag,
   onAddImage,
+  selectedImages = [],
+  onRemoveImage,
   onSave,
   onCancel,
   canSave,
   isSaving = false,
+  isCreatingTag = false,
 }: RecordWriteFormProps) {
   return (
     <div className="flex-[0.6] bg-white rounded-t-3xl shadow-lg overflow-y-auto">
@@ -343,79 +376,47 @@ function RecordWriteForm({
         />
 
         {/* 이미지 섹션 */}
-        <ImageUploadButton label="이미지" onClick={onAddImage} />
+        <div>
+          <ImageUploadButton label="이미지" onClick={onAddImage} />
+          {selectedImages.length > 0 && (
+            <div className="mt-3 flex gap-2 overflow-x-auto">
+              {selectedImages.map((image, index) => (
+                <div key={index} className="relative shrink-0">
+                  <img
+                    src={URL.createObjectURL(image)}
+                    alt={`선택된 이미지 ${index + 1}`}
+                    className="w-20 h-20 object-cover rounded-lg"
+                  />
+                  {onRemoveImage && (
+                    <button
+                      type="button"
+                      onClick={() => onRemoveImage(index)}
+                      className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition-colors"
+                      aria-label="이미지 제거"
+                    >
+                      <XIcon className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
 
         {/* 태그 섹션 */}
         <FormSection title="태그">
-          <div className="flex items-center gap-2 flex-wrap">
-            {availableTags.map((tag) => (
-              <CategoryChip
-                key={tag}
-                label={tag}
-                isSelected={formData.tags.includes(tag)}
-                onClick={() => {
-                  onTagToggle(tag);
-                }}
-              />
-            ))}
-            {/* 사용자가 추가한 태그만 표시 (availableTags에 없는 것) */}
-            {formData.tags
-              .filter((tag) => !availableTags.includes(tag))
-              .map((tag) => (
-                <CategoryChip
-                  key={tag}
-                  label={tag}
-                  isSelected={true}
-                  onClick={() => {
-                    // 커스텀 태그는 클릭해도 아무 동작 안 함
-                  }}
-                />
-              ))}
-            {isAddingTag ? (
-              <>
-                <input
-                  type="text"
-                  value={newTagInput}
-                  onChange={onTagInputChange}
-                  placeholder="태그 입력"
-                  className="px-4 py-2 rounded-full text-sm font-medium border border-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent text-gray-900 placeholder:text-gray-400"
-                  autoFocus
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      onConfirmAddTag();
-                    } else if (e.key === 'Escape') {
-                      onCancelAddTag();
-                    }
-                  }}
-                />
-                <button
-                  type="button"
-                  onClick={onConfirmAddTag}
-                  className="px-4 py-2 rounded-full text-sm font-medium bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors"
-                >
-                  추가
-                </button>
-                <button
-                  type="button"
-                  onClick={onCancelAddTag}
-                  className="w-9 h-9 rounded-full bg-gray-100 text-gray-700 flex items-center justify-center hover:bg-gray-200 transition-colors"
-                  aria-label="취소"
-                >
-                  <XIcon className="w-5 h-5" />
-                </button>
-              </>
-            ) : (
-              <button
-                type="button"
-                onClick={onAddTagClick}
-                className="w-9 h-9 rounded-full bg-gray-100 text-gray-700 flex items-center justify-center hover:bg-gray-200 transition-colors"
-                aria-label="태그 추가"
-              >
-                <PlusIcon className="w-5 h-5" />
-              </button>
-            )}
-          </div>
+          <RecordWriteTags
+            formData={formData}
+            isAddingTag={isAddingTag}
+            newTagInput={newTagInput}
+            onTagToggle={onTagToggle}
+            onTagInputChange={onTagInputChange}
+            onConfirmAddTag={onConfirmAddTag}
+            onKeyDown={onKeyDown}
+            isCreatingTag={isCreatingTag}
+            onCancelAddTag={onCancelAddTag}
+            onAddTagClick={onAddTagClick}
+          />
         </FormSection>
 
         {/* 액션 버튼 */}
@@ -436,6 +437,91 @@ function RecordWriteForm({
           </ActionButton>
         </div>
       </div>
+    </div>
+  );
+}
+
+function RecordWriteTags({
+  formData,
+  isAddingTag,
+  newTagInput,
+  onTagToggle,
+  onTagInputChange,
+  onConfirmAddTag,
+  onKeyDown,
+  isCreatingTag,
+  onCancelAddTag,
+  onAddTagClick,
+}: {
+  formData: { tags: string[] };
+  isAddingTag: boolean;
+  newTagInput: string;
+  onTagToggle: (tag: string) => void;
+  onTagInputChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onConfirmAddTag: () => void;
+  onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => void;
+  isCreatingTag: boolean;
+  onCancelAddTag: () => void;
+  onAddTagClick: () => void;
+}) {
+  const { data: allTags = [] } = useGetTags();
+
+  return (
+    <div className="flex items-center gap-2 flex-wrap">
+      {/* 전체 태그 목록을 chips로 표시 */}
+      {allTags.map((tag) => {
+        const isSelected = formData.tags.includes(tag.name);
+        return (
+          <CategoryChip
+            key={tag.publicId}
+            label={tag.name}
+            isSelected={isSelected}
+            onClick={() => {
+              onTagToggle(tag.name);
+            }}
+          />
+        );
+      })}
+      {isAddingTag ? (
+        <>
+          <input
+            type="text"
+            value={newTagInput}
+            onChange={onTagInputChange}
+            placeholder="태그 입력 (최대 5자)"
+            maxLength={5}
+            disabled={isCreatingTag}
+            className="px-4 py-2 rounded-full text-sm font-medium border border-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent text-gray-900 placeholder:text-gray-400 disabled:opacity-50 disabled:cursor-not-allowed"
+            autoFocus
+            onKeyDown={onKeyDown}
+          />
+          <button
+            type="button"
+            onClick={onConfirmAddTag}
+            disabled={isCreatingTag}
+            className="px-4 py-2 rounded-full text-sm font-medium bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isCreatingTag ? '생성 중...' : '추가'}
+          </button>
+          <button
+            type="button"
+            onClick={onCancelAddTag}
+            className="w-9 h-9 rounded-full bg-gray-100 text-gray-700 flex items-center justify-center hover:bg-gray-200 transition-colors"
+            aria-label="취소"
+          >
+            <XIcon className="w-5 h-5" />
+          </button>
+        </>
+      ) : (
+        <button
+          type="button"
+          onClick={onAddTagClick}
+          className="w-9 h-9 rounded-full bg-gray-100 text-gray-700 flex items-center justify-center hover:bg-gray-200 transition-colors"
+          aria-label="태그 추가"
+        >
+          <PlusIcon className="w-5 h-5" />
+        </button>
+      )}
     </div>
   );
 }

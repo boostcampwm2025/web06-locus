@@ -2,6 +2,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { Logo } from '@/shared/ui/icons/Logo';
 import { SearchIcon } from '@/shared/ui/icons/SearchIcon';
 import { FilterIcon } from '@/shared/ui/icons/FilterIcon';
+import { MoreVerticalIcon } from '@/shared/ui/icons/MoreVerticalIcon';
 import type { AppHeaderNormalModeProps } from '@/shared/types/header';
 import AppHeaderTitle from './AppHeaderTitle';
 import { ROUTES } from '@/router/routes';
@@ -15,6 +16,7 @@ export default function AppHeaderNormalMode({
   onTitleClick,
   onSearchClick,
   onFilterClick,
+  onSettingsClick,
   className = '',
 }: AppHeaderNormalModeProps) {
   const navigate = useNavigate();
@@ -66,6 +68,17 @@ export default function AppHeaderNormalMode({
         >
           <SearchIcon className="w-6 h-6 text-gray-700" />
         </button>
+
+        {onSettingsClick && (
+          <button
+            type="button"
+            onClick={onSettingsClick}
+            aria-label="설정"
+            className="p-2 rounded-full hover:bg-gray-100 transition-colors"
+          >
+            <MoreVerticalIcon className="w-6 h-6 text-gray-700" />
+          </button>
+        )}
       </div>
     </header>
   );

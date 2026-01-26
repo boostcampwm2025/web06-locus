@@ -4,6 +4,7 @@ import { MapsService } from '../maps/maps.service';
 import { CreateRecordDto } from './dto/create-record.dto';
 import {
   RecordResponseDto,
+  RecordTagDto,
   RecordResponseSource,
 } from './dto/record-response.dto';
 import { GetRecordsQueryDto } from './dto/get-records-query.dto';
@@ -36,7 +37,6 @@ import {
   SELECT_RECORDS_BY_LOCATION_SQL,
   COUNT_RECORDS_BY_LOCATION_SQL,
 } from './sql/record-raw.query';
-import { UpdateRecordDto } from './dto/update-record.dto';
 import { GetRecordsByLocationDto } from './dto/get-records-by-location.dto';
 import { ImageProcessingService } from './services/image-processing.service';
 import { ObjectStorageService } from './services/object-storage.service';
@@ -54,6 +54,8 @@ import {
 import { RecordSearchService } from './records-search.service';
 import { SearchRecordsDto } from './dto/search-records.dto';
 import { SearchRecordListResponseDto } from './dto/search-record-list-response.dto';
+import { RecordTagsService } from './record-tags.service';
+import { UpdateRecordDto } from './dto/update-record.dto';
 
 @Injectable()
 export class RecordsService {
@@ -67,6 +69,7 @@ export class RecordsService {
     private readonly objectStorageService: ObjectStorageService,
     private readonly usersService: UsersService,
     private readonly recordSearchService: RecordSearchService,
+    private readonly recordTagsService: RecordTagsService,
   ) {}
 
   /**
@@ -261,6 +264,34 @@ export class RecordsService {
     return RecordListResponseDto.of(recordsWithImages, countResult[0].count);
   }
 
+  async getRecordDetail(
+    userId: bigint,
+    publicId: string,
+  ): Promise<RecordResponseDto> {
+    const record = await this.prisma.record.findFirst({ where: { publicId } });
+
+    if (!record) {
+      throw new RecordNotFoundException(publicId);
+    }
+
+    if (record.userId !== userId) {
+      throw new RecordAccessDeniedException(publicId);
+    }
+
+    const recordWithLocation = await this.getRecordWithLocation(
+      this.prisma,
+      record.id,
+      record,
+    );
+
+    const [recordWithImages] = await this.attachImagesToRecords([
+      recordWithLocation,
+    ]);
+    const tags = await this.recordTagsService.getRecordTags(record.id);
+
+    return RecordResponseDto.of(recordWithImages, tags);
+  }
+
   async getGraph(
     startRecordPublicId: string,
     userId: bigint,
@@ -422,7 +453,7 @@ export class RecordsService {
       await this.processAndUploadImages(userPublicId, recordPublicId, images);
 
     try {
-      const record = await this.executeRecordTransaction(
+      const { record, tags } = await this.executeRecordTransaction(
         userId,
         dto,
         locationInfo,
@@ -430,7 +461,7 @@ export class RecordsService {
         processedImages,
         uploadedImages,
       );
-      return RecordResponseDto.from(record);
+      return RecordResponseDto.of(record, tags);
     } catch (error) {
       await this.objectStorageService.deleteImages(uploadedKeys);
       throw error;
@@ -446,13 +477,13 @@ export class RecordsService {
       dto.location.longitude,
     );
 
-    const record = await this.executeRecordTransaction(
+    const { record, tags } = await this.executeRecordTransaction(
       userId,
       dto,
       locationInfo,
     );
 
-    return RecordResponseDto.from(record);
+    return RecordResponseDto.of(record, tags);
   }
 
   /**
@@ -468,9 +499,9 @@ export class RecordsService {
     recordPublicId?: string,
     processedImages?: ProcessedImage[],
     uploadedImages?: UploadedImage[],
-  ): Promise<RecordResponseSource> {
+  ): Promise<{ record: RecordResponseSource; tags: RecordTagDto[] }> {
     try {
-      const record = await this.prisma.$transaction(async (tx) => {
+      const result = await this.prisma.$transaction(async (tx) => {
         const created = await this.saveRecord(
           tx,
           userId,
@@ -485,6 +516,13 @@ export class RecordsService {
           created.id,
           dto.location.longitude,
           dto.location.latitude,
+        );
+
+        const tags = await this.recordTagsService.createRecordTags(
+          tx,
+          userId,
+          updated.id,
+          dto.tags,
         );
 
         if (processedImages?.length && uploadedImages?.length) {
@@ -508,14 +546,14 @@ export class RecordsService {
           tx,
         );
 
-        return recordWithImages;
+        return { record: recordWithImages, tags };
       });
 
       this.logger.log(
-        `Record created: publicId=${record.publicId}, userId=${userId}, title="${dto.title}"`,
+        `Record created: publicId=${result.record.publicId}, userId=${userId}, title="${dto.title}"`,
       );
 
-      return record;
+      return result;
     } catch (error) {
       if (error instanceof Error) {
         this.logger.error(
@@ -547,7 +585,6 @@ export class RecordsService {
         content: dto.content ?? null,
         locationName,
         locationAddress: address,
-        //tags: dto.tags ?? [],
         isFavorite: false,
       },
     });

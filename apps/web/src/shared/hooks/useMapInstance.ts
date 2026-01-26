@@ -24,6 +24,8 @@ export function useMapInstance(options: UseMapInstanceOptions = {}) {
   const mapInstanceRef = useRef<naver.maps.Map | null>(null);
   const [isMapLoaded, setIsMapLoaded] = useState(false);
   const [mapLoadError, setMapLoadError] = useState<string | null>(null);
+  // autoCenterToGeolocation이 이미 실행되었는지 추적
+  const hasAutoCenteredRef = useRef(false);
 
   // 로그인 체크가 완료된 후에만 위치 권한 요청
   const isInitialized = useAuthStore((state) => state.isInitialized);
@@ -126,10 +128,11 @@ export function useMapInstance(options: UseMapInstanceOptions = {}) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // 빈 배열로 한 번만 실행
 
-  // 현재 위치로 자동 중심 이동
+  // 현재 위치로 자동 중심 이동 (초기 로드 시에만 실행)
   useEffect(() => {
     if (
       autoCenterToGeolocation &&
+      !hasAutoCenteredRef.current &&
       isMapLoaded &&
       mapInstanceRef.current &&
       latitude !== null &&
@@ -139,6 +142,7 @@ export function useMapInstance(options: UseMapInstanceOptions = {}) {
       if (naverMaps) {
         const currentPosition = new naverMaps.LatLng(latitude, longitude);
         mapInstanceRef.current.setCenter(currentPosition);
+        hasAutoCenteredRef.current = true; // 한 번만 실행되도록 표시
       }
     }
   }, [isMapLoaded, latitude, longitude, autoCenterToGeolocation]);

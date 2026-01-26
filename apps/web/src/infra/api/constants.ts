@@ -13,6 +13,7 @@ export const API_ENDPOINTS = {
   AUTH_SIGNUP: '/auth/signup/request',
   AUTH_SIGNUP_VERIFY: '/auth/signup/confirm',
   AUTH_LOGIN: '/auth/login',
+  AUTH_REISSUE: '/auth/reissue',
   AUTH_LOGOUT: '/auth/logout',
 
   // Users
@@ -29,4 +30,12 @@ export const API_ENDPOINTS = {
   // Connections
   CONNECTIONS: '/connections',
   CONNECTIONS_BY_ID: (publicId: string) => `/connections/${publicId}`,
+
+  // Tags
+  TAGS: '/tags',
+  TAGS_BY_ID: (publicId: string) => `/tags/${publicId}`,
+
+  // Maps
+  MAPS_GEOCODE: '/maps/geocode',
+  MAPS_REVERSE_GEOCODE: '/maps/reverse-geocode',
 } as const;

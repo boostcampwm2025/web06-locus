@@ -6,6 +6,7 @@ import { OutboxService } from '@/outbox/outbox.service';
 import { ImageProcessingService } from '@/records/services/image-processing.service';
 import { ObjectStorageService } from '@/records/services/object-storage.service';
 import { UsersService } from '@/users/users.service';
+import { RecordTagsService } from '@/records/record-tags.service';
 interface PrismaMock {
   record: { findUnique: jest.Mock };
   $queryRaw: jest.Mock;
@@ -30,6 +31,10 @@ interface UsersServiceMock {
   findById: jest.Mock;
 }
 
+interface RecordTagsServiceMock {
+  createRecordTags: jest.Mock;
+}
+
 describe('RecordsService - getGraph', () => {
   let service: RecordsService;
   let prismaMock: PrismaMock;
@@ -38,6 +43,7 @@ describe('RecordsService - getGraph', () => {
   let imageProcessingServiceMock: ImageProcessingServiceMock;
   let objectStorageServiceMock: ObjectStorageServiceMock;
   let usersServiceMock: UsersServiceMock;
+  let recordTagsServiceMock: RecordTagsServiceMock;
 
   beforeEach(() => {
     prismaMock = {
@@ -66,6 +72,10 @@ describe('RecordsService - getGraph', () => {
       findById: jest.fn(),
     };
 
+    recordTagsServiceMock = {
+      createRecordTags: jest.fn(),
+    };
+
     service = new RecordsService(
       prismaMock as unknown as PrismaService,
       reverseGeocodingMock as unknown as MapsService,
@@ -73,6 +83,7 @@ describe('RecordsService - getGraph', () => {
       imageProcessingServiceMock as unknown as ImageProcessingService,
       objectStorageServiceMock as unknown as ObjectStorageService,
       usersServiceMock as unknown as UsersService,
+      recordTagsServiceMock as unknown as RecordTagsService,
     );
 
     jest.clearAllMocks();

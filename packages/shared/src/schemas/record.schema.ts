@@ -24,8 +24,23 @@ export const RecordResponseSchema = z.object({
   content: z.string().nullable().optional(),
   location: LocationSchema,
   tags: z.array(z.string()),
+  images: z.array(ImageResponseSchema).optional(),
+  isFavorite: z.boolean().optional(),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
+});
+
+/**
+ * 태그 스키마 (상세 조회용 - Response용 - camelCase)
+ * 기록 생성/수정 응답에서도 사용됨
+ *
+ * @api POST /records - 기록 생성 응답의 data.tags 배열 아이템
+ * @api PATCH /records/{public_id} - 기록 수정 응답의 data.tags 배열 아이템
+ * @api GET /records/{publicId} - 응답의 record.tags 배열 아이템
+ */
+export const TagDetailResponseSchema = z.object({
+  publicId: z.string(),
+  name: z.string(),
 });
 
 /**
@@ -38,6 +53,9 @@ export const RecordWithImagesResponseSchema = RecordResponseSchema.extend({
   userId: z.string().optional(),
   images: z.array(ImageResponseSchema),
   isFavorite: z.boolean(),
+}).extend({
+  // 백엔드는 태그를 객체 배열로 반환함 (RecordTagDto[])
+  tags: z.array(TagDetailResponseSchema),
 });
 
 // ============================================================================
@@ -294,6 +312,18 @@ export const ConnectedRecordsResponseSchema = SuccessResponseSchema.extend({
       hasNext: z.boolean(),
     }),
   }),
+});
+
+
+/**
+ * 기록 상세 조회 응답 스키마
+ * 실제 API 응답: { status: 'success', data: RecordWithImagesResponseSchema }
+ * data 안에 record 객체가 없고, data 자체가 record 객체임
+ *
+ * @api GET /records/{publicId}
+ */
+export const RecordDetailResponseSchema = SuccessResponseSchema.extend({
+  data: RecordWithImagesResponseSchema,
 });
 
 // ============================================================================

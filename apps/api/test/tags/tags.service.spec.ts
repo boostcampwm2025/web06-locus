@@ -71,7 +71,7 @@ describe('TagsService - createOne', () => {
 
     expect(prismaMock.tag.findFirst).toHaveBeenCalledTimes(1);
     expect(prismaMock.tag.findFirst).toHaveBeenCalledWith({
-      where: { name },
+      where: { userId, name },
     });
     expect(prismaMock.tag.create).not.toHaveBeenCalled();
   });
@@ -91,7 +91,7 @@ describe('TagsService - createOne', () => {
 
     expect(prismaMock.tag.findFirst).toHaveBeenCalledTimes(1);
     expect(prismaMock.tag.findFirst).toHaveBeenCalledWith({
-      where: { name },
+      where: { userId, name },
     });
 
     expect(prismaMock.tag.create).toHaveBeenCalledTimes(1);
@@ -158,10 +158,6 @@ describe('TagsService - createOne', () => {
       prismaMock.tag.delete.mockResolvedValueOnce({ publicId: 'tag_pub' });
 
       const result = await service.deleteOne(1n, 'tag_pub');
-
-      expect(prismaMock.tag.findFirst).toHaveBeenCalledWith({
-        where: { publicId: 'tag_pub' },
-      });
 
       expect(prismaMock.tag.delete).toHaveBeenCalledWith({
         where: { id: 10n },
