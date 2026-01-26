@@ -130,6 +130,29 @@ export const GetRecordsByLocationSwagger = () =>
     ApiErrorResponse(),
   );
 
+export const SearchRecordsSwagger = () =>
+  applyDecorators(
+    ApiExtraModels(RecordListResponseDto),
+    ApiBearerAuth(),
+    ApiOperation({
+      summary: '기록 키워드 검색 (Elasticsearch',
+      description:
+        '키워드를 기반으로 제목, 본문, 태그, 장소명을 검색합니다. 태그 필터링, 이미지 포함 여부, 즐겨찾기 필터를 지원하며 커서 기반 페이지네이션을 사용합니다.',
+    }),
+    ApiSuccessResponse(RecordListResponseDto, HttpStatus.OK),
+    ApiFailResponse(HttpStatus.BAD_REQUEST, [
+      {
+        code: RecordErrorCode.INVALID_PARAMS,
+        message: '검색할 키워드가 없거나 파라미터가 유효하지 않습니다.',
+      },
+    ]),
+    ApiFailResponse(HttpStatus.UNAUTHORIZED, {
+      code: 'AUTH_TOKEN_MISSING',
+      message: '인증 토큰이 없거나 유효하지 않습니다.',
+    }),
+    ApiErrorResponse(),
+  );
+
 export const DeleteRecordSwagger = () =>
   applyDecorators(
     ApiBearerAuth(),
