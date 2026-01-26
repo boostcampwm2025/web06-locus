@@ -36,6 +36,7 @@ import {
   GetRecordsByLocationSwagger,
 } from './swagger/records.swagger';
 import { JsonBody } from '@/common/decorators/json-body.decorator';
+import { GraphNeighborRecordsDto } from './dto/graph-details.response.dto';
 
 @ApiTags('records')
 @Controller('records')
@@ -93,6 +94,22 @@ export class RecordsController {
   ): Promise<GraphResponseDto> {
     const graphData = await this.recordsService.getGraph(publicId, userId);
     return graphData;
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get(':publicId/graph/details')
+  async getGraphNeighbor(
+    @CurrentUser('sub') userId: bigint,
+    @Param('publicId') publicId: string,
+  ): Promise<GraphNeighborRecordsDto> {
+    const graphNeighborRecords =
+      await this.recordsService.getGraphNeighborDetail(publicId, userId);
+
+    return {
+      start: publicId,
+      depth: 1,
+      records: graphNeighborRecords,
+    };
   }
 
   @Patch(':publicId')

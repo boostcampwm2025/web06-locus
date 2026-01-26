@@ -12,9 +12,16 @@ import { ImageProcessingService } from './services/image-processing.service';
 import { ObjectStorageService } from './services/object-storage.service';
 import { UsersService } from '@/users/users.service';
 import { RecordTagsService } from './record-tags.service';
+import { TagsModule } from '@/tags/tags.module';
 
 @Module({
-  imports: [PrismaModule, JwtModule, ElasticsearchConfigModule, OutboxModule],
+  imports: [
+    PrismaModule,
+    JwtModule,
+    ElasticsearchConfigModule,
+    OutboxModule,
+    TagsModule,
+  ],
   controllers: [RecordsController, RecordSyncConsumer],
   providers: [
     RecordsService,
