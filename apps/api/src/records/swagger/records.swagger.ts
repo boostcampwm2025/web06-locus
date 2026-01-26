@@ -183,3 +183,26 @@ export const DeleteRecordSwagger = () =>
     }),
     ApiErrorResponse(),
   );
+
+export const GetAllRecordsSwagger = () =>
+  applyDecorators(
+    ApiExtraModels(RecordListResponseDto),
+    ApiBearerAuth(),
+    ApiOperation({
+      summary: '전체 기록 목록 조회',
+      description:
+        '사용자의 전체 기록을 조회합니다. 날짜 범위와 태그로 필터링할 수 있으며, 페이지네이션을 지원합니다.',
+    }),
+    ApiSuccessResponse(RecordListResponseDto, HttpStatus.OK),
+    ApiFailResponse(HttpStatus.BAD_REQUEST, [
+      {
+        code: RecordErrorCode.INVALID_DATE_FORMAT,
+        message: '날짜 형식이 유효하지 않습니다. (ISO 8601)',
+      },
+    ]),
+    ApiFailResponse(HttpStatus.UNAUTHORIZED, {
+      code: 'AUTH_TOKEN_MISSING',
+      message: '인증 토큰이 없거나 유효하지 않습니다.',
+    }),
+    ApiErrorResponse(),
+  );
