@@ -11,6 +11,7 @@ export interface RecordConnectionItem {
   tags: string[];
   imageUrl?: string;
   isRelated?: boolean; // 검색 결과에서 관련 기록인지 여부
+  isConnected?: boolean; // 이미 연결된 기록인지 여부
 }
 
 /**

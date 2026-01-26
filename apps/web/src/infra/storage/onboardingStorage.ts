@@ -1,13 +1,15 @@
 import { useState, useEffect } from 'react';
+import { getCurrentUserScopedKey } from './userScopedStorage';
 
-const ONBOARDING_COMPLETED_KEY = 'onboarding_completed';
+const ONBOARDING_COMPLETED_KEY_BASE = 'onboarding_completed';
 const ONBOARDING_STORAGE_EVENT = 'onboarding_storage_changed';
 
 /**
  * 온보딩 완료 여부를 저장합니다.
  */
 export const setOnboardingCompleted = (): void => {
-  localStorage.setItem(ONBOARDING_COMPLETED_KEY, 'true');
+  const key = getCurrentUserScopedKey(ONBOARDING_COMPLETED_KEY_BASE);
+  localStorage.setItem(key, 'true');
   // 커스텀 이벤트 발행 (같은 탭에서도 구독 가능)
   window.dispatchEvent(
     new CustomEvent(ONBOARDING_STORAGE_EVENT, { detail: true }),
@@ -18,14 +20,16 @@ export const setOnboardingCompleted = (): void => {
  * 온보딩 완료 여부를 확인합니다.
  */
 export const isOnboardingCompleted = (): boolean => {
-  return localStorage.getItem(ONBOARDING_COMPLETED_KEY) === 'true';
+  const key = getCurrentUserScopedKey(ONBOARDING_COMPLETED_KEY_BASE);
+  return localStorage.getItem(key) === 'true';
 };
 
 /**
  * 온보딩 완료 여부를 초기화합니다.
  */
 export const clearOnboardingCompleted = (): void => {
-  localStorage.removeItem(ONBOARDING_COMPLETED_KEY);
+  const key = getCurrentUserScopedKey(ONBOARDING_COMPLETED_KEY_BASE);
+  localStorage.removeItem(key);
   // 커스텀 이벤트 발행
   window.dispatchEvent(
     new CustomEvent(ONBOARDING_STORAGE_EVENT, { detail: false }),
@@ -52,7 +56,8 @@ export const useOnboardingCompleted = (): boolean => {
 
     // storage 이벤트 구독 (다른 탭에서 변경된 경우)
     const handleStorageEvent = (e: StorageEvent) => {
-      if (e.key === ONBOARDING_COMPLETED_KEY) {
+      const currentKey = getCurrentUserScopedKey(ONBOARDING_COMPLETED_KEY_BASE);
+      if (e.key === currentKey) {
         setIsCompleted(isOnboardingCompleted());
       }
     };

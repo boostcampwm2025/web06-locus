@@ -7,6 +7,7 @@ export const ROUTES = {
   RECORD_LIST: '/records',
   RECORD_DETAIL: '/records/:id',
   CONNECTION: '/connection',
+  CONNECTION_MANAGEMENT: '/records/:id/connections',
   ONBOARDING: '/onboarding',
   AUTH_CALLBACK: '/auth/callback',
   EMAIL_LOGIN: '/auth/email',
