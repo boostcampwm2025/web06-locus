@@ -36,7 +36,7 @@ model UserNotificationSetting {
   id         BigInt   @id @default(autoincrement())
   userId     BigInt   @unique @map("user_id")
   isActive   Boolean  @default(false) @map("is_active")
-  notifyTime String   @default("19:00:00") @map("notify_time")
+  notifyTime DateTime @default(dbgenerated("'19:00:00'")) @db.Time(0) @map("notify_time")
   fcmToken   String?  @map("fcm_token")
   updatedAt  DateTime @updatedAt @map("updated_at")
 

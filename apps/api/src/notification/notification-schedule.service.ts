@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { RedisService } from '../redis/redis.service';
 import { NotificationData } from './type/notification.types';
 import { PrismaService } from '@/prisma/prisma.service';
+import { formatDateToTime } from '@/common/utils/date-utils';
 
 @Injectable()
 export class NotificationScheduleService {
@@ -19,7 +20,7 @@ export class NotificationScheduleService {
 
   // 특정 시간 버킷에 (사용자, fcm 토큰) 추가
   async addUserToBucket(
-    time: string,
+    time: Date,
     userId: bigint,
     fcmToken: string,
   ): Promise<void> {
@@ -28,13 +29,13 @@ export class NotificationScheduleService {
   }
 
   // 특정 시간 버킷에서 사용자 제거
-  async removeUserFromBucket(time: string, userId: bigint): Promise<void> {
+  async removeUserFromBucket(time: Date, userId: bigint): Promise<void> {
     const key = this.getBucketKey(time);
     await this.redisService.hDel(key, userId.toString());
   }
 
   // 특정 시간의 모든 사용자 및 FCM 토큰 조회
-  async getUsersForTime(time: string): Promise<NotificationData[]> {
+  async getUsersForTime(time: Date): Promise<NotificationData[]> {
     const key = this.getBucketKey(time);
     const datas = await this.redisService.hGetAll(key);
 
@@ -68,15 +69,16 @@ export class NotificationScheduleService {
     const pipeline = this.redisService.getClient().multi();
 
     for (const setting of settings) {
-      const time = setting.notifyTime.substring(0, 5);
+      const time = setting.notifyTime;
       const key = this.getBucketKey(time);
       pipeline.hSet(key, setting.userId.toString(), setting.fcmToken!);
     }
     await pipeline.exec();
   }
 
-  private getBucketKey(time: string): string {
-    return `${this.BUCKET_PREFIX}:${time}`;
+  private getBucketKey(time: Date | string): string {
+    const timeStr = typeof time === 'string' ? time : formatDateToTime(time);
+    return `${this.BUCKET_PREFIX}:${timeStr}`;
   }
 
   private generateTimeSlots = (): string[] => {
