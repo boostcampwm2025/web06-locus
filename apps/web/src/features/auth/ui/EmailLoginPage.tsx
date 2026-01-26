@@ -24,8 +24,8 @@ export default function EmailLoginPage() {
     try {
       const response = await login({ email, password });
 
-      // localStorage에는 accessToken만 저장 (refreshToken은 쿠키에만 저장)
-      void setTokens(response.data.accessToken, '');
+      // accessToken은 메모리에만 저장 (refreshToken은 쿠키에만 저장)
+      void setTokens(response.data.accessToken);
 
       // ProtectedRoute에서 온보딩 체크를 처리하므로 HOME으로 이동
       void navigate(ROUTES.HOME, { replace: true });

@@ -1,48 +1,46 @@
 import type { AuthTokens } from '@/features/auth/types/auth';
 
-const ACCESS_TOKEN_KEY = 'access_token';
-const REFRESH_TOKEN_KEY = 'refresh_token';
+// 메모리 기반 accessToken 저장소
+const tokenStore = {
+  accessToken: null as string | null,
+};
 
-export const saveTokens = (tokens: AuthTokens): void => {
-  localStorage.setItem(ACCESS_TOKEN_KEY, tokens.accessToken);
-  localStorage.setItem(REFRESH_TOKEN_KEY, tokens.refreshToken);
+export const saveTokens = (accessToken: string): void => {
+  // accessToken은 메모리에만 저장
+  tokenStore.accessToken = accessToken;
 };
 
 export const getTokens = (): AuthTokens | null => {
-  const accessToken = localStorage.getItem(ACCESS_TOKEN_KEY);
-  const refreshToken = localStorage.getItem(REFRESH_TOKEN_KEY);
-
-  // refreshToken은 쿠키에만 저장될 수 있으므로, accessToken만 있어도 인증 상태 유지
-  if (!accessToken) {
+  if (!tokenStore.accessToken) {
     return null;
   }
 
-  // refreshToken이 없거나 빈 문자열이면 빈 문자열로 반환 (쿠키에만 있을 수 있음)
-  return { accessToken, refreshToken: refreshToken ?? '' };
+  // refreshToken은 쿠키에만 있으므로 빈 문자열로 반환
+  return { accessToken: tokenStore.accessToken, refreshToken: '' };
 };
 
 export const clearTokens = (): void => {
-  localStorage.removeItem(ACCESS_TOKEN_KEY);
-  localStorage.removeItem(REFRESH_TOKEN_KEY);
+  tokenStore.accessToken = null;
 };
 
 export const getAccessToken = (): string | null => {
-  const rawToken = localStorage.getItem(ACCESS_TOKEN_KEY);
-
-  // 문자열 "undefined"나 "null"이 들어있는 경우를 확실히 체크
-  if (!rawToken || rawToken === 'undefined' || rawToken === 'null') {
+  if (
+    !tokenStore.accessToken ||
+    tokenStore.accessToken === 'undefined' ||
+    tokenStore.accessToken === 'null'
+  ) {
     return null;
   }
 
-  return rawToken;
+  return tokenStore.accessToken;
 };
 
 export const setAccessToken = (
   accessToken: string | null | undefined,
 ): void => {
   if (!accessToken || accessToken === 'undefined') {
-    localStorage.removeItem(ACCESS_TOKEN_KEY);
+    tokenStore.accessToken = null;
   } else {
-    localStorage.setItem(ACCESS_TOKEN_KEY, accessToken);
+    tokenStore.accessToken = accessToken;
   }
 };

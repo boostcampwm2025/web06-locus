@@ -210,108 +210,155 @@ async function retryFailedRequests(newAccessToken: string): Promise<void> {
 
 /**
  * 리프레시 토큰 재발급 API 호출 본체
+ * authStore에서도 사용할 수 있도록 export
  */
-async function executeRefresh(): Promise<string> {
+export async function executeRefresh(): Promise<string> {
   const url = buildApiUrl(API_ENDPOINTS.AUTH_REISSUE);
 
   try {
-    const response = await fetch(url, {
-      method: 'POST',
-      credentials: 'include',
-    });
+    const response = await fetchRefreshToken(url);
+    const accessToken = await parseRefreshResponse(response, url);
 
-    // Response 헤더 확인 (Set-Cookie가 있는지)
-    const setCookieHeader = response.headers.get('Set-Cookie');
-    const hasSetCookie = !!setCookieHeader;
+    setAccessToken(accessToken);
+    logRefreshSuccess(url, accessToken, response);
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      let errorData: unknown;
-      try {
-        errorData = JSON.parse(errorText);
-      } catch {
-        errorData = errorText;
-      }
+    return accessToken;
+  } catch (error) {
+    handleRefreshError(error, url);
+    throw error;
+  }
+}
 
-      logger.error(new Error(`토큰 재발급 실패: ${response.status}`), {
-        status: response.status,
-        statusText: response.statusText,
-        errorData,
-        url,
-        hasSetCookie,
-        setCookieHeader: setCookieHeader?.substring(0, 100), // 처음 100자만
-        responseHeaders: {
-          'content-type': response.headers.get('content-type'),
-          'set-cookie': hasSetCookie ? 'present' : 'missing',
-        },
-      });
-      await handleUnauthorized();
-      throw new AuthError('세션이 만료되었습니다. 다시 로그인해주세요.');
-    }
+/**
+ * 재발급 API 호출
+ */
+async function fetchRefreshToken(url: string): Promise<Response> {
+  const response = await fetch(url, {
+    method: 'POST',
+    credentials: 'include',
+  });
 
-    // 응답 body를 텍스트로 먼저 읽어서 확인
-    const responseText = await response.text();
+  if (!response.ok) {
+    await handleRefreshErrorResponse(response, url);
+  }
 
-    let parsedData: {
+  return response;
+}
+
+/**
+ * 재발급 응답 파싱
+ */
+async function parseRefreshResponse(
+  response: Response,
+  url: string,
+): Promise<string> {
+  const responseText = await response.text();
+
+  let parsedData: {
+    status?: string;
+    data?: { accessToken?: string };
+  };
+
+  try {
+    parsedData = JSON.parse(responseText) as {
       status?: string;
       data?: { accessToken?: string };
     };
-    try {
-      parsedData = JSON.parse(responseText) as {
-        status?: string;
-        data?: { accessToken?: string };
-      };
-    } catch (parseError) {
-      logger.error(
-        new Error(
-          `토큰 재발급 응답 파싱 실패: ${parseError instanceof Error ? parseError.message : String(parseError)}`,
-        ),
-        { url, responseText: responseText.substring(0, 500) },
-      );
-      await handleUnauthorized();
-      throw new AuthError('세션이 만료되었습니다. 다시 로그인해주세요.');
-    }
+  } catch (parseError) {
+    logger.error(
+      new Error(
+        `토큰 재발급 응답 파싱 실패: ${parseError instanceof Error ? parseError.message : String(parseError)}`,
+      ),
+      { url, responseText: responseText.substring(0, 500) },
+    );
+    await handleUnauthorized();
+    throw new AuthError('세션이 만료되었습니다. 다시 로그인해주세요.');
+  }
 
-    // API 응답 구조: { status: "success", data: { accessToken: string } }
-    const accessToken = parsedData.data?.accessToken;
+  const accessToken = parsedData.data?.accessToken;
 
-    // accessToken이 없으면 에러 throw
-    if (!accessToken) {
-      logger.error(
-        new Error('토큰 재발급 실패: 응답에 액세스 토큰이 없습니다'),
-        {
-          url,
-          parsedData: JSON.stringify(parsedData).substring(0, 500),
-        },
-      );
-      await handleUnauthorized();
-      throw new AuthError('세션이 만료되었습니다. 다시 로그인해주세요.');
-    }
-
-    setAccessToken(accessToken);
-
-    logger.info('리프레시 토큰 재발급 성공', {
+  if (!accessToken) {
+    logger.error(new Error('토큰 재발급 실패: 응답에 액세스 토큰이 없습니다'), {
       url,
-      hasNewAccessToken: !!accessToken,
-      hasSetCookie,
-      setCookieHeader: setCookieHeader?.substring(0, 100), // 처음 100자만
-      accessTokenLength: accessToken?.length,
+      parsedData: JSON.stringify(parsedData).substring(0, 500),
     });
-    return accessToken;
-  } catch (error) {
-    // AuthError는 이미 handleUnauthorized가 호출되었으므로 다시 호출하지 않음
-    if (!(error instanceof AuthError)) {
-      logger.error(
-        error instanceof Error ? error : new Error('토큰 재발급 중 예외 발생'),
-        {
-          url,
-          error: String(error),
-          errorName: error instanceof Error ? error.name : typeof error,
-          errorMessage: error instanceof Error ? error.message : String(error),
-        },
-      );
-    }
-    throw error;
+    await handleUnauthorized();
+    throw new AuthError('세션이 만료되었습니다. 다시 로그인해주세요.');
+  }
+
+  return accessToken;
+}
+
+/**
+ * 재발급 에러 응답 처리
+ */
+async function handleRefreshErrorResponse(
+  response: Response,
+  url: string,
+): Promise<never> {
+  const setCookieHeader = response.headers.get('Set-Cookie');
+  const hasSetCookie = !!setCookieHeader;
+
+  const errorText = await response.text();
+  let errorData: unknown;
+  try {
+    errorData = JSON.parse(errorText);
+  } catch {
+    errorData = errorText;
+  }
+
+  logger.error(new Error(`토큰 재발급 실패: ${response.status}`), {
+    status: response.status,
+    statusText: response.statusText,
+    errorData,
+    url,
+    hasSetCookie,
+    setCookieHeader: setCookieHeader?.substring(0, 100),
+    responseHeaders: {
+      'content-type': response.headers.get('content-type'),
+      'set-cookie': hasSetCookie ? 'present' : 'missing',
+    },
+  });
+
+  await handleUnauthorized();
+  throw new AuthError('세션이 만료되었습니다. 다시 로그인해주세요.');
+}
+
+/**
+ * 재발급 성공 로깅
+ */
+function logRefreshSuccess(
+  url: string,
+  accessToken: string,
+  response: Response,
+): void {
+  const setCookieHeader = response.headers.get('Set-Cookie');
+  const hasSetCookie = !!setCookieHeader;
+
+  logger.info('리프레시 토큰 재발급 성공', {
+    url,
+    hasNewAccessToken: !!accessToken,
+    hasSetCookie,
+    setCookieHeader: setCookieHeader?.substring(0, 100),
+    accessTokenLength: accessToken.length,
+  });
+}
+
+/**
+ * 재발급 에러 처리
+ */
+function handleRefreshError(error: unknown, url: string): void {
+  // AuthError는 이미 handleUnauthorized가 호출되었으므로 다시 호출하지 않음
+  if (!(error instanceof AuthError)) {
+    logger.error(
+      error instanceof Error ? error : new Error('토큰 재발급 중 예외 발생'),
+      {
+        url,
+        error: String(error),
+        errorName: error instanceof Error ? error.name : typeof error,
+        errorMessage: error instanceof Error ? error.message : String(error),
+      },
+    );
   }
 }
 
