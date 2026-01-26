@@ -53,7 +53,7 @@ export class GraphRecordDto {
   })
   updatedAt: string;
 
-  static From(
+  static Of(
     record: RecordRowType,
     tags: { tagPublicId: string; tagName: string }[],
   ): GraphRecordDto {

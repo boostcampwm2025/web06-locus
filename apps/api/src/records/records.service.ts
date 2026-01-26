@@ -309,7 +309,7 @@ export class RecordsService {
     const tagsByRecordId = this.buildTagsByRecordId(tags);
 
     return records.map((record) =>
-      GraphRecordDto.From(record, tagsByRecordId.get(record.id) ?? []),
+      GraphRecordDto.Of(record, tagsByRecordId.get(record.id) ?? []),
     );
   }
 
