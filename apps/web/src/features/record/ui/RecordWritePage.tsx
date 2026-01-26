@@ -27,6 +27,11 @@ import type {
   Coordinates,
 } from '../types';
 
+interface TagItem {
+  publicId: string;
+  name: string;
+}
+
 export default function RecordWritePage({
   initialLocation,
   initialCoordinates,
@@ -108,7 +113,9 @@ export default function RecordWritePage({
       const record: Record = {
         id: response.publicId,
         text: response.title,
-        tags: response.tags,
+        tags: response.tags.map((t: string | TagItem) =>
+          typeof t === 'string' ? t : t.name,
+        ),
         location: {
           name: response.location.name ?? initialLocation.name,
           address: response.location.address ?? initialLocation.address,
