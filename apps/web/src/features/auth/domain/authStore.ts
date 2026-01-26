@@ -4,7 +4,7 @@ import type { AuthState } from '../types/auth';
 import { saveTokens, clearTokens } from '@/infra/storage/tokenStorage';
 import { logout as logoutApi } from '@/infra/api/services/authService';
 import { getCurrentUser } from '@/infra/api/services/userService';
-import { executeRefresh } from '@/infra/api/apiClient';
+import { executeRefresh } from '@/infra/api';
 import { logger } from '@/shared/utils/logger';
 import {
   setCurrentUserId,
