@@ -16,6 +16,7 @@ import { useDeleteRecord } from '@/features/record/hooks/useDeleteRecord';
 import { useGetRecordDetail } from '@/features/record/hooks/useGetRecordDetail';
 import { useRecordGraph } from '@/features/connection/hooks/useRecordGraph';
 import { logger } from '@/shared/utils/logger';
+import type { RecordDetail } from '@locus/shared';
 
 // 라우트별 지연 로딩
 const OAuthLoginPage = lazy(() => import('@/features/auth/ui/OAuthLoginPage'));
@@ -103,7 +104,7 @@ function RecordDetailPageRoute() {
   }
 
   // 타입 단언 (useQuery의 타입 추론 문제 해결)
-  const detail = recordDetail;
+  const detail: RecordDetail = recordDetail;
 
   // 연결 개수 계산 (그래프 API의 edges에서 계산)
   const connectionCount =
@@ -129,7 +130,7 @@ function RecordDetailPageRoute() {
       : undefined;
 
   // 태그를 문자열 배열로 변환 (기존 타입 호환)
-  const tags = detail.tags?.map((tag) => tag.name);
+  const tags = (detail.tags ?? []).map((tag) => tag.name);
 
   const recordProps = {
     title: detail.title,
@@ -302,7 +303,7 @@ function ConnectionManagementPageRoute() {
           address: recordDetail.location.address ?? '',
         },
         date: new Date(recordDetail.createdAt),
-        tags: recordDetail.tags?.map((tag) => tag.name) ?? [],
+        tags: (recordDetail.tags ?? []).map((tag) => tag.name),
         connectionCount: connectedRecordIds.length,
       }
     : {
