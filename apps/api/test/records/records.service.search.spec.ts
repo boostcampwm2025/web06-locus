@@ -8,6 +8,7 @@ import { ImageProcessingService } from '@/records/services/image-processing.serv
 import { ObjectStorageService } from '@/records/services/object-storage.service';
 import { UsersService } from '@/users/users.service';
 import { SearchRecordsDto } from '@/records/dto/search-records.dto';
+import { RecordTagsService } from '@/records/record-tags.service';
 
 describe('RecordsService - searchRecords', () => {
   let service: RecordsService;
@@ -22,6 +23,11 @@ describe('RecordsService - searchRecords', () => {
   const mockImageProcessingService = {};
   const mockObjectStorageService = {};
   const mockUsersService = {};
+  const mockRecordTagsService = {
+    createRecordTags: jest.fn(),
+    getRecordTags: jest.fn(),
+    updateRecordTags: jest.fn(),
+  };
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -37,6 +43,7 @@ describe('RecordsService - searchRecords', () => {
         },
         { provide: ObjectStorageService, useValue: mockObjectStorageService },
         { provide: UsersService, useValue: mockUsersService },
+        { provide: RecordTagsService, useValue: mockRecordTagsService },
       ],
     }).compile();
 
