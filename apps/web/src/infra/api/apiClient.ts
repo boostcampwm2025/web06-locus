@@ -255,13 +255,11 @@ async function executeRefresh(): Promise<string> {
     let parsedData: {
       status?: string;
       data?: { accessToken?: string };
-      accessToken?: string;
     };
     try {
       parsedData = JSON.parse(responseText) as {
         status?: string;
         data?: { accessToken?: string };
-        accessToken?: string;
       };
     } catch (parseError) {
       logger.error(
@@ -274,10 +272,8 @@ async function executeRefresh(): Promise<string> {
       throw new AuthError('세션이 만료되었습니다. 다시 로그인해주세요.');
     }
 
-    // API 응답 구조에 따라 accessToken 추출
-    // 구조 1: { status: "success", data: { accessToken: string } }
-    // 구조 2: { accessToken: string }
-    const accessToken = parsedData.data?.accessToken ?? parsedData.accessToken;
+    // API 응답 구조: { status: "success", data: { accessToken: string } }
+    const accessToken = parsedData.data?.accessToken;
 
     // accessToken이 없으면 에러 throw
     if (!accessToken) {
