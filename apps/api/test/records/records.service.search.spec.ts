@@ -87,6 +87,10 @@ describe('RecordsService - searchRecords', () => {
             },
             sort: [1704153600000, 'rec_2'],
           },
+          {
+            _source: { publicId: 'rec_3' },
+            sort: [1704240000000, 'rec_3'],
+          },
         ],
       },
     };
@@ -109,7 +113,10 @@ describe('RecordsService - searchRecords', () => {
     ).toString('base64');
     expect(result.pagination.nextCursor).toBe(expectedCursor);
 
-    expect(mockRecordSearchService.search).toHaveBeenCalledWith(userId, dto);
+    expect(mockRecordSearchService.search).toHaveBeenCalledWith(userId, {
+      ...dto,
+      size: 3,
+    });
   });
 
   test('검색 결과가 size보다 작으면 hasMore는 false여야 한다', async () => {
@@ -125,7 +132,12 @@ describe('RecordsService - searchRecords', () => {
     mockRecordSearchService.search.mockResolvedValue({
       hits: {
         total: 5,
-        hits: [{ _source: { publicId: 'one' }, sort: [123] }],
+        hits: Array(5)
+          .fill(null)
+          .map((_, i) => ({
+            _source: { publicId: `rec_${i}` },
+            sort: [i],
+          })),
       },
     });
 
@@ -220,11 +232,10 @@ describe('RecordsService - searchRecords', () => {
 
       const resultWithoutSort = {
         hits: {
-          total: 1,
+          total: 2,
           hits: [
-            {
-              _source: { publicId: 'rec_1', title: 'test' },
-            },
+            { _source: { publicId: 'rec_1', title: 'test' } },
+            { _source: { publicId: 'rec_2' }, sort: [456] },
           ],
         },
       };

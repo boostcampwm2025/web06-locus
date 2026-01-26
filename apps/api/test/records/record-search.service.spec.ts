@@ -122,7 +122,7 @@ describe('RecordSearchService', () => {
                 }),
               ],
               filter: expect.arrayContaining([
-                { term: { userId: 1 } },
+                { term: { userId: '1' } },
                 { terms: { tags: ['여행'] } },
                 { term: { hasImages: true } },
               ]),
