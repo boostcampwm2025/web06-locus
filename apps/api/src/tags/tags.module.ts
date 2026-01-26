@@ -7,6 +7,6 @@ import { JwtModule } from '@/jwt/jwt.module';
   imports: [JwtModule],
   controllers: [TagsController],
   providers: [TagsService],
-  exports: [],
+  exports: [TagsService],
 })
 export class TagsModule {}
