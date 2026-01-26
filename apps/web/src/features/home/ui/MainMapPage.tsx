@@ -1,170 +1,262 @@
 import { useState, useEffect, lazy, Suspense } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import AppHeader from '@/shared/ui/header/AppHeader';
-import CategoryChips from '@/shared/ui/category/CategoryChips';
+import CategoryChip from '@/shared/ui/category/CategoryChip';
 import BottomTabBar from '@/shared/ui/navigation/BottomTabBar';
 import MapLoadingSkeleton from '@/shared/ui/loading/MapLoadingSkeleton';
-
-// 지도 컴포넌트를 동적 임포트
-const MapViewport = lazy(() => import('./MapViewport'));
-import RecordSummaryBottomSheet from '@/features/record/ui/RecordSummaryBottomSheet';
+import ActionSheet from '@/shared/ui/dialog/ActionSheet';
 import ToastErrorMessage from '@/shared/ui/alert/ToastErrorMessage';
-import type { Record, Coordinates } from '@/features/record/types';
-import type { MainMapPageLocationState } from '@features/home/types/mainMapPage';
+import RecordSummaryBottomSheet from '@/features/record/ui/RecordSummaryBottomSheet';
+import TagManagementModal from '@/features/record/ui/TagManagementModal';
+import { useGetTags } from '@/features/record/hooks/useGetTags';
+import { useDeleteRecord } from '@/features/record/hooks/useDeleteRecord';
+import { useAuthStore } from '@/features/auth/domain/authStore';
 import { useBottomTabNavigation } from '@/shared/hooks/useBottomTabNavigation';
+import { useGeocodeSearch } from '@/features/home/hooks/useGeocodeSearch';
 import { ROUTES } from '@/router/routes';
 import {
   getStoredRecordPins,
   addStoredRecordPin,
 } from '@/infra/storage/recordStorage';
+import type { Record, Coordinates } from '@/features/record/types';
+import type { MainMapPageLocationState } from '@features/home/types/mainMapPage';
 import type { StoredRecordPin } from '@/infra/types/storage';
+
+// 지도 컴포넌트를 동적 임포트
+const MapViewport = lazy(() => import('./MapViewport'));
 
 export default function MainMapPage() {
   const location = useLocation();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+
   const [savedRecord, setSavedRecord] = useState<Record | null>(null);
   const [isDetailSheetOpen, setIsDetailSheetOpen] = useState(false);
   const [isSearchActive, setIsSearchActive] = useState(false);
-  const [searchValue, setSearchValue] = useState('');
+  const [isActionSheetOpen, setIsActionSheetOpen] = useState(false);
+  const [isTagManagementModalOpen, setIsTagManagementModalOpen] =
+    useState(false);
+  const logout = useAuthStore((state) => state.logout);
+
+  // 알림 상태 관리
   const [showSuccessToast, setShowSuccessToast] = useState(false);
-  // 생성된 기록들을 누적해서 관리 (조회 API가 없으므로)
-  // localStorage에서 초기 로드
+  const [showDeleteErrorToast, setShowDeleteErrorToast] = useState(false);
+
+  // 생성된 기록들을 누적해서 관리
   const [createdRecordPins, setCreatedRecordPins] = useState<
     {
       record: Record;
       coordinates?: Coordinates;
     }[]
   >(() => {
-    // localStorage에서 불러오기
     const stored = getStoredRecordPins();
     return stored.map((storedPin) => ({
       record: storedPin.record,
       coordinates: storedPin.coordinates,
     }));
   });
+
   const [connectedRecords, setConnectedRecords] = useState<{
     fromId: string;
     toId: string;
   } | null>(null);
 
-  // location.state에서 저장된 record 또는 연결된 기록 확인
+  const [targetLocation, setTargetLocation] = useState<Coordinates | null>(
+    null,
+  );
+
+  /**
+   * 1. 지오코딩 API 훅
+   */
+  const {
+    address: searchValue,
+    setAddress: setSearchValue,
+    data: geocodeData,
+    isLoading: isGeocoding,
+    error: geocodeError,
+  } = useGeocodeSearch('');
+
+  /**
+   * 2. 검색 결과에 따른 지도 중심 이동
+   */
+  useEffect(() => {
+    const firstAddr = geocodeData?.data?.addresses?.[0];
+    if (firstAddr) {
+      setTargetLocation({
+        lat: parseFloat(firstAddr.latitude),
+        lng: parseFloat(firstAddr.longitude),
+      });
+    }
+  }, [geocodeData]);
+
+  /**
+   * 3. 기록 삭제 훅
+   */
+  const deleteRecordMutation = useDeleteRecord();
+
+  /**
+   * 4. 캐시 및 로컬 스토리지 동기화
+   */
+  useEffect(() => {
+    const updateCreatedRecordPins = () => {
+      const stored = getStoredRecordPins();
+      setCreatedRecordPins(
+        stored.map((storedPin) => ({
+          record: storedPin.record,
+          coordinates: storedPin.coordinates,
+        })),
+      );
+    };
+
+    updateCreatedRecordPins();
+
+    const unsubscribe = queryClient.getQueryCache().subscribe((event) => {
+      const queryKey: unknown = event?.query?.queryKey;
+      if (
+        event?.type === 'updated' &&
+        Array.isArray(queryKey) &&
+        queryKey.length > 0 &&
+        queryKey[0] === 'records' &&
+        event.query.state.status === 'success'
+      ) {
+        updateCreatedRecordPins();
+      }
+    });
+
+    return () => unsubscribe();
+  }, [queryClient]);
+
+  /**
+   * 5. 생성 직후 데이터 수신 (Navigation State)
+   */
   useEffect(() => {
     const state = location.state as MainMapPageLocationState | null;
 
     if (state?.savedRecord) {
-      const savedRecord: Record = {
+      const newRecord: Record = {
         id: state.savedRecord.id,
         text: state.savedRecord.text,
         tags: state.savedRecord.tags,
         location: state.savedRecord.location,
         createdAt: state.savedRecord.createdAt,
       };
-      setSavedRecord(savedRecord);
-      setIsDetailSheetOpen(true);
-      const pinData = {
-        record: savedRecord,
-        coordinates: state.savedRecord.coordinates,
-      };
-      // 생성된 기록을 배열에 추가 (기존 기록 유지)
-      setCreatedRecordPins((prev) => [...prev, pinData]);
 
-      // localStorage에 저장 (publicId 명시적으로 저장)
+      setSavedRecord(newRecord);
+      setIsDetailSheetOpen(true);
+
+      setCreatedRecordPins((prev) => [
+        ...prev,
+        { record: newRecord, coordinates: state.savedRecord?.coordinates },
+      ]);
+
       const storedPin: StoredRecordPin = {
-        record: savedRecord,
+        record: newRecord,
         coordinates: state.savedRecord.coordinates,
-        publicId: savedRecord.id, // record.id가 publicId
+        publicId: newRecord.id,
       };
       addStoredRecordPin(storedPin);
 
       setShowSuccessToast(true);
-      // state를 초기화하여 뒤로가기 시 다시 표시되지 않도록
       void navigate(location.pathname, { replace: true, state: {} });
 
-      // 3초 후 토스트 메시지 자동 닫기
-      const timer = setTimeout(() => {
-        setShowSuccessToast(false);
-      }, 3000);
-
+      const timer = setTimeout(() => setShowSuccessToast(false), 3000);
       return () => clearTimeout(timer);
     }
 
     if (state?.connectedRecords) {
-      const connectedRecords = {
+      setConnectedRecords({
         fromId: state.connectedRecords.fromId,
         toId: state.connectedRecords.toId,
-      };
-      setConnectedRecords(connectedRecords);
-      // state를 초기화하여 뒤로가기 시 다시 표시되지 않도록
+      });
       void navigate(location.pathname, { replace: true, state: {} });
 
-      // 3초 후 연결 표시 제거
-      const timer = setTimeout(() => {
-        setConnectedRecords(null);
-      }, 3000);
-
+      const timer = setTimeout(() => setConnectedRecords(null), 3000);
       return () => clearTimeout(timer);
     }
   }, [location.state, navigate, location.pathname]);
 
+  /** 핸들러 */
   const handleDetailSheetClose = () => {
+    if (deleteRecordMutation.isPending) return; // 삭제 중엔 닫기 방지
     setIsDetailSheetOpen(false);
     setSavedRecord(null);
   };
 
-  const handleEdit = () => {
-    // TODO: 수정 기능 구현
-    setIsDetailSheetOpen(false);
-  };
-
-  const handleDelete = () => {
-    // TODO: 삭제 기능 구현
-    setIsDetailSheetOpen(false);
-    setSavedRecord(null);
-  };
-
-  const { handleTabChange } = useBottomTabNavigation();
-
-  const handleSearchClick = () => {
-    setIsSearchActive(true);
-  };
+  const handleSearchClick = () => setIsSearchActive(true);
 
   const handleSearchCancel = () => {
     setIsSearchActive(false);
     setSearchValue('');
+    setTargetLocation(null);
   };
 
-  const handleTitleClick = () => {
-    void navigate(ROUTES.HOME);
+  const { handleTabChange } = useBottomTabNavigation();
+
+  const handleSettingsClick = () => {
+    setIsActionSheetOpen(true);
+  };
+
+  const handleLogout = async () => {
+    await logout();
+    void navigate(ROUTES.LOGIN);
+  };
+
+  const handleTagManagementClick = () => {
+    setIsActionSheetOpen(false);
+    setIsTagManagementModalOpen(true);
   };
 
   return (
-    <div className="flex flex-col h-screen bg-white relative">
+    <div className="flex flex-col h-screen bg-white relative overflow-hidden">
       <AppHeader
-        onTitleClick={handleTitleClick}
+        onTitleClick={() => void navigate(ROUTES.HOME)}
         onSearchClick={handleSearchClick}
+        onSettingsClick={handleSettingsClick}
         isSearchActive={isSearchActive}
         searchValue={searchValue}
         onSearchChange={setSearchValue}
         onSearchCancel={handleSearchCancel}
+        onSearch={(value) => setSearchValue(value)}
       />
-      <CategoryChips />
+
+      <MainMapTags />
+
       <Suspense fallback={<MapLoadingSkeleton />}>
         <MapViewport
           createdRecordPins={createdRecordPins}
           connectedRecords={connectedRecords}
+          targetLocation={targetLocation}
+          onTargetLocationChange={setTargetLocation}
         />
       </Suspense>
+
       <BottomTabBar activeTab="home" onTabChange={handleTabChange} />
 
-      {/* 성공 토스트 메시지 */}
-      {showSuccessToast && (
-        <div className="absolute top-20 right-4 z-50 animate-fade-in">
+      {/* 알림 토스트 영역 */}
+      <div className="absolute top-24 right-4 z-50 flex flex-col gap-2 pointer-events-none">
+        {showSuccessToast && (
           <ToastErrorMessage
             message="기록이 성공적으로 저장되었습니다"
             variant="success"
           />
-        </div>
-      )}
+        )}
+        {showDeleteErrorToast && (
+          <ToastErrorMessage
+            message="기록 삭제에 실패했습니다."
+            variant="error"
+          />
+        )}
+        {isGeocoding && (
+          <ToastErrorMessage message="주소를 검색하는 중..." variant="info" />
+        )}
+        {geocodeError && (
+          <ToastErrorMessage
+            message="주소를 찾을 수 없습니다."
+            variant="error"
+          />
+        )}
+      </div>
 
       {/* 기록 요약 바텀시트 */}
       {savedRecord && (
@@ -172,10 +264,70 @@ export default function MainMapPage() {
           isOpen={isDetailSheetOpen}
           onClose={handleDetailSheetClose}
           record={savedRecord}
-          onEdit={handleEdit}
-          onDelete={handleDelete}
+          isDeleting={deleteRecordMutation.isPending}
+          onEdit={() => setIsDetailSheetOpen(false)}
+          onDelete={() => {
+            if (savedRecord?.id) {
+              deleteRecordMutation.mutate(savedRecord.id, {
+                onSuccess: () => {
+                  setCreatedRecordPins((prev) =>
+                    prev.filter((pin) => pin.record.id !== savedRecord.id),
+                  );
+                  setIsDetailSheetOpen(false);
+                  setSavedRecord(null);
+                },
+                onError: () => {
+                  setShowDeleteErrorToast(true);
+                  setTimeout(() => setShowDeleteErrorToast(false), 3000);
+                },
+              });
+            }
+          }}
         />
       )}
+
+      {/* 설정 ActionSheet */}
+      <ActionSheet
+        isOpen={isActionSheetOpen}
+        onClose={() => setIsActionSheetOpen(false)}
+        items={[
+          {
+            label: '태그 관리',
+            onClick: handleTagManagementClick,
+            variant: 'default',
+          },
+          {
+            label: '로그아웃',
+            onClick: () => void handleLogout(),
+            variant: 'danger',
+          },
+        ]}
+      />
+
+      {/* 태그 관리 모달 */}
+      <TagManagementModal
+        isOpen={isTagManagementModalOpen}
+        onClose={() => setIsTagManagementModalOpen(false)}
+      />
+    </div>
+  );
+}
+
+function MainMapTags() {
+  const { data: allTags = [] } = useGetTags();
+
+  return (
+    <div className="flex gap-2 overflow-x-auto px-4 py-3 snap-x snap-mandatory [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+      {allTags.map((tag) => (
+        <CategoryChip
+          key={tag.publicId}
+          label={tag.name}
+          isSelected={false}
+          onClick={() => {
+            // TODO: 태그 클릭 시 필터링 기능 구현
+          }}
+        />
+      ))}
     </div>
   );
 }

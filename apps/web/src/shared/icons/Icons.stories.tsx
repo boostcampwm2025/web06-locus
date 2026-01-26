@@ -31,6 +31,7 @@ import { Link2Icon } from '../ui/icons/Link2Icon';
 import { FileTextIcon } from '../ui/icons/FileTextIcon';
 import { ChevronLeftIcon } from '../ui/icons/ChevronLeftIcon';
 import { ChevronRightIcon } from '../ui/icons/ChevronRightIcon';
+import { LogoutIcon } from '../ui/icons/LogoutIcon';
 
 const meta = {
   title: 'Shared/Icons',
@@ -222,6 +223,11 @@ export const IconCatalog: Story = {
             icon={<ChevronRightIcon className="w-8 h-8 text-gray-700" />}
             description="오른쪽 화살표 아이콘"
           />
+          <IconCard
+            name="LogoutIcon"
+            icon={<LogoutIcon className="w-8 h-8 text-gray-700" />}
+            description="로그아웃 아이콘"
+          />
         </div>
       </div>
 
@@ -325,6 +331,7 @@ export const AllIcons: Story = {
         name="ChevronRightIcon"
         icon={<ChevronRightIcon className="w-8 h-8" />}
       />
+      <IconCard name="LogoutIcon" icon={<LogoutIcon className="w-8 h-8" />} />
       <IconCard name="GoogleIcon" icon={<GoogleIcon className="w-8 h-8" />} />
       <IconCard name="NaverIcon" icon={<NaverIcon className="w-8 h-8" />} />
       <IconCard name="KakaoIcon" icon={<KakaoIcon className="w-8 h-8" />} />

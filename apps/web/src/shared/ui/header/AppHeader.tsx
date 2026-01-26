@@ -12,11 +12,13 @@ export default function AppHeader({
   onTitleClick,
   onSearchClick,
   onFilterClick,
+  onSettingsClick,
   isSearchActive = false,
   searchPlaceholder = '키워드, 장소, 태그 검색',
   searchValue,
   onSearchChange,
   onSearchCancel,
+  onSearch,
   className = '',
 }: AppHeaderProps) {
   const searchInput = useSearchInput({
@@ -31,6 +33,7 @@ export default function AppHeader({
         value={searchInput.value}
         onChange={searchInput.onChange}
         onCancel={searchInput.onCancel}
+        onSearch={onSearch}
         placeholder={searchPlaceholder}
         className={className}
       />
@@ -43,6 +46,7 @@ export default function AppHeader({
       onTitleClick={onTitleClick}
       onSearchClick={onSearchClick}
       onFilterClick={onFilterClick}
+      onSettingsClick={onSettingsClick}
       className={className}
     />
   );

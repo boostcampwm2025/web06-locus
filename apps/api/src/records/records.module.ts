@@ -11,6 +11,7 @@ import { OutboxModule } from '@/outbox/outbox.module';
 import { ImageProcessingService } from './services/image-processing.service';
 import { ObjectStorageService } from './services/object-storage.service';
 import { UsersService } from '@/users/users.service';
+import { RecordTagsService } from './record-tags.service';
 
 @Module({
   imports: [PrismaModule, JwtModule, ElasticsearchConfigModule, OutboxModule],
@@ -22,6 +23,7 @@ import { UsersService } from '@/users/users.service';
     ObjectStorageService,
     UsersService,
     MapsService,
+    RecordTagsService,
   ],
   exports: [RecordsService, RecordSearchService],
 })

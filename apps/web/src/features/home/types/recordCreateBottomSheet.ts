@@ -3,5 +3,6 @@ export interface RecordCreateBottomSheetProps {
   onClose: () => void;
   locationName: string;
   address: string;
+  coordinates?: { lat: number; lng: number };
   onConfirm: () => void;
 }

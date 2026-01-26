@@ -9,9 +9,15 @@ import {
 import { logout as logoutApi } from '@/infra/api/services/authService';
 import { getCurrentUser } from '@/infra/api/services/userService';
 import { logger } from '@/shared/utils/logger';
+import {
+  setCurrentUserId,
+  clearCurrentUserId,
+  clearUserData,
+} from '@/infra/storage/userScopedStorage';
 
 interface AuthStore extends AuthState {
   isInitialized: boolean;
+  userPublicId: string | null;
   setTokens: (accessToken: string, refreshToken: string) => Promise<void>;
   clearAuth: () => void;
   logout: () => Promise<void>;
@@ -27,6 +33,7 @@ const initialState: AuthState = {
 export const useAuthStore = create<AuthStore>((set) => ({
   ...initialState,
   isInitialized: false,
+  userPublicId: null,
 
   setTokens: async (accessToken: string, refreshToken: string) => {
     saveTokens({ accessToken, refreshToken });
@@ -36,9 +43,11 @@ export const useAuthStore = create<AuthStore>((set) => ({
       refreshToken,
     });
 
-    // 사용자 정보를 가져와서 Sentry에 설정
+    // 사용자 정보를 가져와서 Sentry에 설정 및 사용자 ID 저장
     try {
       const user = await getCurrentUser();
+      setCurrentUserId(user.publicId);
+      set({ userPublicId: user.publicId });
       void sentry.setUser({
         id: user.publicId,
         username: user.nickname ?? undefined,
@@ -56,8 +65,18 @@ export const useAuthStore = create<AuthStore>((set) => ({
   },
 
   clearAuth: () => {
+    // 로그아웃 전에 현재 사용자 ID 저장 (데이터 정리를 위해)
+    const currentUserId = useAuthStore.getState().userPublicId;
+
     clearTokens();
-    set({ ...initialState, isInitialized: true });
+    clearCurrentUserId();
+
+    // 현재 사용자의 모든 스토리지 데이터 정리
+    if (currentUserId) {
+      clearUserData(currentUserId);
+    }
+
+    set({ ...initialState, isInitialized: true, userPublicId: null });
 
     // 사용자 컨텍스트 제거
     void sentry.setUser(null);
@@ -80,8 +99,18 @@ export const useAuthStore = create<AuthStore>((set) => ({
         });
       }
     } finally {
+      // 로그아웃 전에 현재 사용자 ID 저장 (데이터 정리를 위해)
+      const currentUserId = useAuthStore.getState().userPublicId;
+
       clearTokens();
-      set({ ...initialState, isInitialized: true });
+      clearCurrentUserId();
+
+      // 현재 사용자의 모든 스토리지 데이터 정리
+      if (currentUserId) {
+        clearUserData(currentUserId);
+      }
+
+      set({ ...initialState, isInitialized: true, userPublicId: null });
 
       // 사용자 컨텍스트 제거
       void sentry.setUser(null);
@@ -99,9 +128,11 @@ export const useAuthStore = create<AuthStore>((set) => ({
           isInitialized: true,
         });
 
-        // 토큰이 있으면 사용자 정보를 가져와서 Sentry에 설정
+        // 토큰이 있으면 사용자 정보를 가져와서 Sentry에 설정 및 사용자 ID 저장
         try {
           const user = await getCurrentUser();
+          setCurrentUserId(user.publicId);
+          set({ userPublicId: user.publicId });
           void sentry.setUser({
             id: user.publicId,
             username: user.nickname ?? undefined,
