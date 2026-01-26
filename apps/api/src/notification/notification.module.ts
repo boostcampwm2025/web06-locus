@@ -8,6 +8,7 @@ import { JwtModule } from '@/jwt/jwt.module';
 import { NotificationScheduleService } from './notification-schedule.service';
 import { NotificationScheduler } from './notification.scheduler';
 import { NotificationConsumer } from './notification.consumer';
+import { FcmService } from './fcm/fcm.service';
 
 @Module({
   imports: [RedisModule, RabbitMqModule, JwtModule],
@@ -15,6 +16,7 @@ import { NotificationConsumer } from './notification.consumer';
   providers: [
     FirebaseProvider,
     NotificationService,
+    FcmService,
     NotificationScheduleService,
     NotificationScheduler,
   ],
