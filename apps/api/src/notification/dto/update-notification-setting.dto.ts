@@ -1,7 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsBoolean, IsOptional, IsString } from 'class-validator';
 
-export class UpdateNotificationSettingDto {
+export class UpdateNotificationSettingRequestDto {
   @ApiProperty({
     description: '알림 활성화 여부',
     example: true,
