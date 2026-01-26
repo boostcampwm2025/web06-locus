@@ -23,7 +23,7 @@ import { GraphRowType } from './type/graph.type';
 import { GraphEdgeDto, GraphNodeDto } from './dto/graph.dto';
 import { GraphResponseDto } from './dto/graph.response.dto';
 import { createRecordSyncPayload } from './type/record-sync.types';
-import { Prisma, Record } from '@prisma/client';
+import { Prisma, Record, Tag } from '@prisma/client';
 import { OutboxService } from '@/outbox/outbox.service';
 import {
   AGGREGATE_TYPE,
@@ -50,10 +50,7 @@ import {
 } from './services/object-storage.types';
 import { nanoid } from 'nanoid';
 import { UsersService } from '@/users/users.service';
-import {
-  RecordListItemSource,
-  RecordListResponseDto,
-} from './dto/records-list-reponse.dto';
+import { RecordListResponseDto } from './dto/records-list-reponse.dto';
 import { RecordTagsService } from './record-tags.service';
 import { UpdateRecordDto } from './dto/update-record.dto';
 
@@ -198,9 +195,14 @@ export class RecordsService {
       ),
     ]);
 
-    const recordsWithImages = await this.attachImagesToRecords(records);
+    const recordsWithTags = await this.attachTagsToRecords(records);
+    const recordsWithImagesAndTags =
+      await this.attachImagesToRecords(recordsWithTags);
 
-    return RecordListResponseDto.of(recordsWithImages, countResult[0].count);
+    return RecordListResponseDto.of(
+      recordsWithImagesAndTags,
+      countResult[0].count,
+    );
   }
 
   async getRecordsByLocation(
@@ -231,9 +233,14 @@ export class RecordsService {
       ),
     ]);
 
-    const recordsWithImages = await this.attachImagesToRecords(records);
+    const recordsWithTags = await this.attachTagsToRecords(records);
+    const recordsWithImagesAndTags =
+      await this.attachImagesToRecords(recordsWithTags);
 
-    return RecordListResponseDto.of(recordsWithImages, countResult[0].count);
+    return RecordListResponseDto.of(
+      recordsWithImagesAndTags,
+      countResult[0].count,
+    );
   }
 
   async getAllRecords(
@@ -267,9 +274,14 @@ export class RecordsService {
       ),
     ]);
 
-    const recordsWithImages = await this.attachImagesToRecords(records);
+    const recordsWithTags = await this.attachTagsToRecords(records);
+    const recordsWithImagesAndTags =
+      await this.attachImagesToRecords(recordsWithTags);
 
-    return RecordListResponseDto.of(recordsWithImages, countResult[0].count);
+    return RecordListResponseDto.of(
+      recordsWithImagesAndTags,
+      countResult[0].count,
+    );
   }
 
   private getEndOfDay(dateString: string): Date {
@@ -748,10 +760,10 @@ export class RecordsService {
     ]);
   }
 
-  private async attachImagesToRecords(
-    records: RecordModel[],
+  private async attachImagesToRecords<T extends RecordModel>(
+    records: T[],
     tx?: Prisma.TransactionClient,
-  ): Promise<RecordListItemSource[]> {
+  ): Promise<(T & { images: ImageModel[] })[]> {
     if (records.length === 0) {
       return [];
     }
@@ -793,6 +805,40 @@ export class RecordsService {
     return records.map((record) => ({
       ...record,
       images: imagesByRecordId.get(record.id) ?? [],
+    }));
+  }
+
+  private async attachTagsToRecords<T extends RecordModel>(
+    records: T[],
+  ): Promise<(T & { tags: Pick<Tag, 'publicId' | 'name' | 'isSystem'>[] })[]> {
+    if (records.length === 0) {
+      return [];
+    }
+
+    const recordIds = records.map((r) => r.id);
+
+    const recordTags = await this.prisma.recordTag.findMany({
+      where: { recordId: { in: recordIds } },
+      select: {
+        recordId: true,
+        tag: { select: { publicId: true, name: true, isSystem: true } },
+      },
+    });
+
+    const tagsByRecordId = new Map<
+      bigint,
+      Pick<Tag, 'publicId' | 'name' | 'isSystem'>[]
+    >();
+    for (const rt of recordTags) {
+      if (!tagsByRecordId.has(rt.recordId)) {
+        tagsByRecordId.set(rt.recordId, []);
+      }
+      tagsByRecordId.get(rt.recordId)!.push(rt.tag);
+    }
+
+    return records.map((record) => ({
+      ...record,
+      tags: tagsByRecordId.get(record.id) ?? [],
     }));
   }
 }

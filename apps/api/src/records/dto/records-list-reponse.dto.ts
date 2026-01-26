@@ -1,8 +1,13 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { Tag } from '@prisma/client';
 import { ImageModel, RecordModel } from '../records.types';
 import { ImageResponseDto } from './record-response.dto';
+import { TagDto } from '@/tags/dto/tags.response.dto';
 
-export type RecordListItemSource = RecordModel & { images: ImageModel[] };
+export type RecordListItemSource = RecordModel & {
+  images: ImageModel[];
+  tags: Pick<Tag, 'publicId' | 'name' | 'isSystem'>[];
+};
 
 export class RecordLocationDto {
   @ApiProperty({ description: '위도', example: 37.5219 })
@@ -48,10 +53,9 @@ export class RecordListItemDto {
 
   @ApiProperty({
     description: '태그 목록',
-    example: ['고향', '맛집'],
-    type: [String],
+    type: [TagDto],
   })
-  tags: string[];
+  tags: TagDto[];
 
   @ApiProperty({
     description: '이미지 목록',
@@ -101,7 +105,7 @@ export class RecordListResponseDto {
           address: r.locationAddress,
         },
         isFavorite: r.isFavorite,
-        tags: [],
+        tags: r.tags,
         images: r.images.map((img) => ({
           publicId: img.publicId,
           thumbnail: {
