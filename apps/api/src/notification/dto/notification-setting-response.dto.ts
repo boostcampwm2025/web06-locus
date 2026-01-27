@@ -1,4 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { UserNotificationSetting } from '@prisma/client';
 
 export class NotificationSettingResponseDto {
   @ApiProperty({
@@ -12,4 +13,10 @@ export class NotificationSettingResponseDto {
     example: '19:00',
   })
   notifyTime: string;
+
+  static from(
+    setting: UserNotificationSetting,
+  ): NotificationSettingResponseDto {
+    return { isActive: setting.isActive, notifyTime: setting.notifyTime };
+  }
 }
