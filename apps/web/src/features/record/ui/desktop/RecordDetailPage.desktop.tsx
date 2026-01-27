@@ -41,8 +41,11 @@ export function RecordDetailPageDesktop({
   // const { data: graphData } = useRecordGraph(recordId, { enabled: !!recordId });
 
   const handleBack = () => {
-    onBack?.();
-    void navigate(-1);
+    if (onBack) {
+      onBack();
+    } else {
+      void navigate(-1);
+    }
   };
 
   const handleOpenGraph = () => {
