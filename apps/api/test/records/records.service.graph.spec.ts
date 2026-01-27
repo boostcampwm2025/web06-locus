@@ -8,6 +8,7 @@ import { ObjectStorageService } from '@/records/services/object-storage.service'
 import { UsersService } from '@/users/users.service';
 import { RecordTagsService } from '@/records/record-tags.service';
 import { TagsService } from '@/tags/tags.services';
+import { ImagesService } from '@/images/images.service';
 interface PrismaMock {
   record: { findUnique: jest.Mock };
   $queryRaw: jest.Mock;
@@ -39,6 +40,10 @@ interface RecordTagsServiceMock {
 interface TagsServiceMock {
   findManyByRecordIds: jest.Mock;
 }
+interface ImagesServiceMock {
+  getThumbnailsByRecordIds: jest.Mock;
+  findManyByRecordIds: jest.Mock;
+}
 
 describe('RecordsService - getGraph', () => {
   let service: RecordsService;
@@ -50,6 +55,7 @@ describe('RecordsService - getGraph', () => {
   let usersServiceMock: UsersServiceMock;
   let recordTagsServiceMock: RecordTagsServiceMock;
   let tagsServiceMock: TagsServiceMock;
+  let imagesServiceMock: ImagesServiceMock;
 
   beforeEach(() => {
     prismaMock = {
@@ -86,6 +92,11 @@ describe('RecordsService - getGraph', () => {
       findManyByRecordIds: jest.fn(),
     };
 
+    imagesServiceMock = {
+      getThumbnailsByRecordIds: jest.fn(),
+      findManyByRecordIds: jest.fn(),
+    };
+
     service = new RecordsService(
       prismaMock as unknown as PrismaService,
       reverseGeocodingMock as unknown as MapsService,
@@ -95,6 +106,7 @@ describe('RecordsService - getGraph', () => {
       usersServiceMock as unknown as UsersService,
       recordTagsServiceMock as unknown as RecordTagsService,
       tagsServiceMock as unknown as TagsService,
+      imagesServiceMock as unknown as ImagesService,
     );
 
     jest.clearAllMocks();
@@ -236,6 +248,7 @@ describe('RecordsService - getGraphNeighborDetail', () => {
   let usersServiceMock: UsersServiceMock;
   let recordTagsServiceMock: RecordTagsServiceMock;
   let tagsServiceMock: TagsServiceMock;
+  let imagesServiceMock: ImagesServiceMock;
 
   beforeEach(() => {
     prismaMock = {
@@ -272,6 +285,11 @@ describe('RecordsService - getGraphNeighborDetail', () => {
       findManyByRecordIds: jest.fn(),
     };
 
+    imagesServiceMock = {
+      getThumbnailsByRecordIds: jest.fn(),
+      findManyByRecordIds: jest.fn(),
+    };
+
     service = new RecordsService(
       prismaMock as unknown as PrismaService,
       reverseGeocodingMock as unknown as MapsService,
@@ -281,6 +299,7 @@ describe('RecordsService - getGraphNeighborDetail', () => {
       usersServiceMock as unknown as UsersService,
       recordTagsServiceMock as unknown as RecordTagsService,
       tagsServiceMock as unknown as TagsService,
+      imagesServiceMock as unknown as ImagesService,
     );
 
     jest.clearAllMocks();
@@ -352,6 +371,7 @@ describe('RecordsService - getGraphNeighborDetail', () => {
           { publicId: 'tag_a', name: '태그 A' },
           { publicId: 'tag_b', name: '태그 B' },
         ],
+        thumbnail: null,
         createdAt: '2024-01-14T10:20:00.000Z',
         updatedAt: '2024-01-14T12:20:00.000Z',
       },
@@ -365,6 +385,7 @@ describe('RecordsService - getGraphNeighborDetail', () => {
           address: '주소 B',
         },
         tags: [],
+        thumbnail: null,
         createdAt: '2024-02-14T10:20:00.000Z',
         updatedAt: '2024-02-14T12:20:00.000Z',
       },
