@@ -190,6 +190,18 @@ export interface FilterBottomSheetProps {
 }
 
 /**
+ * 연결된 기록 정보
+ */
+export interface ConnectedRecord {
+  id: string;
+  title: string;
+  location: Location;
+  date: Date;
+  tags: string[];
+  imageUrl?: string;
+}
+
+/**
  * 기록 상세 페이지 Props
  */
 export interface RecordDetailPageProps {
@@ -200,6 +212,7 @@ export interface RecordDetailPageProps {
   description: string;
   imageUrl?: string;
   connectionCount: number;
+  connectedRecords?: ConnectedRecord[];
   isFavorite?: boolean;
   onBack?: () => void;
   onFavoriteToggle?: () => void;
@@ -208,5 +221,6 @@ export interface RecordDetailPageProps {
   onDelete?: () => void;
   onConnectionManage?: () => void;
   onConnectionMode?: () => void;
+  onRecordClick?: (recordId: string) => void;
   className?: string;
 }

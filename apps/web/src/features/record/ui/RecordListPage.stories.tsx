@@ -2,7 +2,6 @@ import { useState } from 'react';
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import RecordListPage from './RecordListPage';
 import { RecordListPageMobile } from './mobile/RecordListPage.mobile';
-import { RecordListPageDesktop } from './desktop/RecordListPage.desktop';
 import FilterBottomSheet from './FilterBottomSheet';
 import type { SortOrder } from '@/features/record/types';
 
@@ -325,33 +324,6 @@ export const Mobile: Story = {
     docs: {
       description: {
         story: '모바일 버전 UI입니다.',
-      },
-    },
-  },
-};
-
-/**
- * 데스크톱 버전
- */
-export const Desktop: Story = {
-  render: (args) => <RecordListPageDesktop {...args} />,
-  parameters: {
-    viewport: {
-      viewports: {
-        desktop: {
-          name: 'Desktop',
-          styles: {
-            width: '1920px',
-            height: '1080px',
-          },
-        },
-      },
-      defaultViewport: 'desktop',
-    },
-    docs: {
-      description: {
-        story:
-          '데스크톱 버전 UI입니다. 좌측 사이드바와 메인 콘텐츠 영역으로 구성되어 있습니다. DesktopUI 스타일을 적용했습니다.',
       },
     },
   },

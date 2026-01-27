@@ -167,10 +167,22 @@ function RecordDetailPageRoute() {
     })();
   };
 
+  // 연결된 기록 목록 (API 연동 전이므로 빈 배열)
+  // TODO: API 연동 후 graphData에서 연결된 기록 상세 정보를 가져와서 전달
+  const connectedRecords: {
+    id: string;
+    title: string;
+    location: { name: string; address: string };
+    date: Date;
+    tags: string[];
+    imageUrl?: string;
+  }[] = [];
+
   return (
     <Suspense fallback={<RouteLoadingFallback />}>
       <RecordDetailPage
         {...recordProps}
+        connectedRecords={connectedRecords}
         onBack={() => void navigate(ROUTES.RECORD_LIST)}
         // TODO: API 연동 후 구현 예정
         onFavoriteToggle={() => {
@@ -188,6 +200,9 @@ function RecordDetailPageRoute() {
         }}
         onDelete={() => {
           void handleDelete();
+        }}
+        onRecordClick={(recordId) => {
+          void navigate(generatePath(ROUTES.RECORD_DETAIL, { id: recordId }));
         }}
       />
     </Suspense>

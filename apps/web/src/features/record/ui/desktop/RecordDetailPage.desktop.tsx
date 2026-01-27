@@ -1,0 +1,319 @@
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { ChevronRightIcon } from '@/shared/ui/icons/ChevronRightIcon';
+import { FavoriteIcon } from '@/shared/ui/icons/FavoriteIcon';
+import { XIcon } from '@/shared/ui/icons/XIcon';
+import { CalendarIcon } from '@/shared/ui/icons/CalendarIcon';
+import { LocationIcon } from '@/shared/ui/icons/LocationIcon';
+import { GitBranchIcon } from '@/shared/ui/icons/GitBranchIcon';
+import { ConfirmDialog } from '@/shared/ui/dialog';
+import { ROUTES } from '@/router/routes';
+import type { RecordDetailPageProps } from '@/features/record/types';
+import type {
+  ConnectionGraphCTAProps,
+  ConnectedRecordsSectionProps,
+} from '@/shared/types';
+import { formatDateShort } from '@/shared/utils/dateUtils';
+
+export function RecordDetailPageDesktop({
+  title,
+  date,
+  location,
+  tags,
+  description,
+  imageUrl,
+  connectionCount,
+  connectedRecords = [],
+  isFavorite = false,
+  onBack,
+  onFavoriteToggle,
+  onConnectionManage,
+  onConnectionMode,
+  onDelete,
+  onRecordClick,
+  className = '',
+}: RecordDetailPageProps) {
+  const navigate = useNavigate();
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+
+  // 연결된 기록 그래프 조회 (연결된 기록 목록 표시용)
+  // TODO: recordId를 props에서 받아야 함. 현재는 connectionCount만 있음
+  // const { data: graphData } = useRecordGraph(recordId, { enabled: !!recordId });
+
+  const handleBack = () => {
+    onBack?.();
+    void navigate(-1);
+  };
+
+  const handleOpenGraph = () => {
+    onConnectionMode?.();
+  };
+
+  return (
+    <div
+      className={`fixed inset-0 bg-white z-100 overflow-y-auto ${className}`}
+    >
+      {/* 네비게이션 바 */}
+      <nav className="sticky top-0 bg-white/80 backdrop-blur-md border-b border-gray-100 z-10 px-6 py-4">
+        <div className="max-w-4xl mx-auto flex items-center justify-between">
+          <button
+            type="button"
+            onClick={handleBack}
+            className="flex items-center gap-2 text-gray-600 hover:text-gray-900 font-bold"
+          >
+            <ChevronRightIcon className="w-5 h-5 rotate-180" />
+            목록으로
+          </button>
+          <div className="flex gap-4">
+            <button
+              type="button"
+              onClick={onFavoriteToggle}
+              className="p-2 hover:bg-gray-100 rounded-full"
+              aria-label={isFavorite ? '즐겨찾기 해제' : '즐겨찾기 추가'}
+            >
+              <FavoriteIcon
+                className={`w-5 h-5 ${
+                  isFavorite
+                    ? 'text-yellow-500 fill-yellow-500'
+                    : 'text-gray-600'
+                }`}
+              />
+            </button>
+            <button
+              type="button"
+              onClick={handleBack}
+              className="p-2 hover:bg-gray-100 rounded-full"
+              aria-label="닫기"
+            >
+              <XIcon className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+      </nav>
+
+      {/* 본문 */}
+      <article className="max-w-4xl mx-auto py-12 px-6">
+        <header className="mb-12">
+          {/* 태그 */}
+          <div className="flex flex-wrap gap-2 mb-4">
+            {tags.map((tag) => (
+              <span
+                key={tag}
+                className="px-3 py-1 rounded-full bg-orange-50 text-[#FE8916] text-xs font-black uppercase tracking-wider"
+              >
+                #{tag}
+              </span>
+            ))}
+          </div>
+
+          {/* 제목 */}
+          <h1 className="text-5xl font-black text-gray-900 mb-8 leading-tight tracking-tight">
+            {title}
+          </h1>
+
+          {/* 연결 그래프 CTA */}
+          {connectionCount > 0 && (
+            <ConnectionGraphCTA
+              connectionCount={connectionCount}
+              onOpenGraph={handleOpenGraph}
+            />
+          )}
+
+          {/* 위치 및 날짜 */}
+          <div className="flex items-center gap-6 text-gray-500 mt-8">
+            <div className="flex items-center gap-2">
+              <LocationIcon className="w-5 h-5 text-[#73C92E]" />
+              <span className="font-bold text-gray-900">{location.name}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <CalendarIcon className="w-5 h-5" />
+              <span>{formatDateShort(date)}</span>
+            </div>
+          </div>
+        </header>
+
+        {/* 메인 이미지 */}
+        {imageUrl && (
+          <div className="w-full aspect-21/9 rounded-[40px] overflow-hidden shadow-2xl mb-12">
+            <img
+              src={imageUrl}
+              alt={title}
+              className="w-full h-full object-cover"
+            />
+          </div>
+        )}
+
+        {/* 본문 및 사이드바 */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-16">
+          {/* 본문 */}
+          <div className="md:col-span-2">
+            <SectionTitle>기록 본문</SectionTitle>
+            <div className="prose prose-lg max-w-none text-gray-700 leading-[1.8] font-medium whitespace-pre-line">
+              {description}
+            </div>
+          </div>
+
+          {/* 사이드바 */}
+          <aside className="space-y-12">
+            {connectionCount > 0 && (
+              <ConnectedRecordsSection
+                connectedRecords={connectedRecords}
+                onConnectionManage={onConnectionManage}
+                onRecordClick={onRecordClick}
+              />
+            )}
+          </aside>
+        </div>
+      </article>
+
+      {/* 삭제 확인 다이얼로그 */}
+      <ConfirmDialog
+        isOpen={isDeleteConfirmOpen}
+        onClose={() => setIsDeleteConfirmOpen(false)}
+        title="이 기록을 삭제할까요?"
+        message="삭제한 기록은 다시 복구할 수 없습니다."
+        confirmLabel="삭제"
+        cancelLabel="취소"
+        onConfirm={() => {
+          onDelete?.();
+          setIsDeleteConfirmOpen(false);
+        }}
+        variant="danger"
+      />
+    </div>
+  );
+}
+
+function SectionTitle({ children }: { children: React.ReactNode }) {
+  return (
+    <h3 className="text-xs font-black text-gray-400 uppercase tracking-[0.2em] mb-6">
+      {children}
+    </h3>
+  );
+}
+
+function ConnectionGraphCTA({
+  connectionCount,
+  onOpenGraph,
+}: ConnectionGraphCTAProps) {
+  return (
+    <div className="mb-12">
+      <SectionTitle>Network Insight</SectionTitle>
+      <button
+        type="button"
+        onClick={onOpenGraph}
+        className="group relative bg-white border border-gray-100 rounded-[40px] p-2 pr-8 flex items-center gap-6 cursor-pointer shadow-[0_20px_40px_-15px_rgba(0,0,0,0.05)] hover:shadow-[0_30px_60px_-10px_rgba(254,137,22,0.12)] hover:border-orange-100 transition-all duration-500 w-full text-left"
+      >
+        {/* Visual Preview Area */}
+        <div className="w-48 h-32 bg-gray-50 rounded-[32px] overflow-hidden relative shrink-0">
+          <div
+            className="absolute inset-0 opacity-20"
+            style={{
+              backgroundImage: 'radial-gradient(#FE8916 1px, transparent 1px)',
+              backgroundSize: '20px 20px',
+            }}
+          />
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="relative">
+              <div className="w-12 h-12 rounded-2xl bg-white shadow-lg flex items-center justify-center text-[#FE8916] z-10 relative">
+                <GitBranchIcon className="w-6 h-6" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Text Info */}
+        <div className="flex-1">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="px-2 py-0.5 bg-orange-50 text-[#FE8916] text-[10px] font-black rounded-md uppercase tracking-widest">
+              Connected
+            </span>
+            <span className="text-sm font-bold text-gray-400">
+              {connectionCount}개의 연결된 기록
+            </span>
+          </div>
+          <h4 className="text-2xl font-black text-gray-900 mb-1 group-hover:text-[#FE8916] transition-colors tracking-tight">
+            지식 연결 그래프 탐색
+          </h4>
+          <p className="text-sm text-gray-500 font-medium leading-relaxed">
+            기록들 사이의 숨겨진 관계와 구조를 시각화하여 확인하세요.
+          </p>
+        </div>
+
+        {/* Action Button */}
+        <div className="w-14 h-14 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 group-hover:bg-[#FE8916] group-hover:text-white transition-all duration-300 group-hover:translate-x-1">
+          <ChevronRightIcon className="w-7 h-7" />
+        </div>
+      </button>
+    </div>
+  );
+}
+
+// 연결된 기록 섹션 컴포넌트
+function ConnectedRecordsSection({
+  connectedRecords,
+  onConnectionManage,
+  onRecordClick,
+}: ConnectedRecordsSectionProps) {
+  const navigate = useNavigate();
+
+  const handleRecordClick = (recordId: string) => {
+    onRecordClick?.(recordId);
+    void navigate(ROUTES.RECORD_DETAIL.replace(':id', recordId));
+  };
+
+  return (
+    <div>
+      <SectionTitle>연결된 기록들</SectionTitle>
+      <div className="space-y-4">
+        {connectedRecords.length > 0 ? (
+          <>
+            {connectedRecords.map((record) => (
+              <button
+                key={record.id}
+                type="button"
+                onClick={() => handleRecordClick(record.id)}
+                className="w-full text-left group"
+              >
+                <div className="rounded-2xl overflow-hidden bg-white border border-gray-100 hover:border-gray-200 transition-all hover:shadow-md">
+                  {/* 이미지 */}
+                  <div className="w-full aspect-4/3 bg-gray-100 overflow-hidden">
+                    {record.imageUrl ? (
+                      <img
+                        src={record.imageUrl}
+                        alt={record.title}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-gray-100" />
+                    )}
+                  </div>
+                  {/* 콘텐츠 */}
+                  <div className="p-4">
+                    <h4 className="text-base font-black text-gray-900 mb-1 line-clamp-2 group-hover:text-[#FE8916] transition-colors">
+                      {record.title}
+                    </h4>
+                    <p className="text-sm text-gray-500">
+                      {record.location.name}
+                    </p>
+                  </div>
+                </div>
+              </button>
+            ))}
+            {onConnectionManage && (
+              <button
+                type="button"
+                onClick={onConnectionManage}
+                className="w-full py-3 rounded-2xl bg-gray-50 text-gray-700 hover:bg-gray-100 transition-colors text-sm font-medium"
+              >
+                연결 관리하기
+              </button>
+            )}
+          </>
+        ) : (
+          <div className="text-sm text-gray-500">연결된 기록이 없습니다.</div>
+        )}
+      </div>
+    </div>
+  );
+}

@@ -61,12 +61,24 @@ export async function getRecordsByBounds(
   // 1. Request 검증
   const validatedRequest = GetRecordsByBoundsRequestSchema.parse(request);
 
-  // 2. Query 파라미터 구성
+  // 2. Bounds 유효성 검사
+  if (validatedRequest.neLat <= validatedRequest.swLat) {
+    throw new Error(
+      `Invalid bounds: neLat (${validatedRequest.neLat}) must be greater than swLat (${validatedRequest.swLat})`,
+    );
+  }
+  if (validatedRequest.neLng <= validatedRequest.swLng) {
+    throw new Error(
+      `Invalid bounds: neLng (${validatedRequest.neLng}) must be greater than swLng (${validatedRequest.swLng})`,
+    );
+  }
+
+  // 3. Query 파라미터 구성 (소수점 4자리로 고정)
   const queryParams = new URLSearchParams({
-    neLat: validatedRequest.neLat.toString(),
-    neLng: validatedRequest.neLng.toString(),
-    swLat: validatedRequest.swLat.toString(),
-    swLng: validatedRequest.swLng.toString(),
+    neLat: Number(validatedRequest.neLat).toFixed(4),
+    neLng: Number(validatedRequest.neLng).toFixed(4),
+    swLat: Number(validatedRequest.swLat).toFixed(4),
+    swLng: Number(validatedRequest.swLng).toFixed(4),
     page: (validatedRequest.page ?? 1).toString(),
     limit: (validatedRequest.limit ?? 10).toString(),
     sortOrder: validatedRequest.sortOrder ?? 'desc',
