@@ -256,6 +256,7 @@ describe('RecordsService - getGraphNeighborDetail', () => {
   let imageProcessingServiceMock: ImageProcessingServiceMock;
   let objectStorageServiceMock: ObjectStorageServiceMock;
   let usersServiceMock: UsersServiceMock;
+  let recordSearchServiceMock: RecordSearchServiceMock;
   let recordTagsServiceMock: RecordTagsServiceMock;
   let tagsServiceMock: TagsServiceMock;
   let imagesServiceMock: ImagesServiceMock;
@@ -287,6 +288,10 @@ describe('RecordsService - getGraphNeighborDetail', () => {
       findById: jest.fn(),
     };
 
+    recordSearchServiceMock = {
+      search: jest.fn(),
+    };
+
     recordTagsServiceMock = {
       createRecordTags: jest.fn(),
     };
@@ -307,6 +312,7 @@ describe('RecordsService - getGraphNeighborDetail', () => {
       imageProcessingServiceMock as unknown as ImageProcessingService,
       objectStorageServiceMock as unknown as ObjectStorageService,
       usersServiceMock as unknown as UsersService,
+      recordSearchServiceMock as unknown as RecordSearchService,
       recordTagsServiceMock as unknown as RecordTagsService,
       tagsServiceMock as unknown as TagsService,
       imagesServiceMock as unknown as ImagesService,
