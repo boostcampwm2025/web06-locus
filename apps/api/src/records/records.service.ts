@@ -760,6 +760,49 @@ export class RecordsService {
     ]);
   }
 
+  private async fetchImagesByRecordIds(
+    recordIds: bigint[],
+    tx?: Prisma.TransactionClient,
+  ): Promise<Map<bigint, ImageModel[]>> {
+    if (recordIds.length === 0) {
+      return new Map();
+    }
+
+    const prismaClient = tx ?? this.prisma;
+
+    const images = await prismaClient.image.findMany({
+      where: { recordId: { in: recordIds } },
+      orderBy: { order: 'asc' },
+      select: {
+        recordId: true,
+        publicId: true,
+        order: true,
+        thumbnailUrl: true,
+        thumbnailWidth: true,
+        thumbnailHeight: true,
+        thumbnailSize: true,
+        mediumUrl: true,
+        mediumWidth: true,
+        mediumHeight: true,
+        mediumSize: true,
+        originalUrl: true,
+        originalWidth: true,
+        originalHeight: true,
+        originalSize: true,
+      },
+    });
+
+    const map = new Map<bigint, ImageModel[]>();
+    for (const img of images) {
+      const { recordId, ...imageData } = img;
+      const arr = map.get(recordId);
+      if (arr) arr.push(imageData);
+      else map.set(recordId, [imageData]);
+    }
+
+    return map;
+  }
+
   private async attachImagesToRecords<T extends RecordModel>(
     records: T[],
     tx?: Prisma.TransactionClient,
