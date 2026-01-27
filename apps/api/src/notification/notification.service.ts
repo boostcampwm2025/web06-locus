@@ -1,7 +1,14 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { UpdateNotificationSettingRequestDto } from './dto/update-notification-setting.dto';
-import { FcmTokenRequiredException } from './exception/notification.exception';
+import {
+  UpdateNotificationSettingRequestDto,
+  UpdateNotifyTimeDto,
+} from './dto/update-notification-setting.dto';
+import {
+  FcmTokenRequiredException,
+  InactiveNotificationException,
+  NotificationNotFoundException,
+} from './exception/notification.exception';
 import { NotificationScheduleService } from './notification-schedule.service';
 import { UserNotificationSetting } from '@prisma/client';
 import { NotificationSettingResponseDto } from './dto/notification-setting-response.dto';
@@ -45,10 +52,41 @@ export class NotificationService {
     // Redis 업데이트
     await this.syncRedis(oldSetting, newSetting, userId);
 
-    return {
-      isActive: newSetting.isActive,
-      notifyTime: newSetting.notifyTime,
-    };
+    return NotificationSettingResponseDto.from(newSetting);
+  }
+
+  async updateNotifyTime(
+    userId: bigint,
+    dto: UpdateNotifyTimeDto,
+  ): Promise<NotificationSettingResponseDto> {
+    const { notifyTime } = dto;
+    const setting = await this.prisma.userNotificationSetting.findUnique({
+      where: { userId },
+    });
+
+    if (!setting) throw new NotificationNotFoundException();
+    if (!setting.isActive) throw new InactiveNotificationException();
+
+    const oldTime = setting.notifyTime;
+
+    const updatedSetting = await this.prisma.userNotificationSetting.update({
+      where: { userId },
+      data: { notifyTime: notifyTime },
+    });
+
+    // Redis 업데이트 (시간 변경)
+    if (oldTime !== notifyTime && setting.fcmToken) {
+      await this.notificationScheduleService.removeUserFromBucket(
+        oldTime,
+        userId,
+      );
+      await this.notificationScheduleService.addUserToBucket(
+        notifyTime,
+        userId,
+        setting.fcmToken,
+      );
+    }
+    return NotificationSettingResponseDto.from(updatedSetting);
   }
 
   async deactivate(userId: bigint) {
