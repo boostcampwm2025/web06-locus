@@ -11,6 +11,7 @@ import { CalendarIcon } from '@/shared/ui/icons/CalendarIcon';
 import { ChevronRightIcon } from '@/shared/ui/icons/ChevronRightIcon';
 import { LinkIcon } from '@/shared/ui/icons/LinkIcon';
 import { ImageSkeleton } from '@/shared/ui/skeleton';
+import { useScrollPosition } from '@/shared/hooks/useScrollPosition';
 import { ROUTES } from '@/router/routes';
 import { useGetTags } from '@/features/record/hooks/useGetTags';
 import { useGetRecordsByBounds } from '@/features/record/hooks/useGetRecordsByBounds';
@@ -60,8 +61,10 @@ export function DesktopSidebar({
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const filterButtonRef = useRef<HTMLButtonElement>(null);
   const filterPanelRef = useRef<HTMLDivElement>(null);
-  const scrollPositionRef = useRef<number>(0);
-  const listScrollRef = useRef<HTMLDivElement>(null);
+
+  // 스크롤 위치 보존 (요약 패널에서 목록으로 돌아올 때 복원)
+  const { scrollRef: listScrollRef, scrollProps: listScrollProps } =
+    useScrollPosition(!selectedRecordId);
 
   // 외부 클릭 시 필터 패널 닫기
   useEffect(() => {
@@ -84,29 +87,6 @@ export function DesktopSidebar({
     }
   }, [isFilterOpen]);
 
-  // 스크롤 위치 복원
-  useEffect(() => {
-    if (!selectedRecordId && listScrollRef.current) {
-      // 요약 패널에서 목록으로 돌아올 때 스크롤 위치 복원
-      const restoreScroll = () => {
-        if (listScrollRef.current) {
-          listScrollRef.current.scrollTop = scrollPositionRef.current;
-        }
-      };
-
-      // 즉시 시도
-      restoreScroll();
-
-      // requestAnimationFrame으로 한 번 더 시도
-      requestAnimationFrame(() => {
-        restoreScroll();
-        // setTimeout으로 한 번 더 시도 (더 확실하게)
-        setTimeout(restoreScroll, 0);
-        setTimeout(restoreScroll, 50);
-      });
-    }
-  }, [selectedRecordId]);
-
   const { data: allTags = [] } = useGetTags();
   const { data: recordsByBoundsData, isLoading: isRecordsLoading } =
     useGetRecordsByBounds(KOREA_WIDE_BOUNDS);
@@ -119,11 +99,7 @@ export function DesktopSidebar({
 
   const handleRecordClick = (recordId: string) => {
     if (onRecordSelect) {
-      // 스크롤 위치 저장 (요약 패널로 전환하기 전)
-      if (listScrollRef.current) {
-        scrollPositionRef.current = listScrollRef.current.scrollTop;
-      }
-      // 요약 패널로 전환
+      // 요약 패널로 전환 (스크롤 위치는 useScrollPosition 훅에서 자동으로 저장됨)
       onRecordSelect(recordId);
     } else {
       // 기존 동작: 상세 페이지로 이동
@@ -255,24 +231,9 @@ export function DesktopSidebar({
 
               {/* 기록 목록 (스크롤 가능) */}
               <div
-                ref={(node) => {
-                  if (node) {
-                    listScrollRef.current = node;
-                    // ref가 설정될 때 스크롤 위치 복원
-                    if (scrollPositionRef.current > 0) {
-                      requestAnimationFrame(() => {
-                        if (node) {
-                          node.scrollTop = scrollPositionRef.current;
-                        }
-                      });
-                    }
-                  }
-                }}
+                ref={listScrollRef}
                 className="flex-1 overflow-y-auto px-8 pt-0 no-scrollbar relative"
-                onScroll={(e) => {
-                  // 스크롤 위치를 실시간으로 저장
-                  scrollPositionRef.current = e.currentTarget.scrollTop;
-                }}
+                {...listScrollProps}
               >
                 {/* 스크롤 힌트 그라데이션 */}
                 <div className="sticky top-0 h-4 bg-linear-to-b from-white to-transparent pointer-events-none z-10" />
