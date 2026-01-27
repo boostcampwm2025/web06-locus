@@ -19,7 +19,7 @@ import { GraphRowType } from './type/graph.type';
 import { GraphEdgeDto, GraphNodeDto } from './dto/graph.dto';
 import { GraphResponseDto } from './dto/graph.response.dto';
 import { createRecordSyncPayload } from './type/record-sync.types';
-import { Prisma, Record, Tag } from '@prisma/client';
+import { Prisma, Record } from '@prisma/client';
 import { OutboxService } from '@/outbox/outbox.service';
 import {
   AGGREGATE_TYPE,
@@ -815,87 +815,5 @@ export class RecordsService {
     }
 
     return map;
-  }
-
-  private async attachImagesToRecords<T extends RecordModel>(
-    records: T[],
-    tx?: Prisma.TransactionClient,
-  ): Promise<(T & { images: ImageModel[] })[]> {
-    if (records.length === 0) {
-      return [];
-    }
-
-    const prismaClient = tx ?? this.prisma;
-    const recordIds = records.map((r) => r.id);
-
-    const images = await prismaClient.image.findMany({
-      where: { recordId: { in: recordIds } },
-      orderBy: { order: 'asc' },
-      select: {
-        recordId: true,
-        publicId: true,
-        order: true,
-        thumbnailUrl: true,
-        thumbnailWidth: true,
-        thumbnailHeight: true,
-        thumbnailSize: true,
-        mediumUrl: true,
-        mediumWidth: true,
-        mediumHeight: true,
-        mediumSize: true,
-        originalUrl: true,
-        originalWidth: true,
-        originalHeight: true,
-        originalSize: true,
-      },
-    });
-
-    const imagesByRecordId = new Map<bigint, ImageModel[]>();
-    for (const img of images) {
-      const { recordId, ...imageData } = img;
-      if (!imagesByRecordId.has(recordId)) {
-        imagesByRecordId.set(recordId, []);
-      }
-      imagesByRecordId.get(recordId)!.push(imageData);
-    }
-
-    return records.map((record) => ({
-      ...record,
-      images: imagesByRecordId.get(record.id) ?? [],
-    }));
-  }
-
-  private async attachTagsToRecords<T extends RecordModel>(
-    records: T[],
-  ): Promise<(T & { tags: Pick<Tag, 'publicId' | 'name' | 'isSystem'>[] })[]> {
-    if (records.length === 0) {
-      return [];
-    }
-
-    const recordIds = records.map((r) => r.id);
-
-    const recordTags = await this.prisma.recordTag.findMany({
-      where: { recordId: { in: recordIds } },
-      select: {
-        recordId: true,
-        tag: { select: { publicId: true, name: true, isSystem: true } },
-      },
-    });
-
-    const tagsByRecordId = new Map<
-      bigint,
-      Pick<Tag, 'publicId' | 'name' | 'isSystem'>[]
-    >();
-    for (const rt of recordTags) {
-      if (!tagsByRecordId.has(rt.recordId)) {
-        tagsByRecordId.set(rt.recordId, []);
-      }
-      tagsByRecordId.get(rt.recordId)!.push(rt.tag);
-    }
-
-    return records.map((record) => ({
-      ...record,
-      tags: tagsByRecordId.get(record.id) ?? [],
-    }));
   }
 }
