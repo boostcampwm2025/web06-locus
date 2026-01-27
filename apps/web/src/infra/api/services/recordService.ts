@@ -15,7 +15,7 @@ import type {
   Record,
   RecordDetail,
 } from '@locus/shared';
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
+
 import { z } from 'zod';
 import { logger } from '@/shared/utils/logger';
 
