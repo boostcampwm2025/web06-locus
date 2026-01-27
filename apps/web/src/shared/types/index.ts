@@ -67,3 +67,4 @@ export type {
   ActionSheetProps,
   ConfirmDialogProps,
 } from './dialog';
+export type { UseIntersectionObserverProps } from './intersectionObserver';
