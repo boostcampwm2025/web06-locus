@@ -27,9 +27,22 @@ export const clearTokens = (): void => {
 };
 
 export const getAccessToken = (): string | null => {
-  return localStorage.getItem(ACCESS_TOKEN_KEY);
+  const rawToken = localStorage.getItem(ACCESS_TOKEN_KEY);
+
+  // 문자열 "undefined"나 "null"이 들어있는 경우를 확실히 체크
+  if (!rawToken || rawToken === 'undefined' || rawToken === 'null') {
+    return null;
+  }
+
+  return rawToken;
 };
 
-export const setAccessToken = (accessToken: string): void => {
-  localStorage.setItem(ACCESS_TOKEN_KEY, accessToken);
+export const setAccessToken = (
+  accessToken: string | null | undefined,
+): void => {
+  if (!accessToken || accessToken === 'undefined') {
+    localStorage.removeItem(ACCESS_TOKEN_KEY);
+  } else {
+    localStorage.setItem(ACCESS_TOKEN_KEY, accessToken);
+  }
 };
