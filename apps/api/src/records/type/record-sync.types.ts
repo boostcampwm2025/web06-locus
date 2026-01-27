@@ -5,7 +5,10 @@ export interface RecordSyncEvent {
   eventId: string;
   eventType: OutboxEventType;
   aggregateId: string;
-  payload: RecordSyncPayload;
+  payload:
+    | RecordSyncPayload
+    | RecordFavoriteSyncPayload
+    | RecordConnectionsCountSyncPayload;
 }
 
 export interface RecordSyncPayload {
@@ -55,5 +58,20 @@ export const createRecordFavoriteSyncPayload = (
   return {
     recordId: recordId.toString(),
     isFavorite,
+  };
+};
+
+export interface RecordConnectionsCountSyncPayload {
+  recordId: string;
+  connectionsCount: number;
+}
+
+export const createRecordConnectionsCountSyncPayload = (
+  recordId: bigint,
+  connectionsCount: number,
+): RecordConnectionsCountSyncPayload => {
+  return {
+    recordId: recordId.toString(),
+    connectionsCount,
   };
 };
