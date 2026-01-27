@@ -7,6 +7,7 @@ import ToastErrorMessage from '@/shared/ui/alert/ToastErrorMessage';
 import RecordSummaryBottomSheet from '@/features/record/ui/RecordSummaryBottomSheet';
 import TagManagementModal from '@/features/record/ui/TagManagementModal';
 import RecordConnectionDrawer from '@/features/connection/ui/desktop/RecordConnectionDrawer';
+import { RecordWritePageDesktop } from '@/features/record/ui/desktop/RecordWritePage.desktop';
 import { useConnectionStore } from '@/features/connection/domain/connectionStore';
 import { useDeleteRecord } from '@/features/record/hooks/useDeleteRecord';
 import { useGeocodeSearch } from '@/features/home/hooks/useGeocodeSearch';
@@ -15,7 +16,7 @@ import {
   getStoredRecordPins,
   addStoredRecordPin,
 } from '@/infra/storage/recordStorage';
-import type { Record, Coordinates } from '@/features/record/types';
+import type { Record, Coordinates, Location } from '@/features/record/types';
 import type { MainMapPageLocationState } from '@features/home/types/mainMapPage';
 import type { StoredRecordPin } from '@/infra/types/storage';
 import MapViewport from '../MapViewport';
@@ -37,6 +38,12 @@ export function MainMapPageDesktop() {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [selectedRecordId, setSelectedRecordId] = useState<string | null>(null);
+  const [isRecordWriteOpen, setIsRecordWriteOpen] = useState(false);
+  const [recordWriteLocation, setRecordWriteLocation] =
+    useState<Location | null>(null);
+  const [recordWriteCoordinates, setRecordWriteCoordinates] = useState<
+    Coordinates | undefined
+  >(undefined);
 
   // 연결 모드 상태는 store에서 관리
   const connectionFromRecordId = useConnectionStore(
@@ -221,7 +228,15 @@ export function MainMapPageDesktop() {
   };
 
   const handleCreateRecordClick = () => {
-    void navigate(ROUTES.RECORD);
+    // 지도 중심 좌표를 기본값으로 사용
+    // TODO: 실제 지도 중심 좌표를 가져오도록 개선
+    const defaultLocation: Location = {
+      name: '현재 위치',
+      address: '',
+    };
+    setRecordWriteLocation(defaultLocation);
+    setRecordWriteCoordinates(targetLocation ?? undefined);
+    setIsRecordWriteOpen(true);
   };
 
   const handleSettingsClick = () => {
@@ -287,6 +302,14 @@ export function MainMapPageDesktop() {
               connectedRecords={connectedRecords}
               targetLocation={targetLocation}
               onTargetLocationChange={setTargetLocation}
+              onCreateRecord={(
+                location: Location,
+                coordinates?: Coordinates,
+              ) => {
+                setRecordWriteLocation(location);
+                setRecordWriteCoordinates(coordinates);
+                setIsRecordWriteOpen(true);
+              }}
             />
           </Suspense>
         </div>
@@ -358,6 +381,42 @@ export function MainMapPageDesktop() {
           onClose={handleConnectionCancel}
           fromRecordId={connectionFromRecordId}
           onConnect={handleConnectionComplete}
+        />
+      )}
+
+      {/* 기록 작성 페이지 오버레이 */}
+      {isRecordWriteOpen && recordWriteLocation && (
+        <RecordWritePageDesktop
+          initialLocation={recordWriteLocation}
+          initialCoordinates={recordWriteCoordinates}
+          onSave={(record, coordinates) => {
+            setIsRecordWriteOpen(false);
+            setRecordWriteLocation(null);
+            setRecordWriteCoordinates(undefined);
+
+            // 저장된 기록을 상태로 설정하여 바텀시트 표시
+            setSavedRecord(record);
+            setIsDetailSheetOpen(true);
+
+            // 생성된 기록 핀 추가
+            setCreatedRecordPins((prev) => [...prev, { record, coordinates }]);
+
+            // 로컬 스토리지에 저장
+            const storedPin: StoredRecordPin = {
+              record,
+              coordinates,
+              publicId: record.id,
+            };
+            addStoredRecordPin(storedPin);
+
+            setShowSuccessToast(true);
+            setTimeout(() => setShowSuccessToast(false), 3000);
+          }}
+          onCancel={() => {
+            setIsRecordWriteOpen(false);
+            setRecordWriteLocation(null);
+            setRecordWriteCoordinates(undefined);
+          }}
         />
       )}
     </div>

@@ -165,7 +165,7 @@ export function DesktopSidebar({
 
   const handleCreateRecord = () => {
     onCreateRecordClick?.();
-    void navigate(ROUTES.RECORD);
+    // MainMapPage에서 상태로 관리됨
   };
 
   // 카테고리 목록 (전체 + 태그들)
