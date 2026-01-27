@@ -82,3 +82,22 @@ export function isServerError(error: unknown): error is ServerError {
 export function isClientError(error: unknown): error is ClientError {
   return error instanceof ClientError;
 }
+
+/**
+ * 인증 에러
+ * 토큰 재발급 실패 등 인증 관련 에러로, 사용자에게 토스트를 표시하지 않음
+ * (자동 로그아웃 처리됨)
+ */
+export class AuthError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'AuthError';
+  }
+}
+
+/**
+ * 에러가 AuthError인지 확인
+ */
+export function isAuthError(error: unknown): error is AuthError {
+  return error instanceof AuthError;
+}
