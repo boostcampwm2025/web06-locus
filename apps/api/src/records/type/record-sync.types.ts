@@ -42,3 +42,18 @@ export const createRecordSyncPayload = (
     createdAt: record.createdAt.toISOString(),
   };
 };
+
+export interface RecordFavoriteSyncPayload {
+  recordId: string;
+  isFavorite: boolean;
+}
+
+export const createRecordFavoriteSyncPayload = (
+  recordId: bigint,
+  isFavorite: boolean,
+): RecordFavoriteSyncPayload => {
+  return {
+    recordId: recordId.toString(),
+    isFavorite,
+  };
+};

@@ -67,6 +67,17 @@ export class InvalidLatitudeException extends BusinessException {
   }
 }
 
+export class SameFavoriteRequestException extends BusinessException {
+  constructor(publicId: string, isFavorite: boolean) {
+    super(
+      HttpStatus.BAD_REQUEST,
+      RecordErrorCode.FAVORITE_SAME_STATE,
+      '요청된 즐겨찾기 상태가 현재 상태와 같습니다.',
+      { publicId, isFavorite },
+    );
+  }
+}
+
 export class InvalidLongitudeException extends BusinessException {
   constructor(value: number) {
     super(
