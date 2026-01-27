@@ -78,4 +78,5 @@ export type {
   RecordCardProps,
   ConnectionGraphCTAProps,
   ConnectedRecordsSectionProps,
+  RecordSummaryPanelProps,
 } from './desktop';

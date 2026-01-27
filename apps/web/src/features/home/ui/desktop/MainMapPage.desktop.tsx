@@ -34,6 +34,7 @@ export function MainMapPageDesktop() {
   const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  const [selectedRecordId, setSelectedRecordId] = useState<string | null>(null);
 
   // 생성된 기록들을 누적해서 관리
   const [createdRecordPins, setCreatedRecordPins] = useState<
@@ -177,6 +178,20 @@ export function MainMapPageDesktop() {
     void navigate(ROUTES.RECORD_DETAIL.replace(':id', recordId));
   };
 
+  const handleRecordSelect = (recordId: string | null) => {
+    setSelectedRecordId(recordId);
+  };
+
+  const handleOpenFullDetail = (recordId: string) => {
+    void navigate(ROUTES.RECORD_DETAIL.replace(':id', recordId));
+  };
+
+  const handleStartConnection = (recordId: string) => {
+    void navigate(ROUTES.CONNECTION, {
+      state: { fromRecordId: recordId },
+    });
+  };
+
   const handleCreateRecordClick = () => {
     void navigate(ROUTES.RECORD);
   };
@@ -209,6 +224,10 @@ export function MainMapPageDesktop() {
         onStartDateChange={setStartDate}
         onEndDateChange={setEndDate}
         onFilterReset={handleFilterReset}
+        selectedRecordId={selectedRecordId}
+        onRecordSelect={handleRecordSelect}
+        onOpenFullDetail={handleOpenFullDetail}
+        onStartConnection={handleStartConnection}
       />
 
       {/* 메인 지도 영역 */}

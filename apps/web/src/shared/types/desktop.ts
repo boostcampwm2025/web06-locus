@@ -41,6 +41,10 @@ export interface DesktopSidebarProps {
   onStartDateChange?: (date: string) => void;
   onEndDateChange?: (date: string) => void;
   onFilterReset?: () => void;
+  selectedRecordId?: string | null;
+  onRecordSelect?: (recordId: string | null) => void;
+  onOpenFullDetail?: (recordId: string) => void;
+  onStartConnection?: (recordId: string) => void;
 }
 
 /**
@@ -104,4 +108,14 @@ export interface ConnectedRecordsSectionProps {
   }[];
   onConnectionManage?: () => void;
   onRecordClick?: (recordId: string) => void;
+}
+
+/**
+ * Desktop Record Summary Panel 컴포넌트 Props
+ */
+export interface RecordSummaryPanelProps {
+  recordId: string;
+  onBack: () => void;
+  onOpenFullDetail: () => void;
+  onStartConnection: () => void;
 }
