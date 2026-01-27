@@ -40,6 +40,7 @@ import { BellIcon } from '../ui/icons/BellIcon';
 import { SettingsIcon } from '../ui/icons/SettingsIcon';
 import { ShieldIcon } from '../ui/icons/ShieldIcon';
 import { UsersIcon } from '../ui/icons/UsersIcon';
+import { ClockIcon } from '../ui/icons/ClockIcon';
 
 const meta = {
   title: 'Shared/Icons',
@@ -397,6 +398,7 @@ export const AllIcons: Story = {
       />
       <IconCard name="ShieldIcon" icon={<ShieldIcon className="w-8 h-8" />} />
       <IconCard name="UsersIcon" icon={<UsersIcon className="w-8 h-8" />} />
+      <IconCard name="ClockIcon" icon={<ClockIcon className="w-8 h-8" />} />
       <IconCard name="GoogleIcon" icon={<GoogleIcon className="w-8 h-8" />} />
       <IconCard name="NaverIcon" icon={<NaverIcon className="w-8 h-8" />} />
       <IconCard name="KakaoIcon" icon={<KakaoIcon className="w-8 h-8" />} />

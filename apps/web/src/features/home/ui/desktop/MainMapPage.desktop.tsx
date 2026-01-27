@@ -225,7 +225,7 @@ export function MainMapPageDesktop() {
   };
 
   const handleSettingsClick = () => {
-    setIsTagManagementModalOpen(true);
+    void navigate(ROUTES.SETTINGS);
   };
 
   const handleFilterReset = () => {
