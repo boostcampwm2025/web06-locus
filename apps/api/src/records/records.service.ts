@@ -134,10 +134,10 @@ export class RecordsService {
         payload: createRecordSyncPayload(userId, updatedRecord),
       });
 
-      const imagesMap = await this.fetchImagesByRecordIds(
-        [updatedRecord.id],
+      const imagesMap = await this.fetchImagesByRecordIds({
+        recordIds: [updatedRecord.id],
         tx,
-      );
+      });
       const images = imagesMap.get(updatedRecord.id) ?? [];
 
       return { record: updatedRecord, images };
@@ -231,7 +231,7 @@ export class RecordsService {
     const recordIds = records.map((r) => r.id);
     const [tagsMap, imagesMap] = await Promise.all([
       this.recordTagsService.fetchTagsByRecordIds(recordIds),
-      this.fetchImagesByRecordIds(recordIds),
+      this.fetchImagesByRecordIds({ recordIds }),
     ]);
 
     return RecordListResponseDto.of(
@@ -273,7 +273,7 @@ export class RecordsService {
     const recordIds = records.map((r) => r.id);
     const [tagsMap, imagesMap] = await Promise.all([
       this.recordTagsService.fetchTagsByRecordIds(recordIds),
-      this.fetchImagesByRecordIds(recordIds),
+      this.fetchImagesByRecordIds({ recordIds }),
     ]);
 
     return RecordListResponseDto.of(
@@ -333,7 +333,7 @@ export class RecordsService {
     const recordIds = records.map((r) => r.id);
     const [tagsMap, imagesMap] = await Promise.all([
       this.recordTagsService.fetchTagsByRecordIds(recordIds),
-      this.fetchImagesByRecordIds(recordIds),
+      this.fetchImagesByRecordIds({ recordIds, onlyFirst: true }),
     ]);
 
     return RecordListResponseDto.of(records, tagsMap, imagesMap, totalCount);
@@ -394,7 +394,7 @@ export class RecordsService {
 
     const [tags, imagesMap] = await Promise.all([
       this.recordTagsService.getRecordTags(record.id),
-      this.fetchImagesByRecordIds([record.id]),
+      this.fetchImagesByRecordIds({ recordIds: [record.id] }),
     ]);
     const images = imagesMap.get(record.id) ?? [];
 
@@ -654,7 +654,10 @@ export class RecordsService {
           payload: createRecordSyncPayload(userId, updated),
         });
 
-        const imagesMap = await this.fetchImagesByRecordIds([updated.id], tx);
+        const imagesMap = await this.fetchImagesByRecordIds({
+          recordIds: [updated.id],
+          tx,
+        });
         const images = imagesMap.get(updated.id) ?? [];
 
         return { record: updated, tags, images };
@@ -818,10 +821,15 @@ export class RecordsService {
     ]);
   }
 
-  private async fetchImagesByRecordIds(
-    recordIds: bigint[],
-    tx?: Prisma.TransactionClient,
-  ): Promise<Map<bigint, ImageModel[]>> {
+  private async fetchImagesByRecordIds({
+    recordIds,
+    tx,
+    onlyFirst = false,
+  }: {
+    recordIds: bigint[];
+    tx?: Prisma.TransactionClient;
+    onlyFirst?: boolean;
+  }): Promise<Map<bigint, ImageModel[]>> {
     if (recordIds.length === 0) {
       return new Map();
     }
@@ -829,7 +837,10 @@ export class RecordsService {
     const prismaClient = tx ?? this.prisma;
 
     const images = await prismaClient.image.findMany({
-      where: { recordId: { in: recordIds } },
+      where: {
+        recordId: { in: recordIds },
+        ...(onlyFirst && { order: 0 }),
+      },
       orderBy: { order: 'asc' },
       select: {
         recordId: true,
