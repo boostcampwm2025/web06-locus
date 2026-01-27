@@ -1,5 +1,9 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { ImageModel, RecordModel } from '../records.types';
+import {
+  ImageModel,
+  RecordModel,
+  RecordModelWithoutCoords,
+} from '../records.types';
 import { ImageResponseDto, RecordTagDto } from './record-response.dto';
 
 export class RecordLocationDto {
@@ -9,6 +13,22 @@ export class RecordLocationDto {
   @ApiProperty({ description: '경도', example: 127.0411 })
   longitude: number;
 
+  @ApiProperty({
+    description: '장소 이름',
+    example: '광화문',
+    nullable: true,
+  })
+  name: string | null;
+
+  @ApiProperty({
+    description: '주소',
+    example: '서울특별시 강남구 삼성동',
+    nullable: true,
+  })
+  address: string | null;
+}
+
+export class RecordLocationWithoutCoordsDto {
   @ApiProperty({
     description: '장소 이름',
     example: '광화문',
@@ -38,8 +58,14 @@ export class RecordListItemDto {
   })
   content: string | null;
 
-  @ApiProperty({ description: '위치 정보', type: RecordLocationDto })
-  location: RecordLocationDto;
+  @ApiProperty({
+    description: '위치 정보',
+    oneOf: [
+      { $ref: '#/components/schemas/RecordLocationDto' },
+      { $ref: '#/components/schemas/RecordLocationWithoutCoordsDto' },
+    ],
+  })
+  location: RecordLocationDto | RecordLocationWithoutCoordsDto;
 
   @ApiProperty({ description: '즐겨찾기 여부', example: false })
   isFavorite: boolean;
@@ -83,7 +109,7 @@ export class RecordListResponseDto {
   totalCount: number;
 
   static of(
-    records: RecordModel[],
+    records: (RecordModel | RecordModelWithoutCoords)[],
     tagsMap: Map<bigint, RecordTagDto[]>,
     imagesMap: Map<bigint, ImageModel[]>,
     totalCount: number,
@@ -97,12 +123,15 @@ export class RecordListResponseDto {
           publicId: r.publicId,
           title: r.title,
           content: r.content,
-          location: {
-            latitude: r.latitude,
-            longitude: r.longitude,
-            name: r.locationName,
-            address: r.locationAddress,
-          },
+          location:
+            'latitude' in r
+              ? {
+                  latitude: r.latitude,
+                  longitude: r.longitude,
+                  name: r.locationName,
+                  address: r.locationAddress,
+                }
+              : { name: r.locationName, address: r.locationAddress },
           isFavorite: r.isFavorite,
           tags,
           images: images.map((img) => ({

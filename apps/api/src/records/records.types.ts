@@ -12,6 +12,11 @@ export interface RecordModel {
   updatedAt: Date;
 }
 
+export type RecordModelWithoutCoords = Omit<
+  RecordModel,
+  'longitude' | 'latitude'
+>;
+
 export interface ImageModel {
   publicId: string;
   order: number;
