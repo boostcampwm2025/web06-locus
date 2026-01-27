@@ -1,30 +1,34 @@
 import { Module, Global } from '@nestjs/common';
 import { ClientsModule, Transport } from '@nestjs/microservices';
 import { ConfigService } from '@nestjs/config';
-import { RABBITMQ_CONSTANTS } from '@/common/constants/rabbitmq.constants';
+import { RMQ_CLIENT_MAP } from '@/common/constants/rabbitmq.constants';
+
+const rmqClients = Object.keys(RMQ_CLIENT_MAP).map((clientName) => ({
+  name: clientName,
+  useFactory: (configService: ConfigService) => {
+    const queueName = RMQ_CLIENT_MAP[clientName as keyof typeof RMQ_CLIENT_MAP];
+    return createRmqClientOptions(queueName, configService);
+  },
+  inject: [ConfigService],
+}));
+
+const createRmqClientOptions = (
+  queueName: string,
+  configService: ConfigService,
+) => ({
+  transport: Transport.RMQ as const,
+  options: {
+    urls: [
+      configService.get<string>('RABBITMQ_URL') ?? 'amqp://localhost:5672',
+    ],
+    queue: queueName,
+    queueOptions: { durable: true },
+  },
+});
 
 @Global()
 @Module({
-  imports: [
-    // publisher 용
-    ClientsModule.registerAsync([
-      {
-        name: RABBITMQ_CONSTANTS.CLIENTS.RECORD_SYNC_PRODUCER,
-        useFactory: (configService: ConfigService) => ({
-          transport: Transport.RMQ,
-          options: {
-            urls: [
-              configService.get<string>('RABBITMQ_URL') ??
-                'amqp://localhost:5672',
-            ],
-            queue: RABBITMQ_CONSTANTS.QUEUES.RECORD_SYNC,
-            queueOptions: { durable: true },
-          },
-        }),
-        inject: [ConfigService],
-      },
-    ]),
-  ],
-  exports: [ClientsModule], // 다른 모듈에서 'RECORD_SYNC_SERVICE'를 쓸 수 있게 내보냄
+  imports: [ClientsModule.registerAsync(rmqClients)],
+  exports: [ClientsModule],
 })
 export class RabbitMqModule {}
