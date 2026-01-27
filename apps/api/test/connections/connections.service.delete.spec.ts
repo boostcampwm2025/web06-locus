@@ -31,6 +31,7 @@ describe('ConnectionsService - delete / findPairConnections', () => {
 
     const recordsServiceMock = {
       findOneByPublicId: jest.fn(),
+      incrementConnectionsCount: jest.fn(),
     };
 
     service = new ConnectionsService(
@@ -56,12 +57,6 @@ describe('ConnectionsService - delete / findPairConnections', () => {
       expect(prismaServiceMock.connection.findFirst).toHaveBeenCalledTimes(1);
       expect(prismaServiceMock.connection.findFirst).toHaveBeenCalledWith({
         where: { userId, publicId },
-        select: {
-          id: true,
-          fromRecordId: true,
-          toRecordId: true,
-          publicId: true,
-        },
       });
     });
 
@@ -91,12 +86,6 @@ describe('ConnectionsService - delete / findPairConnections', () => {
         1,
         {
           where: { userId, publicId },
-          select: {
-            id: true,
-            fromRecordId: true,
-            toRecordId: true,
-            publicId: true,
-          },
         },
       );
 
@@ -109,7 +98,6 @@ describe('ConnectionsService - delete / findPairConnections', () => {
             fromRecordId: 20n,
             toRecordId: 10n,
           },
-          select: { id: true, publicId: true },
         },
       );
     });
@@ -205,9 +193,14 @@ describe('ConnectionsService - delete / findPairConnections', () => {
       // delete는 실제 결과를 사용하지 않으므로 대충 반환
       prismaServiceMock.connection.delete.mockResolvedValue({} as any);
 
-      // transaction은 전달된 ops를 실행한 결과를 반환하도록
-      prismaServiceMock.$transaction.mockImplementation(async (ops: any[]) =>
-        Promise.all(ops),
+      // transaction은 배열/콜백 모두 처리
+      prismaServiceMock.$transaction.mockImplementation(
+        async (opsOrFn: any) => {
+          if (typeof opsOrFn === 'function') {
+            return opsOrFn(prismaServiceMock);
+          }
+          return Promise.all(opsOrFn);
+        },
       );
 
       const result = await service.delete(userId, publicId);

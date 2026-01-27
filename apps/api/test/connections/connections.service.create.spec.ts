@@ -23,6 +23,7 @@ describe('ConnectionsService', () => {
 
   const recordsServiceMock = {
     findOneByPublicId: jest.fn(),
+    incrementConnectionsCount: jest.fn(),
   };
 
   beforeEach(() => {
@@ -147,8 +148,13 @@ describe('ConnectionsService', () => {
         })
         .mockResolvedValueOnce({ id: 123n });
 
-      prismaServiceMock.$transaction.mockImplementation(async (ops: any[]) =>
-        Promise.all(ops),
+      prismaServiceMock.$transaction.mockImplementation(
+        async (opsOrFn: any) => {
+          if (typeof opsOrFn === 'function') {
+            return opsOrFn(prismaServiceMock);
+          }
+          return Promise.all(opsOrFn);
+        },
       );
 
       const result = await service.create(userId, dto);
