@@ -32,8 +32,6 @@ import {
   GET_RECORD_LOCATION_SQL,
   SELECT_RECORDS_BY_LOCATION_SQL,
   COUNT_RECORDS_BY_LOCATION_SQL,
-  SELECT_ALL_RECORDS_SQL,
-  COUNT_ALL_RECORDS_SQL,
 } from './sql/record-raw.query';
 import { GetAllRecordsDto } from './dto/get-all-records.dto';
 import { GetRecordsByLocationDto } from './dto/get-records-by-location.dto';
@@ -300,21 +298,36 @@ export class RecordsService {
       dto.tagPublicIds,
     );
 
-    const [records, countResult] = await Promise.all([
-      this.prisma.$queryRaw<RecordModel[]>(
-        SELECT_ALL_RECORDS_SQL(
-          userId,
-          dto.sortOrder,
-          dto.limit,
-          offset,
-          startDate,
-          endDate,
-          tagIds,
-        ),
-      ),
-      this.prisma.$queryRaw<[{ count: number }]>(
-        COUNT_ALL_RECORDS_SQL(userId, startDate, endDate, tagIds),
-      ),
+    const where: Prisma.RecordWhereInput = {
+      userId,
+      ...(startDate && { createdAt: { gte: startDate } }),
+      ...(endDate && {
+        createdAt: { ...(startDate && { gte: startDate }), lt: endDate },
+      }),
+      ...(tagIds?.length && {
+        recordTags: { some: { tagId: { in: tagIds } } },
+      }),
+    };
+
+    const [records, totalCount] = await Promise.all([
+      this.prisma.record.findMany({
+        where,
+        select: {
+          id: true,
+          publicId: true,
+          title: true,
+          content: true,
+          locationName: true,
+          locationAddress: true,
+          isFavorite: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+        orderBy: { createdAt: dto.sortOrder },
+        skip: offset,
+        take: dto.limit,
+      }),
+      this.prisma.record.count({ where }),
     ]);
 
     const recordIds = records.map((r) => r.id);
@@ -323,12 +336,7 @@ export class RecordsService {
       this.fetchImagesByRecordIds(recordIds),
     ]);
 
-    return RecordListResponseDto.of(
-      records,
-      tagsMap,
-      imagesMap,
-      countResult[0].count,
-    );
+    return RecordListResponseDto.of(records, tagsMap, imagesMap, totalCount);
   }
 
   private getEndOfDay(dateString: string): Date {
