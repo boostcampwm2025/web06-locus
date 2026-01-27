@@ -93,6 +93,12 @@ export class RecordListItemDto {
     example: '2024-01-15T14:30:00Z',
   })
   updatedAt: string;
+
+  @ApiProperty({
+    description: '연결 수 (다른 기록에서 이 기록으로 연결된 수)',
+    example: 3,
+  })
+  connectionCount: number;
 }
 
 export class RecordListResponseDto {
@@ -113,11 +119,13 @@ export class RecordListResponseDto {
     tagsMap: Map<bigint, RecordTagDto[]>,
     imagesMap: Map<bigint, ImageModel[]>,
     totalCount: number,
+    connectionCountMap: Map<bigint, number> = new Map<bigint, number>(),
   ): RecordListResponseDto {
     return {
       records: records.map((r) => {
         const tags = tagsMap.get(r.id) ?? [];
         const images = imagesMap.get(r.id) ?? [];
+        const connectionCount = connectionCountMap.get(r.id) ?? 0;
 
         return {
           publicId: r.publicId,
@@ -158,6 +166,7 @@ export class RecordListResponseDto {
           })),
           createdAt: r.createdAt.toISOString(),
           updatedAt: r.updatedAt.toISOString(),
+          connectionCount,
         };
       }),
       totalCount,

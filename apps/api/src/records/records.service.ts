@@ -277,9 +277,10 @@ export class RecordsService {
     ]);
 
     const recordIds = records.map((r) => r.id);
-    const [tagsMap, imagesMap] = await Promise.all([
+    const [tagsMap, imagesMap, connectionCountMap] = await Promise.all([
       this.recordTagsService.fetchTagsByRecordIds(recordIds),
       this.fetchImagesByRecordIds({ recordIds }),
+      this.fetchConnectionCountByRecordIds(recordIds),
     ]);
 
     return RecordListResponseDto.of(
@@ -287,6 +288,7 @@ export class RecordsService {
       tagsMap,
       imagesMap,
       countResult[0].count,
+      connectionCountMap,
     );
   }
 
@@ -337,12 +339,19 @@ export class RecordsService {
     ]);
 
     const recordIds = records.map((r) => r.id);
-    const [tagsMap, imagesMap] = await Promise.all([
+    const [tagsMap, imagesMap, connectionCountMap] = await Promise.all([
       this.recordTagsService.fetchTagsByRecordIds(recordIds),
       this.fetchImagesByRecordIds({ recordIds, onlyFirst: true }),
+      this.fetchConnectionCountByRecordIds(recordIds),
     ]);
 
-    return RecordListResponseDto.of(records, tagsMap, imagesMap, totalCount);
+    return RecordListResponseDto.of(
+      records,
+      tagsMap,
+      imagesMap,
+      totalCount,
+      connectionCountMap,
+    );
   }
 
   private getEndOfDay(dateString: string): Date {
@@ -914,6 +923,31 @@ export class RecordsService {
       const arr = map.get(recordId);
       if (arr) arr.push(imageData);
       else map.set(recordId, [imageData]);
+    }
+
+    return map;
+  }
+
+  private async fetchConnectionCountByRecordIds(
+    recordIds: bigint[],
+  ): Promise<Map<bigint, number>> {
+    if (recordIds.length === 0) {
+      return new Map();
+    }
+
+    const counts = await this.prisma.connection.groupBy({
+      by: ['toRecordId'],
+      where: {
+        toRecordId: { in: recordIds },
+      },
+      _count: {
+        toRecordId: true,
+      },
+    });
+
+    const map = new Map<bigint, number>();
+    for (const item of counts) {
+      map.set(item.toRecordId, item._count.toRecordId);
     }
 
     return map;
