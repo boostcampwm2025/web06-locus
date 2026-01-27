@@ -2,11 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '@/prisma/prisma.service';
 import { MapsService } from '../maps/maps.service';
 import { CreateRecordDto } from './dto/create-record.dto';
-import {
-  RecordResponseDto,
-  RecordTagDto,
-  RecordResponseSource,
-} from './dto/record-response.dto';
+import { RecordResponseDto, RecordTagDto } from './dto/record-response.dto';
 import { GetRecordsQueryDto } from './dto/get-records-query.dto';
 import { ImageModel, LocationInfo, RecordModel } from './records.types';
 import {
@@ -91,7 +87,7 @@ export class RecordsService {
     publicId: string,
     dto: UpdateRecordDto,
   ): Promise<RecordResponseDto> {
-    const record = await this.prisma.$transaction(async (tx) => {
+    const { record, images } = await this.prisma.$transaction(async (tx) => {
       const existing = await tx.record.findFirst({ where: { publicId } });
 
       if (!existing) throw new RecordNotFoundException(publicId);
@@ -136,14 +132,17 @@ export class RecordsService {
         payload: createRecordSyncPayload(userId, updatedRecord),
       });
 
-      const [recordWithImages] = await this.attachImagesToRecords(
-        [updatedRecord],
+      const imagesMap = await this.fetchImagesByRecordIds(
+        [updatedRecord.id],
         tx,
       );
+      const images = imagesMap.get(updatedRecord.id) ?? [];
 
-      return recordWithImages;
+      return { record: updatedRecord, images };
     });
-    return RecordResponseDto.from(record);
+
+    const tags = await this.recordTagsService.getRecordTags(record.id);
+    return RecordResponseDto.of(record, tags, images);
   }
 
   async findOneByPublicId(publicId: string) {
@@ -195,12 +194,16 @@ export class RecordsService {
       ),
     ]);
 
-    const recordsWithTags = await this.attachTagsToRecords(records);
-    const recordsWithImagesAndTags =
-      await this.attachImagesToRecords(recordsWithTags);
+    const recordIds = records.map((r) => r.id);
+    const [tagsMap, imagesMap] = await Promise.all([
+      this.recordTagsService.fetchTagsByRecordIds(recordIds),
+      this.fetchImagesByRecordIds(recordIds),
+    ]);
 
     return RecordListResponseDto.of(
-      recordsWithImagesAndTags,
+      records,
+      tagsMap,
+      imagesMap,
       countResult[0].count,
     );
   }
@@ -233,12 +236,16 @@ export class RecordsService {
       ),
     ]);
 
-    const recordsWithTags = await this.attachTagsToRecords(records);
-    const recordsWithImagesAndTags =
-      await this.attachImagesToRecords(recordsWithTags);
+    const recordIds = records.map((r) => r.id);
+    const [tagsMap, imagesMap] = await Promise.all([
+      this.recordTagsService.fetchTagsByRecordIds(recordIds),
+      this.fetchImagesByRecordIds(recordIds),
+    ]);
 
     return RecordListResponseDto.of(
-      recordsWithImagesAndTags,
+      records,
+      tagsMap,
+      imagesMap,
       countResult[0].count,
     );
   }
@@ -274,12 +281,16 @@ export class RecordsService {
       ),
     ]);
 
-    const recordsWithTags = await this.attachTagsToRecords(records);
-    const recordsWithImagesAndTags =
-      await this.attachImagesToRecords(recordsWithTags);
+    const recordIds = records.map((r) => r.id);
+    const [tagsMap, imagesMap] = await Promise.all([
+      this.recordTagsService.fetchTagsByRecordIds(recordIds),
+      this.fetchImagesByRecordIds(recordIds),
+    ]);
 
     return RecordListResponseDto.of(
-      recordsWithImagesAndTags,
+      records,
+      tagsMap,
+      imagesMap,
       countResult[0].count,
     );
   }
@@ -337,12 +348,13 @@ export class RecordsService {
       record,
     );
 
-    const [recordWithImages] = await this.attachImagesToRecords([
-      recordWithLocation,
+    const [tags, imagesMap] = await Promise.all([
+      this.recordTagsService.getRecordTags(record.id),
+      this.fetchImagesByRecordIds([record.id]),
     ]);
-    const tags = await this.recordTagsService.getRecordTags(record.id);
+    const images = imagesMap.get(record.id) ?? [];
 
-    return RecordResponseDto.of(recordWithImages, tags);
+    return RecordResponseDto.of(recordWithLocation, tags, images);
   }
 
   async getGraph(
@@ -506,7 +518,7 @@ export class RecordsService {
       await this.processAndUploadImages(userPublicId, recordPublicId, images);
 
     try {
-      const { record, tags } = await this.executeRecordTransaction(
+      const { record, tags, images } = await this.executeRecordTransaction(
         userId,
         dto,
         locationInfo,
@@ -514,7 +526,7 @@ export class RecordsService {
         processedImages,
         uploadedImages,
       );
-      return RecordResponseDto.of(record, tags);
+      return RecordResponseDto.of(record, tags, images);
     } catch (error) {
       await this.objectStorageService.deleteImages(uploadedKeys);
       throw error;
@@ -530,13 +542,13 @@ export class RecordsService {
       dto.location.longitude,
     );
 
-    const { record, tags } = await this.executeRecordTransaction(
+    const { record, tags, images } = await this.executeRecordTransaction(
       userId,
       dto,
       locationInfo,
     );
 
-    return RecordResponseDto.of(record, tags);
+    return RecordResponseDto.of(record, tags, images);
   }
 
   /**
@@ -552,7 +564,11 @@ export class RecordsService {
     recordPublicId?: string,
     processedImages?: ProcessedImage[],
     uploadedImages?: UploadedImage[],
-  ): Promise<{ record: RecordResponseSource; tags: RecordTagDto[] }> {
+  ): Promise<{
+    record: RecordModel;
+    tags: RecordTagDto[];
+    images: ImageModel[];
+  }> {
     try {
       const result = await this.prisma.$transaction(async (tx) => {
         const created = await this.saveRecord(
@@ -594,12 +610,10 @@ export class RecordsService {
           payload: createRecordSyncPayload(userId, updated),
         });
 
-        const [recordWithImages] = await this.attachImagesToRecords(
-          [updated],
-          tx,
-        );
+        const imagesMap = await this.fetchImagesByRecordIds([updated.id], tx);
+        const images = imagesMap.get(updated.id) ?? [];
 
-        return { record: recordWithImages, tags };
+        return { record: updated, tags, images };
       });
 
       this.logger.log(
