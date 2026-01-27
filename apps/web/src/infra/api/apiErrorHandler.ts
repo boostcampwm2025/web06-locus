@@ -1,6 +1,6 @@
 import { getAccessToken } from '../storage/tokenStorage';
 import { sentry } from '@/shared/utils/sentryWrapper';
-import type { ApiClientOptions } from './apiClient';
+import type { ApiClientOptions } from './index';
 
 /** 전송 정책 결과 타입 */
 interface SentryPolicy {
