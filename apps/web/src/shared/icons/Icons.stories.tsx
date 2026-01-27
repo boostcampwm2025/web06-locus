@@ -32,6 +32,14 @@ import { FileTextIcon } from '../ui/icons/FileTextIcon';
 import { ChevronLeftIcon } from '../ui/icons/ChevronLeftIcon';
 import { ChevronRightIcon } from '../ui/icons/ChevronRightIcon';
 import { LogoutIcon } from '../ui/icons/LogoutIcon';
+import { ShareIcon } from '../ui/icons/ShareIcon';
+import { GitBranchIcon } from '../ui/icons/GitBranchIcon';
+import { MaximizeIcon } from '../ui/icons/MaximizeIcon';
+import { UserIcon } from '../ui/icons/UserIcon';
+import { BellIcon } from '../ui/icons/BellIcon';
+import { SettingsIcon } from '../ui/icons/SettingsIcon';
+import { ShieldIcon } from '../ui/icons/ShieldIcon';
+import { UsersIcon } from '../ui/icons/UsersIcon';
 
 const meta = {
   title: 'Shared/Icons',
@@ -228,6 +236,46 @@ export const IconCatalog: Story = {
             icon={<LogoutIcon className="w-8 h-8 text-gray-700" />}
             description="로그아웃 아이콘"
           />
+          <IconCard
+            name="ShareIcon"
+            icon={<ShareIcon className="w-8 h-8 text-gray-600" />}
+            description="공유 아이콘"
+          />
+          <IconCard
+            name="GitBranchIcon"
+            icon={<GitBranchIcon className="w-8 h-8 text-gray-600" />}
+            description="브랜치/연결 그래프 아이콘"
+          />
+          <IconCard
+            name="MaximizeIcon"
+            icon={<MaximizeIcon className="w-8 h-8 text-gray-600" />}
+            description="최대화 아이콘"
+          />
+          <IconCard
+            name="UserIcon"
+            icon={<UserIcon className="w-8 h-8 text-gray-600" />}
+            description="사용자/프로필 아이콘"
+          />
+          <IconCard
+            name="BellIcon"
+            icon={<BellIcon className="w-8 h-8 text-gray-600" />}
+            description="알림 아이콘"
+          />
+          <IconCard
+            name="SettingsIcon"
+            icon={<SettingsIcon className="w-8 h-8 text-gray-600" />}
+            description="설정 아이콘"
+          />
+          <IconCard
+            name="ShieldIcon"
+            icon={<ShieldIcon className="w-8 h-8 text-gray-600" />}
+            description="보안/보호 아이콘"
+          />
+          <IconCard
+            name="UsersIcon"
+            icon={<UsersIcon className="w-8 h-8 text-gray-600" />}
+            description="그룹/사용자들 아이콘"
+          />
         </div>
       </div>
 
@@ -332,6 +380,23 @@ export const AllIcons: Story = {
         icon={<ChevronRightIcon className="w-8 h-8" />}
       />
       <IconCard name="LogoutIcon" icon={<LogoutIcon className="w-8 h-8" />} />
+      <IconCard name="ShareIcon" icon={<ShareIcon className="w-8 h-8" />} />
+      <IconCard
+        name="GitBranchIcon"
+        icon={<GitBranchIcon className="w-8 h-8" />}
+      />
+      <IconCard
+        name="MaximizeIcon"
+        icon={<MaximizeIcon className="w-8 h-8" />}
+      />
+      <IconCard name="UserIcon" icon={<UserIcon className="w-8 h-8" />} />
+      <IconCard name="BellIcon" icon={<BellIcon className="w-8 h-8" />} />
+      <IconCard
+        name="SettingsIcon"
+        icon={<SettingsIcon className="w-8 h-8" />}
+      />
+      <IconCard name="ShieldIcon" icon={<ShieldIcon className="w-8 h-8" />} />
+      <IconCard name="UsersIcon" icon={<UsersIcon className="w-8 h-8" />} />
       <IconCard name="GoogleIcon" icon={<GoogleIcon className="w-8 h-8" />} />
       <IconCard name="NaverIcon" icon={<NaverIcon className="w-8 h-8" />} />
       <IconCard name="KakaoIcon" icon={<KakaoIcon className="w-8 h-8" />} />
