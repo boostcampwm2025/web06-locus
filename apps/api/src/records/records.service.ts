@@ -14,7 +14,7 @@ import {
   RecordDeletionFailedException,
   RecordNotFoundException,
 } from './exceptions/record.exceptions';
-import { GRAPH_RAWS_SQL } from './sql/graph.raw.sql';
+import { GRAPH_NEIGHBOR_RAWS_SQL, GRAPH_RAWS_SQL } from './sql/graph.raw.sql';
 import { GraphRowType } from './type/graph.type';
 import { GraphEdgeDto, GraphNodeDto } from './dto/graph.dto';
 import { GraphResponseDto } from './dto/graph.response.dto';
@@ -50,6 +50,10 @@ import { SearchRecordsDto } from './dto/search-records.dto';
 import { SearchRecordListResponseDto } from './dto/search-record-list-response.dto';
 import { RecordTagsService } from './record-tags.service';
 import { UpdateRecordDto } from './dto/update-record.dto';
+import { RecordRowType } from './type/record.type';
+import { TagsService } from '@/tags/tags.services';
+import { GraphRecordDto } from './dto/graph-details.response.dto';
+import { ImagesService } from '@/images/images.service';
 
 @Injectable()
 export class RecordsService {
@@ -64,6 +68,8 @@ export class RecordsService {
     private readonly usersService: UsersService,
     private readonly recordSearchService: RecordSearchService,
     private readonly recordTagsService: RecordTagsService,
+    private readonly tagsService: TagsService,
+    private readonly imagesService: ImagesService,
   ) {}
 
   /**
@@ -426,6 +432,29 @@ export class RecordsService {
     };
   }
 
+  async getGraphNeighborDetail(
+    startRecordPublicId: string,
+    userId: bigint,
+  ): Promise<GraphRecordDto[]> {
+    const startRecordId = await this.getRecordIdByPublicId(startRecordPublicId);
+
+    const records = await this.prisma.$queryRaw<RecordRowType[]>(
+      GRAPH_NEIGHBOR_RAWS_SQL(startRecordId),
+    );
+
+    if (records.length === 0) return [];
+
+    const recordIds = records.map((r) => r.id);
+
+    const tags = await this.tagsService.findManyByRecordIds(userId, recordIds);
+
+    const tagsByRecordId = this.buildTagsByRecordId(tags);
+
+    return records.map((record) =>
+      GraphRecordDto.Of(record, tagsByRecordId.get(record.id) ?? []),
+    );
+  }
+
   async getRecordIdByPublicId(publicId: string): Promise<bigint> {
     const recordId = await this.prisma.record.findUnique({
       where: { publicId },
@@ -439,6 +468,24 @@ export class RecordsService {
     }
 
     return recordId.id;
+  }
+
+  private buildTagsByRecordId(
+    tags: { recordId: bigint; tagPublicId: string; tagName: string }[],
+  ): Map<bigint, { tagPublicId: string; tagName: string }[]> {
+    const tagsByRecordId = new Map<
+      bigint,
+      { tagPublicId: string; tagName: string }[]
+    >();
+    for (const t of tags) {
+      const arr = tagsByRecordId.get(t.recordId);
+      if (arr) arr.push({ tagPublicId: t.tagPublicId, tagName: t.tagName });
+      else
+        tagsByRecordId.set(t.recordId, [
+          { tagPublicId: t.tagPublicId, tagName: t.tagName },
+        ]);
+    }
+    return tagsByRecordId;
   }
 
   async deleteRecord(userId: bigint, publicId: string): Promise<void> {
