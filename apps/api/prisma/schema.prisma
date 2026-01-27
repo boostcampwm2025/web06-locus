@@ -82,6 +82,7 @@ model Record {
   isFavorite      Boolean  @default(false) @map("is_favorite")
   createdAt       DateTime @default(now()) @map("created_at")
   updatedAt       DateTime @updatedAt @map("updated_at")
+  connectionsCount Int     @default(0)
 
   user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   images Image[]
@@ -199,5 +200,6 @@ enum OutboxEventType {
   RECORD_UPDATED
   RECORD_DELETED
   RECORD_FAVORITE_UPDATED
+  RECORD_CONNECTIONS_COUNT_UPDATED
   @@schema("locus")
 }
