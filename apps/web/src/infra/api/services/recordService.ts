@@ -1,5 +1,4 @@
-import { z } from 'zod';
-import { apiClient } from '../apiClient';
+import { apiClient } from '../index';
 import { API_ENDPOINTS } from '../constants';
 import {
   CreateRecordRequestSchema,
@@ -16,6 +15,8 @@ import type {
   Record,
   RecordDetail,
 } from '@locus/shared';
+
+import { z } from 'zod';
 import { logger } from '@/shared/utils/logger';
 
 /**

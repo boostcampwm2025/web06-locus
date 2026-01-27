@@ -1,4 +1,4 @@
-import { apiClient, buildApiUrl } from '../apiClient';
+import { apiClient, buildApiUrl } from '../index';
 import { API_ENDPOINTS } from '../constants';
 import type {
   SignupRequest,

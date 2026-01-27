@@ -9,6 +9,7 @@ import {
   TagNotFoundException,
 } from './exception/tags.exception';
 import { TagDto } from './dto/tags.response.dto';
+import { TagRowType } from './types/tag.type';
 
 @Injectable()
 export class TagsService {
@@ -51,6 +52,36 @@ export class TagsService {
         publicId: publicId,
       },
     });
+  }
+
+  async findManyByRecordIds(
+    userId: bigint,
+    recordIds: bigint[],
+  ): Promise<TagRowType[]> {
+    if (recordIds.length === 0) return [];
+
+    const rows = await this.prismaService.recordTag.findMany({
+      where: {
+        recordId: { in: recordIds },
+        tag: { userId },
+      },
+      select: {
+        recordId: true,
+        tag: {
+          select: {
+            publicId: true,
+            name: true,
+          },
+        },
+      },
+    });
+
+    // 평탄화 (recordId, tagPublicId, tagName)
+    return rows.map((rt) => ({
+      recordId: rt.recordId,
+      tagPublicId: rt.tag.publicId,
+      tagName: rt.tag.name,
+    }));
   }
 
   async deleteOne(userId: bigint, publicId: string) {
