@@ -15,7 +15,7 @@ import type {
   Record,
   RecordDetail,
 } from '@locus/shared';
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
+
 import { z } from 'zod';
 import { logger } from '@/shared/utils/logger';
 
@@ -153,6 +153,15 @@ async function postCreateRecordAsFormData(
   formData.append('data', JSON.stringify(payload));
 
   if (images && images.length > 0) {
+    // 이미지 크기 로깅 (압축 확인용)
+    const totalSize = images.reduce((sum, img) => sum + img.size, 0);
+    const avgSize = totalSize / images.length;
+    logger.info('이미지 업로드 시작', {
+      imageCount: images.length,
+      totalSizeMB: (totalSize / (1024 * 1024)).toFixed(2),
+      avgSizeMB: (avgSize / (1024 * 1024)).toFixed(2),
+    });
+
     images.forEach((image) => {
       formData.append('images', image);
     });

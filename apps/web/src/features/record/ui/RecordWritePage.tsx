@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ArrowLeftIcon } from '@/shared/ui/icons/ArrowLeftIcon';
 import { PlusIcon } from '@/shared/ui/icons/PlusIcon';
 import { XIcon } from '@/shared/ui/icons/XIcon';
@@ -18,6 +18,10 @@ import { useRecordForm } from './hook/useRecordForm';
 import { useRecordMap } from './hook/useRecordMap';
 import { useCreateRecord } from '../hooks/useCreateRecord';
 import { useGetTags } from '../hooks/useGetTags';
+import { useCameraAvailability } from '@/shared/hooks/useCameraAvailability';
+import { useImageUpload } from '@/shared/hooks/useImageUpload';
+import { useViewportMobile } from '@/shared/hooks/useViewportMobile';
+import { useToast } from '@/shared/ui/toast';
 import DraggablePinOverlay from '@/infra/map/marker/DraggablePinOverlay';
 import type {
   RecordWritePageProps,
@@ -55,7 +59,6 @@ export default function RecordWritePage({
   const [isImageSelectSheetOpen, setIsImageSelectSheetOpen] = useState(false);
   const [savedRecord, setSavedRecord] = useState<Record | null>(null);
   const [isDetailSheetOpen, setIsDetailSheetOpen] = useState(false);
-  const [selectedImages, setSelectedImages] = useState<File[]>([]);
 
   // 핀 위치를 state로 관리 (드래그로 조정 가능)
   const [currentCoordinates, setCurrentCoordinates] = useState<
@@ -64,35 +67,94 @@ export default function RecordWritePage({
 
   const createRecordMutation = useCreateRecord();
   const { data: allTags = [] } = useGetTags();
+  const { showToast } = useToast();
+  const { hasCamera } = useCameraAvailability();
+  const { isMobile } = useViewportMobile();
+  const canTakePhoto = isMobile && hasCamera;
+
+  // 이미지 업로드 훅
+  const {
+    selectedImages,
+    previewUrls,
+    isCompressing,
+    handleFilesSelected,
+    handleRemoveFile,
+    cleanup,
+  } = useImageUpload({
+    maxFiles: 5, // API 서버의 MAX_FILE_COUNT와 동일
+    enableCompression: true,
+    compressionOptions: {
+      maxSizeMB: 2, // 최대 2MB
+      maxWidthOrHeight: 1920, // 최대 1920px
+      initialQuality: 0.8, // 80% 품질
+      alwaysKeepResolution: false,
+    },
+    onFilesSelected: (files) => {
+      showToast({
+        variant: 'success',
+        message: `${files.length}개의 이미지가 선택되었습니다.`,
+      });
+    },
+    onValidationError: (error) => {
+      showToast({
+        variant: 'error',
+        message: error.message,
+      });
+    },
+  });
+
+  // 컴포넌트 언마운트 시 정리
+  useEffect(() => {
+    return () => {
+      cleanup();
+    };
+  }, [cleanup]);
 
   const handleAddImage = () => {
     setIsImageSelectSheetOpen(true);
   };
 
-  const handleTakePhoto = () => {
-    // TODO: 사진 촬영 기능 구현
+  const handleTakePhoto = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      stream.getTracks().forEach((t) => t.stop());
+    } catch {
+      showToast({
+        variant: 'error',
+        message: '카메라 권한을 허용해주세요.',
+      });
+      return;
+    }
+
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.capture = 'environment';
+    input.onchange = async (e) => {
+      const files = Array.from((e.target as HTMLInputElement).files ?? []);
+      if (files.length > 0) {
+        await handleFilesSelected(files);
+      }
+      setIsImageSelectSheetOpen(false);
+    };
+    input.click();
     onTakePhoto?.();
   };
 
   const handleSelectFromLibrary = () => {
-    // 파일 선택 다이얼로그 열기
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = 'image/*';
     input.multiple = true;
-    input.onchange = (e) => {
+    input.onchange = async (e) => {
       const files = Array.from((e.target as HTMLInputElement).files ?? []);
       if (files.length > 0) {
-        setSelectedImages((prev) => [...prev, ...files]);
+        await handleFilesSelected(files);
       }
       setIsImageSelectSheetOpen(false);
     };
     input.click();
     onSelectFromLibrary?.();
-  };
-
-  const handleRemoveImage = (index: number) => {
-    setSelectedImages((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleSave = async () => {
@@ -191,23 +253,29 @@ export default function RecordWritePage({
         onKeyDown={handleKeyDown}
         isCreatingTag={isCreatingTag}
         onCancelAddTag={cancelAddTag}
-        onAddImage={handleAddImage}
+        onFilesSelected={handleFilesSelected}
         selectedImages={selectedImages}
-        onRemoveImage={handleRemoveImage}
+        previewUrls={previewUrls}
+        onRemoveImage={handleRemoveFile}
+        isCompressing={isCompressing}
+        onMobileAddClick={isMobile ? handleAddImage : undefined}
         onSave={() => void handleSave()}
         onCancel={onCancel}
         canSave={canSave}
         isSaving={createRecordMutation.isPending}
       />
 
-      {/* 이미지 선택 바텀시트 */}
+      {/* 이미지 선택 바텀시트 (모바일 전용, canTakePhoto일 때만 "사진 촬영" 노출) */}
       <ImageSelectBottomSheet
         isOpen={isImageSelectSheetOpen}
         onClose={() => {
           setIsImageSelectSheetOpen(false);
         }}
-        onTakePhoto={handleTakePhoto}
+        onTakePhoto={() => {
+          void handleTakePhoto();
+        }}
         onSelectFromLibrary={handleSelectFromLibrary}
+        canTakePhoto={canTakePhoto}
       />
 
       {/* 기록 요약 바텀시트 */}
@@ -344,9 +412,12 @@ function RecordWriteForm({
   onConfirmAddTag,
   onKeyDown,
   onCancelAddTag,
-  onAddImage,
+  onFilesSelected,
   selectedImages = [],
+  previewUrls = [],
   onRemoveImage,
+  isCompressing = false,
+  onMobileAddClick,
   onSave,
   onCancel,
   canSave,
@@ -376,32 +447,16 @@ function RecordWriteForm({
         />
 
         {/* 이미지 섹션 */}
-        <div>
-          <ImageUploadButton label="이미지" onClick={onAddImage} />
-          {selectedImages.length > 0 && (
-            <div className="mt-3 flex gap-2 overflow-x-auto">
-              {selectedImages.map((image, index) => (
-                <div key={index} className="relative shrink-0">
-                  <img
-                    src={URL.createObjectURL(image)}
-                    alt={`선택된 이미지 ${index + 1}`}
-                    className="w-20 h-20 object-cover rounded-lg"
-                  />
-                  {onRemoveImage && (
-                    <button
-                      type="button"
-                      onClick={() => onRemoveImage(index)}
-                      className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition-colors"
-                      aria-label="이미지 제거"
-                    >
-                      <XIcon className="w-4 h-4" />
-                    </button>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+        <ImageUploadButton
+          label="이미지"
+          onFilesSelected={onFilesSelected}
+          selectedImages={selectedImages}
+          previewUrls={previewUrls}
+          onRemoveImage={onRemoveImage}
+          isCompressing={isCompressing}
+          disabled={isSaving}
+          onMobileAddClick={onMobileAddClick}
+        />
 
         {/* 태그 섹션 */}
         <FormSection title="태그">
