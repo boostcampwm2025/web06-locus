@@ -198,5 +198,6 @@ enum OutboxEventType {
   RECORD_CREATED
   RECORD_UPDATED
   RECORD_DELETED
+  RECORD_FAVORITE_UPDATED
   @@schema("locus")
 }
