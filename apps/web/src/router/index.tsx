@@ -123,8 +123,8 @@ function RecordDetailPageRoute() {
       : 0;
 
   // API 응답을 RecordDetailPageProps로 변환
-  // 이미지가 있는 경우 첫 번째 이미지의 medium URL 사용
-  const mediumImageUrl =
+  // 이미지가 있는 경우 첫 번째 이미지의 썸네일 URL 사용
+  const thumbnailImageUrl =
     detail.images && detail.images.length > 0
       ? detail.images[0]?.medium.url
       : undefined;
@@ -141,7 +141,7 @@ function RecordDetailPageRoute() {
     },
     tags,
     description: detail.content ?? '',
-    imageUrl: mediumImageUrl,
+    imageUrl: thumbnailImageUrl,
     connectionCount,
     isFavorite: detail.isFavorite,
   };

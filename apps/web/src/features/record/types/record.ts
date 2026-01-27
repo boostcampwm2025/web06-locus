@@ -224,3 +224,47 @@ export interface RecordDetailPageProps {
   onRecordClick?: (recordId: string) => void;
   className?: string;
 }
+
+/**
+ * 연결 기록 선택 Drawer Props
+ */
+export interface RecordConnectionDrawerProps {
+  isOpen: boolean;
+  onClose: () => void;
+  fromRecordId: string; // 출발 기록 ID (이미 선택됨)
+  onConnect: (fromRecordId: string, toRecordId: string) => void;
+}
+
+/**
+ * 연결 확인 다이얼로그 Props
+ */
+export interface ConnectionConfirmDialogProps {
+  isOpen: boolean;
+  onClose: () => void;
+  departure: {
+    id: string;
+    title: string;
+    location: Location;
+    imageUrl?: string;
+  };
+  arrival: {
+    id: string;
+    title: string;
+    location: Location;
+    imageUrl?: string;
+  };
+  onConfirm: () => void;
+  isConnecting?: boolean;
+}
+
+/**
+ * 연결 헤더 Props
+ */
+export interface RecordConnectionHeaderProps {
+  fromRecord: {
+    id: string;
+    title: string;
+    location: Location;
+  } | null;
+  onCancel: () => void;
+}

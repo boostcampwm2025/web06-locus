@@ -16,6 +16,8 @@ import { ROUTES } from '@/router/routes';
 import { useGetTags } from '@/features/record/hooks/useGetTags';
 import { useGetRecordsByBounds } from '@/features/record/hooks/useGetRecordsByBounds';
 import { useGetRecordDetail } from '@/features/record/hooks/useGetRecordDetail';
+import { useConnectionStore } from '@/features/connection/domain/connectionStore';
+import { useConnectionModeData } from '@/features/connection/hooks/useConnectionModeData';
 import { DesktopFilterPanel } from './DesktopFilterPanel';
 import type {
   DesktopSidebarProps,
@@ -88,23 +90,76 @@ export function DesktopSidebar({
   }, [isFilterOpen]);
 
   const { data: allTags = [] } = useGetTags();
+
+  // 연결 모드 상태 확인
+  const connectionFromRecordId = useConnectionStore(
+    (state) => state.connectionFromRecordId,
+  );
+  const handleConnectionRecordClick = useConnectionStore(
+    (state) => state.handleRecordClick,
+  );
+  const updateSearchQuery = useConnectionStore(
+    (state) => state.updateSearchQuery,
+  );
+  const arrival = useConnectionStore((state) => state.arrival);
+
+  // 연결 모드일 때는 useConnectionModeData 사용
+  const connectionModeData = useConnectionModeData();
+
+  // 일반 모드일 때는 기존 로직 사용
   const { data: recordsByBoundsData, isLoading: isRecordsLoading } =
     useGetRecordsByBounds(KOREA_WIDE_BOUNDS);
 
   // 기록 목록 변환
   const records = useMemo(() => {
+    if (connectionFromRecordId) {
+      // 연결 모드: connectionModeData의 records 사용
+      return connectionModeData.records.map((record) => ({
+        id: record.id,
+        title: record.title,
+        location: record.location,
+        date: record.date,
+        tags: record.tags,
+        imageUrl: record.imageUrl,
+        connectionCount: 0, // TODO: 실제 연결 개수 계산
+      }));
+    }
+    // 일반 모드: 기존 로직
     if (!recordsByBoundsData?.records) return [];
     return recordsByBoundsData.records.map(transformRecordApiToUI);
-  }, [recordsByBoundsData]);
+  }, [connectionFromRecordId, connectionModeData.records, recordsByBoundsData]);
+
+  // 연결 모드일 때 검색어는 connectionModeData의 searchQuery 사용
+  const effectiveSearchValue = connectionFromRecordId
+    ? connectionModeData.searchQuery
+    : searchValue;
+
+  const effectiveOnSearchChange = connectionFromRecordId
+    ? updateSearchQuery
+    : onSearchChange;
 
   const handleRecordClick = (recordId: string) => {
-    if (onRecordSelect) {
+    if (connectionFromRecordId) {
+      // 연결 모드: store의 handleConnectionRecordClick 사용
+      const record = connectionModeData.records.find((r) => r.id === recordId);
+      if (record) {
+        handleConnectionRecordClick(record);
+      }
+    } else if (onRecordSelect) {
       // 요약 패널로 전환 (스크롤 위치는 useScrollPosition 훅에서 자동으로 저장됨)
       onRecordSelect(recordId);
     } else {
       // 기존 동작: 상세 페이지로 이동
       onRecordClick?.(recordId);
       void navigate(ROUTES.RECORD_DETAIL.replace(':id', recordId));
+    }
+  };
+
+  // 연결 모드일 때 기록 클릭 핸들러 (연결하기 버튼용)
+  const handleConnectClick = (recordId: string) => {
+    const record = connectionModeData.records.find((r) => r.id === recordId);
+    if (record) {
+      handleConnectionRecordClick(record);
     }
   };
 
@@ -155,8 +210,8 @@ export function DesktopSidebar({
                   <input
                     type="text"
                     placeholder="기록 검색..."
-                    value={searchValue}
-                    onChange={(e) => onSearchChange?.(e.target.value)}
+                    value={effectiveSearchValue}
+                    onChange={(e) => effectiveOnSearchChange?.(e.target.value)}
                     className="w-full bg-gray-50 border-none rounded-2xl py-4 pl-12 pr-4 text-sm focus:ring-2 focus:ring-orange-100 outline-none"
                   />
                 </div>
@@ -252,6 +307,14 @@ export function DesktopSidebar({
                         key={record.id}
                         record={record}
                         onClick={() => handleRecordClick(record.id)}
+                        isConnectionMode={!!connectionFromRecordId}
+                        isSource={connectionFromRecordId === record.id}
+                        isSelected={arrival?.id === record.id}
+                        onConnectClick={
+                          connectionFromRecordId
+                            ? () => handleConnectClick(record.id)
+                            : undefined
+                        }
                       />
                     ))}
                   </div>
@@ -273,7 +336,7 @@ export function DesktopSidebar({
           ) : (
             <RecordSummaryPanel
               key="summary"
-              recordId={selectedRecordId}
+              recordId={selectedRecordId ?? ''}
               onBack={() => onRecordSelect?.(null)}
               onOpenFullDetail={() => {
                 if (selectedRecordId) {
@@ -282,6 +345,8 @@ export function DesktopSidebar({
               }}
               onStartConnection={() => {
                 if (selectedRecordId) {
+                  // 연결 모드로 전환: 요약 패널 닫고 리스트로 이동
+                  onRecordSelect?.(null);
                   onStartConnection?.(selectedRecordId);
                 }
               }}
@@ -311,7 +376,19 @@ function SidebarSection({
 }
 
 // 기록 카드 컴포넌트 (하위 컴포넌트로 분리)
-function RecordCard({ record, onClick }: RecordCardProps) {
+function RecordCard({
+  record,
+  onClick,
+  onConnectClick,
+  isConnectionMode = false,
+  isSource = false,
+  isSelected = false,
+}: RecordCardProps & {
+  onConnectClick?: () => void;
+  isConnectionMode?: boolean;
+  isSource?: boolean;
+  isSelected?: boolean;
+}) {
   const [imageLoading, setImageLoading] = useState(true);
   const [imageError, setImageError] = useState(false);
 
@@ -319,7 +396,15 @@ function RecordCard({ record, onClick }: RecordCardProps) {
     <button
       type="button"
       onClick={onClick}
-      className="w-full p-5 rounded-[24px] cursor-pointer transition-all border-2 border-transparent bg-white shadow-sm hover:border-gray-100 text-left group"
+      className={`w-full p-5 rounded-[24px] cursor-pointer transition-all border-2 bg-white shadow-sm text-left group ${
+        isSelected
+          ? 'border-[#FE8916] ring-4 ring-orange-500/5'
+          : isConnectionMode && !isSource
+            ? 'hover:border-orange-400 ring-4 ring-orange-500/5 border-transparent'
+            : isSource
+              ? 'opacity-60 cursor-default border-dashed border-gray-200'
+              : 'border-transparent hover:border-gray-100'
+      }`}
     >
       <div className="flex gap-5 items-center">
         {/* 이미지 썸네일 */}
@@ -339,6 +424,13 @@ function RecordCard({ record, onClick }: RecordCardProps) {
                   setImageError(true);
                 }}
               />
+              {isConnectionMode && !isSource && (
+                <div className="absolute inset-0 bg-orange-600/10 flex items-center justify-center">
+                  <div className="bg-white rounded-full p-2 shadow-sm border border-gray-200">
+                    <LinkIcon className="w-5 h-5 text-[#FE8916]" />
+                  </div>
+                </div>
+              )}
             </>
           ) : (
             <ImageSkeleton className="w-full h-full" />
@@ -358,6 +450,20 @@ function RecordCard({ record, onClick }: RecordCardProps) {
             <CalendarIcon className="w-[14px] h-[14px]" />
             {formatDateShort(record.date)}
           </p>
+          {isConnectionMode && !isSource && (
+            <motion.button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onConnectClick?.();
+              }}
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              className="mt-3 bg-[#FE8916] text-white px-5 py-2 rounded-full text-[10px] font-black w-fit uppercase hover:bg-[#E67800] transition-colors"
+            >
+              연결하기
+            </motion.button>
+          )}
         </div>
       </div>
     </button>

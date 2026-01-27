@@ -45,6 +45,22 @@ export interface DesktopSidebarProps {
   onRecordSelect?: (recordId: string | null) => void;
   onOpenFullDetail?: (recordId: string) => void;
   onStartConnection?: (recordId: string) => void;
+  // 연결 모드 데이터 (RecordConnectionDrawer에서 전달)
+  connectionModeData?: {
+    records: {
+      id: string;
+      title: string;
+      location: { name: string; address: string };
+      date: Date;
+      tags: string[];
+      imageUrl?: string;
+    }[];
+    searchQuery: string;
+    onSearchChange: (value: string) => void;
+    onRecordClick: (recordId: string) => void;
+    fromRecordId: string;
+    arrivalId?: string;
+  };
 }
 
 /**

@@ -6,6 +6,8 @@ import MapLoadingSkeleton from '@/shared/ui/loading/MapLoadingSkeleton';
 import ToastErrorMessage from '@/shared/ui/alert/ToastErrorMessage';
 import RecordSummaryBottomSheet from '@/features/record/ui/RecordSummaryBottomSheet';
 import TagManagementModal from '@/features/record/ui/TagManagementModal';
+import RecordConnectionDrawer from '@/features/connection/ui/desktop/RecordConnectionDrawer';
+import { useConnectionStore } from '@/features/connection/domain/connectionStore';
 import { useDeleteRecord } from '@/features/record/hooks/useDeleteRecord';
 import { useGeocodeSearch } from '@/features/home/hooks/useGeocodeSearch';
 import { ROUTES } from '@/router/routes';
@@ -35,6 +37,15 @@ export function MainMapPageDesktop() {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [selectedRecordId, setSelectedRecordId] = useState<string | null>(null);
+
+  // 연결 모드 상태는 store에서 관리
+  const connectionFromRecordId = useConnectionStore(
+    (state) => state.connectionFromRecordId,
+  );
+  const startConnection = useConnectionStore((state) => state.startConnection);
+  const cancelConnection = useConnectionStore(
+    (state) => state.cancelConnection,
+  );
 
   // 생성된 기록들을 누적해서 관리
   const [createdRecordPins, setCreatedRecordPins] = useState<
@@ -187,9 +198,26 @@ export function MainMapPageDesktop() {
   };
 
   const handleStartConnection = (recordId: string) => {
-    void navigate(ROUTES.CONNECTION, {
-      state: { fromRecordId: recordId },
+    startConnection(recordId);
+  };
+
+  const handleConnectionComplete = (
+    fromRecordId: string,
+    toRecordId: string,
+  ) => {
+    setConnectedRecords({
+      fromId: fromRecordId,
+      toId: toRecordId,
     });
+    cancelConnection();
+
+    // 3초 후 연결 표시 제거
+    const timer = setTimeout(() => setConnectedRecords(null), 3000);
+    return () => clearTimeout(timer);
+  };
+
+  const handleConnectionCancel = () => {
+    cancelConnection();
   };
 
   const handleCreateRecordClick = () => {
@@ -322,6 +350,16 @@ export function MainMapPageDesktop() {
         isOpen={isTagManagementModalOpen}
         onClose={() => setIsTagManagementModalOpen(false)}
       />
+
+      {/* 연결 모드 Drawer */}
+      {connectionFromRecordId && (
+        <RecordConnectionDrawer
+          isOpen={true}
+          onClose={handleConnectionCancel}
+          fromRecordId={connectionFromRecordId}
+          onConnect={handleConnectionComplete}
+        />
+      )}
     </div>
   );
 }
