@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { apiClient } from '@/infra/api/apiClient';
+import { apiClient } from '@/infra/api';
 import { API_ENDPOINTS } from '@/infra/api/constants';
 import {
   SearchRecordsRequestSchema,

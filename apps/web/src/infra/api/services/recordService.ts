@@ -1,4 +1,4 @@
-import { apiClient } from '../apiClient';
+import { apiClient } from '../index';
 import { API_ENDPOINTS } from '../constants';
 import {
   CreateRecordRequestSchema,
@@ -15,6 +15,8 @@ import type {
   Record,
   RecordDetail,
 } from '@locus/shared';
+
+import { z } from 'zod';
 import { logger } from '@/shared/utils/logger';
 
 /**
@@ -103,7 +105,9 @@ export async function getRecordDetail(publicId: string): Promise<RecordDetail> {
     );
 
     // 2. Response 검증 + data 추출
-    const validated = validateApiResponse(RecordDetailResponseSchema, response);
+    const validated = validateApiResponse<
+      z.infer<typeof RecordDetailResponseSchema>
+    >(RecordDetailResponseSchema, response);
 
     logger.info('기록 상세 조회 성공', { publicId });
     return validated.data;

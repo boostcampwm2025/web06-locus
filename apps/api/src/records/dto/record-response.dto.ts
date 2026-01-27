@@ -1,8 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { ImageModel, RecordModel } from '../records.types';
 
-export type RecordResponseSource = RecordModel & { images: ImageModel[] };
-
 export class ImageSizeDto {
   @ApiProperty({ description: 'URL', example: 'https://...' })
   url: string;
@@ -41,14 +39,19 @@ export class LocationResponseDto {
   @ApiProperty({ description: '경도', example: 127.0411 })
   longitude: number;
 
-  @ApiProperty({ description: '장소 이름', example: '한강공원' })
-  name: string;
+  @ApiProperty({
+    description: '장소 이름',
+    example: '한강공원',
+    nullable: true,
+  })
+  name: string | null;
 
   @ApiProperty({
     description: '장소 주소',
     example: '서울특별시 강남구 삼성동',
+    nullable: true,
   })
-  address: string;
+  address: string | null;
 }
 
 export class RecordTagDto {
@@ -103,49 +106,10 @@ export class RecordResponseDto {
   })
   updatedAt: string;
 
-  static from(record: RecordResponseSource): RecordResponseDto {
-    return {
-      publicId: record.publicId,
-      title: record.title,
-      content: record.content,
-      location: {
-        latitude: record.latitude,
-        longitude: record.longitude,
-        name: record.locationName,
-        address: record.locationAddress,
-      },
-      tags: [],
-      images: record.images.map((img) => ({
-        publicId: img.publicId,
-        thumbnail: {
-          url: img.thumbnailUrl,
-          width: img.thumbnailWidth,
-          height: img.thumbnailHeight,
-          size: img.thumbnailSize,
-        },
-        medium: {
-          url: img.mediumUrl,
-          width: img.mediumWidth,
-          height: img.mediumHeight,
-          size: img.mediumSize,
-        },
-        original: {
-          url: img.originalUrl,
-          width: img.originalWidth,
-          height: img.originalHeight,
-          size: img.originalSize,
-        },
-        order: img.order,
-      })),
-      isFavorite: record.isFavorite,
-      createdAt: record.createdAt.toISOString(),
-      updatedAt: record.updatedAt.toISOString(),
-    };
-  }
-
   static of(
-    record: RecordResponseSource,
+    record: RecordModel,
     tags: RecordTagDto[],
+    images: ImageModel[],
   ): RecordResponseDto {
     return {
       publicId: record.publicId,
@@ -158,7 +122,7 @@ export class RecordResponseDto {
         address: record.locationAddress,
       },
       tags,
-      images: record.images.map((img) => ({
+      images: images.map((img) => ({
         publicId: img.publicId,
         thumbnail: {
           url: img.thumbnailUrl,
