@@ -183,7 +183,7 @@ export class AuthController {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production', // 프로덕션 환경(HTTPS)에서만 전송
       sameSite: 'lax',
-      path: '/',
+      path: '/api/auth/reissue',
     });
   }
 

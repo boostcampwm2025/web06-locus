@@ -135,7 +135,7 @@ export default function RecordWritePage({
       const record: Record = {
         id: response.publicId,
         text: response.title,
-        tags: response.tags.map((tag) => tag.name),
+        tags: (response.tags ?? []).map((tag) => tag.name),
         location: {
           name: response.location.name ?? initialLocation.name,
           address: response.location.address ?? initialLocation.address,
