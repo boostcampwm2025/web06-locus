@@ -157,11 +157,11 @@ export const SELECT_ALL_RECORDS_SQL = (
 
   const dateFilter =
     startDate && endDate
-      ? Prisma.sql`AND r.created_at >= ${startDate} AND r.created_at <= ${endDate}`
+      ? Prisma.sql`AND r.created_at >= ${startDate} AND r.created_at < ${endDate}`
       : startDate
         ? Prisma.sql`AND r.created_at >= ${startDate}`
         : endDate
-          ? Prisma.sql`AND r.created_at <= ${endDate}`
+          ? Prisma.sql`AND r.created_at < ${endDate}`
           : Prisma.empty;
 
   const tagFilter =
@@ -202,11 +202,11 @@ export const COUNT_ALL_RECORDS_SQL = (
 ) => {
   const dateFilter =
     startDate && endDate
-      ? Prisma.sql`AND r.created_at >= ${startDate} AND r.created_at <= ${endDate}`
+      ? Prisma.sql`AND r.created_at >= ${startDate} AND r.created_at < ${endDate}`
       : startDate
         ? Prisma.sql`AND r.created_at >= ${startDate}`
         : endDate
-          ? Prisma.sql`AND r.created_at <= ${endDate}`
+          ? Prisma.sql`AND r.created_at < ${endDate}`
           : Prisma.empty;
 
   const tagFilter =
