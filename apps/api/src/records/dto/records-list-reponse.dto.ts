@@ -1,13 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { Tag } from '@prisma/client';
 import { ImageModel, RecordModel } from '../records.types';
-import { ImageResponseDto } from './record-response.dto';
-import { TagDto } from '@/tags/dto/tags.response.dto';
-
-export type RecordListItemSource = RecordModel & {
-  images: ImageModel[];
-  tags: Pick<Tag, 'publicId' | 'name' | 'isSystem'>[];
-};
+import { ImageResponseDto, RecordTagDto } from './record-response.dto';
 
 export class RecordLocationDto {
   @ApiProperty({ description: '위도', example: 37.5219 })
@@ -53,9 +46,9 @@ export class RecordListItemDto {
 
   @ApiProperty({
     description: '태그 목록',
-    type: [TagDto],
+    type: [RecordTagDto],
   })
-  tags: TagDto[];
+  tags: RecordTagDto[];
 
   @ApiProperty({
     description: '이미지 목록',
@@ -90,47 +83,54 @@ export class RecordListResponseDto {
   totalCount: number;
 
   static of(
-    records: RecordListItemSource[],
+    records: RecordModel[],
+    tagsMap: Map<bigint, RecordTagDto[]>,
+    imagesMap: Map<bigint, ImageModel[]>,
     totalCount: number,
   ): RecordListResponseDto {
     return {
-      records: records.map((r) => ({
-        publicId: r.publicId,
-        title: r.title,
-        content: r.content,
-        location: {
-          latitude: r.latitude,
-          longitude: r.longitude,
-          name: r.locationName,
-          address: r.locationAddress,
-        },
-        isFavorite: r.isFavorite,
-        tags: r.tags,
-        images: r.images.map((img) => ({
-          publicId: img.publicId,
-          thumbnail: {
-            url: img.thumbnailUrl,
-            width: img.thumbnailWidth,
-            height: img.thumbnailHeight,
-            size: img.thumbnailSize,
+      records: records.map((r) => {
+        const tags = tagsMap.get(r.id) ?? [];
+        const images = imagesMap.get(r.id) ?? [];
+
+        return {
+          publicId: r.publicId,
+          title: r.title,
+          content: r.content,
+          location: {
+            latitude: r.latitude,
+            longitude: r.longitude,
+            name: r.locationName,
+            address: r.locationAddress,
           },
-          medium: {
-            url: img.mediumUrl,
-            width: img.mediumWidth,
-            height: img.mediumHeight,
-            size: img.mediumSize,
-          },
-          original: {
-            url: img.originalUrl,
-            width: img.originalWidth,
-            height: img.originalHeight,
-            size: img.originalSize,
-          },
-          order: img.order,
-        })),
-        createdAt: r.createdAt.toISOString(),
-        updatedAt: r.updatedAt.toISOString(),
-      })),
+          isFavorite: r.isFavorite,
+          tags,
+          images: images.map((img) => ({
+            publicId: img.publicId,
+            thumbnail: {
+              url: img.thumbnailUrl,
+              width: img.thumbnailWidth,
+              height: img.thumbnailHeight,
+              size: img.thumbnailSize,
+            },
+            medium: {
+              url: img.mediumUrl,
+              width: img.mediumWidth,
+              height: img.mediumHeight,
+              size: img.mediumSize,
+            },
+            original: {
+              url: img.originalUrl,
+              width: img.originalWidth,
+              height: img.originalHeight,
+              size: img.originalSize,
+            },
+            order: img.order,
+          })),
+          createdAt: r.createdAt.toISOString(),
+          updatedAt: r.updatedAt.toISOString(),
+        };
+      }),
       totalCount,
     };
   }
