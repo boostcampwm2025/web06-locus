@@ -51,6 +51,9 @@ import {
   RecordListItemSource,
   RecordListResponseDto,
 } from './dto/records-list-reponse.dto';
+import { RecordSearchService } from './records-search.service';
+import { SearchRecordsDto } from './dto/search-records.dto';
+import { SearchRecordListResponseDto } from './dto/search-record-list-response.dto';
 import { RecordTagsService } from './record-tags.service';
 import { UpdateRecordDto } from './dto/update-record.dto';
 import { RecordRowType } from './type/record.type';
@@ -69,6 +72,7 @@ export class RecordsService {
     private readonly imageProcessingService: ImageProcessingService,
     private readonly objectStorageService: ObjectStorageService,
     private readonly usersService: UsersService,
+    private readonly recordSearchService: RecordSearchService,
     private readonly recordTagsService: RecordTagsService,
     private readonly tagsService: TagsService,
     private readonly imagesService: ImagesService,
@@ -149,6 +153,38 @@ export class RecordsService {
       return recordWithImages;
     });
     return RecordResponseDto.from(record);
+  }
+
+  async searchRecords(
+    userId: bigint,
+    dto: SearchRecordsDto,
+  ): Promise<SearchRecordListResponseDto> {
+    const originalSize = dto.size ?? 20;
+    const {
+      hits: { hits, total },
+    } = await this.recordSearchService.search(userId, {
+      ...dto,
+      size: originalSize + 1,
+    });
+
+    const totalCount = typeof total === 'number' ? total : (total?.value ?? 0);
+    const hasMore = hits.length > originalSize;
+    const finalHits = hasMore ? hits.slice(0, originalSize) : hits;
+
+    let nextCursor: string | null = null;
+    if (hasMore && finalHits.length > 0) {
+      const lastSortValues = finalHits[finalHits.length - 1].sort;
+      nextCursor = Buffer.from(JSON.stringify(lastSortValues)).toString(
+        'base64',
+      );
+    }
+
+    return SearchRecordListResponseDto.of(
+      finalHits,
+      hasMore,
+      nextCursor,
+      totalCount,
+    );
   }
 
   async findOneByPublicId(publicId: string) {

@@ -6,6 +6,7 @@ import { OutboxService } from '@/outbox/outbox.service';
 import { ImageProcessingService } from '@/records/services/image-processing.service';
 import { ObjectStorageService } from '@/records/services/object-storage.service';
 import { UsersService } from '@/users/users.service';
+import { RecordSearchService } from '@/records/records-search.service';
 import { RecordTagsService } from '@/records/record-tags.service';
 import { TagsService } from '@/tags/tags.services';
 import { ImagesService } from '@/images/images.service';
@@ -32,6 +33,9 @@ interface ObjectStorageServiceMock {
 interface UsersServiceMock {
   findById: jest.Mock;
 }
+interface RecordSearchServiceMock {
+  search: jest.Mock;
+}
 
 interface RecordTagsServiceMock {
   createRecordTags: jest.Mock;
@@ -53,6 +57,7 @@ describe('RecordsService - getGraph', () => {
   let imageProcessingServiceMock: ImageProcessingServiceMock;
   let objectStorageServiceMock: ObjectStorageServiceMock;
   let usersServiceMock: UsersServiceMock;
+  let recordSearchServiceMock: RecordSearchServiceMock;
   let recordTagsServiceMock: RecordTagsServiceMock;
   let tagsServiceMock: TagsServiceMock;
   let imagesServiceMock: ImagesServiceMock;
@@ -84,6 +89,10 @@ describe('RecordsService - getGraph', () => {
       findById: jest.fn(),
     };
 
+    recordSearchServiceMock = {
+      search: jest.fn(),
+    };
+
     recordTagsServiceMock = {
       createRecordTags: jest.fn(),
     };
@@ -104,6 +113,7 @@ describe('RecordsService - getGraph', () => {
       imageProcessingServiceMock as unknown as ImageProcessingService,
       objectStorageServiceMock as unknown as ObjectStorageService,
       usersServiceMock as unknown as UsersService,
+      recordSearchServiceMock as unknown as RecordSearchService,
       recordTagsServiceMock as unknown as RecordTagsService,
       tagsServiceMock as unknown as TagsService,
       imagesServiceMock as unknown as ImagesService,

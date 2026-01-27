@@ -1,4 +1,4 @@
-import { apiClient } from '../apiClient';
+import { apiClient } from '../index';
 import { API_ENDPOINTS } from '../constants';
 
 export interface CreateTagRequest {

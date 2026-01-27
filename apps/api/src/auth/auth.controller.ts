@@ -174,7 +174,7 @@ export class AuthController {
       secure: process.env.NODE_ENV === 'production', // 프로덕션 환경(HTTPS)에서만 전송
       sameSite: 'lax',
       maxAge: this.REFRESH_TOKEN_MAX_AGE,
-      path: '/', // 모든 경로에서 쿠키 전송 (API 요청 시 포함되도록)
+      path: '/api/auth/reissue',
     });
   }
 
@@ -183,7 +183,7 @@ export class AuthController {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production', // 프로덕션 환경(HTTPS)에서만 전송
       sameSite: 'lax',
-      path: '/',
+      path: '/api/auth/reissue',
     });
   }
 

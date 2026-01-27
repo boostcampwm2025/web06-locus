@@ -34,9 +34,12 @@ import {
   GetRecordDetailSwagger,
   GetRecordsSwagger,
   GetRecordsByLocationSwagger,
+  SearchRecordsSwagger,
 } from './swagger/records.swagger';
 import { JsonBody } from '@/common/decorators/json-body.decorator';
 import { GraphNeighborRecordsDto } from './dto/graph-details.response.dto';
+import { SearchRecordsDto } from './dto/search-records.dto';
+import { SearchRecordListResponseDto } from './dto/search-record-list-response.dto';
 
 @ApiTags('records')
 @Controller('records')
@@ -61,6 +64,16 @@ export class RecordsController {
     @Query() query: GetRecordsByLocationDto,
   ): Promise<RecordListResponseDto> {
     return await this.recordsService.getRecordsByLocation(userId, query);
+  }
+
+  @Get('search')
+  @UseGuards(JwtAuthGuard)
+  @SearchRecordsSwagger()
+  async searchRecords(
+    @CurrentUser('sub') userId: bigint,
+    @Query() dto: SearchRecordsDto,
+  ): Promise<SearchRecordListResponseDto> {
+    return await this.recordsService.searchRecords(userId, dto);
   }
 
   @Post()

@@ -31,7 +31,7 @@ function ErrorFallback({ error, resetErrorBoundary }: FallbackProps) {
           </button>
 
           {/* 개발 환경에서만 에러 상세 정보 표시 */}
-          {import.meta.env.DEV && error && (
+          {import.meta.env.DEV && Boolean(error) && (
             <details className="mt-4 text-left">
               <summary className="text-xs text-gray-500 cursor-pointer">
                 에러 상세 정보
