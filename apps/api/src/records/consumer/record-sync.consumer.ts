@@ -39,6 +39,9 @@ export class RecordSyncConsumer {
         case OUTBOX_EVENT_TYPE.RECORD_UPDATED:
           await this.recordSearchService.updateRecord(event.payload);
           break;
+        case OUTBOX_EVENT_TYPE.RECORD_FAVORITE_UPDATED:
+          await this.recordSearchService.updateFavoriteInRecord(event.payload);
+          break;
         case OUTBOX_EVENT_TYPE.RECORD_DELETED:
           await this.recordSearchService.deleteRecord(event.aggregateId);
           break;

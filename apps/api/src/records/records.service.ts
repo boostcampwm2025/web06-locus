@@ -17,12 +17,16 @@ import {
   RecordCreationFailedException,
   RecordDeletionFailedException,
   RecordNotFoundException,
+  SameFavoriteRequestException,
 } from './exceptions/record.exceptions';
 import { GRAPH_NEIGHBOR_RAWS_SQL, GRAPH_RAWS_SQL } from './sql/graph.raw.sql';
 import { GraphRowType } from './type/graph.type';
 import { GraphEdgeDto, GraphNodeDto } from './dto/graph.dto';
 import { GraphResponseDto } from './dto/graph.response.dto';
-import { createRecordSyncPayload } from './type/record-sync.types';
+import {
+  createRecordFavoriteSyncPayload,
+  createRecordSyncPayload,
+} from './type/record-sync.types';
 import { Prisma, Record } from '@prisma/client';
 import { OutboxService } from '@/outbox/outbox.service';
 import {
@@ -155,6 +159,53 @@ export class RecordsService {
     return RecordResponseDto.from(record);
   }
 
+  async updateFavoriteInRecord(
+    userId: bigint,
+    publicId: string,
+    requestedIsFavorite: boolean,
+  ) {
+    const record = await this.findOneByPublicId(publicId);
+
+    // Todo: 그룹 기능 추가시 수정 필요
+    if (record.userId !== userId) {
+      throw new RecordAccessDeniedException(publicId);
+    }
+
+    if (record.isFavorite === requestedIsFavorite) {
+      throw new SameFavoriteRequestException(publicId, requestedIsFavorite);
+    }
+
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const updatedRecord = await tx.record.update({
+        where: {
+          id: record.id,
+        },
+        data: {
+          isFavorite: requestedIsFavorite,
+        },
+        select: {
+          id: true,
+          isFavorite: true,
+          publicId: true,
+        },
+      });
+
+      await this.outboxService.publish(tx, {
+        aggregateType: AGGREGATE_TYPE.RECORD,
+        aggregateId: updatedRecord.id.toString(),
+        eventType: OUTBOX_EVENT_TYPE.RECORD_FAVORITE_UPDATED,
+        payload: createRecordFavoriteSyncPayload(
+          updatedRecord.id,
+          updatedRecord.isFavorite,
+        ),
+      });
+
+      return updatedRecord;
+    });
+
+    return { publicId: updated.publicId, isFavorite: updated.isFavorite };
+  }
+
   async searchRecords(
     userId: bigint,
     dto: SearchRecordsDto,
@@ -190,7 +241,6 @@ export class RecordsService {
   async findOneByPublicId(publicId: string) {
     const record = await this.prisma.record.findUnique({
       where: { publicId },
-      select: { id: true, userId: true, publicId: true },
     });
 
     if (!record) {
