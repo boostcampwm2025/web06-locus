@@ -22,6 +22,15 @@ export class NotificationService {
     private readonly notificationScheduleService: NotificationScheduleService,
   ) {}
 
+  async getSetting(userId: bigint): Promise<NotificationSettingResponseDto> {
+    const setting = await this.prisma.userNotificationSetting.findUnique({
+      where: { userId },
+    });
+
+    if (!setting) throw new NotificationNotFoundException();
+    return NotificationSettingResponseDto.from(setting);
+  }
+
   async updateSetting(
     userId: bigint,
     dto: UpdateNotificationSettingRequestDto,
