@@ -18,7 +18,7 @@ import {
   RecordDeletionFailedException,
   RecordNotFoundException,
 } from './exceptions/record.exceptions';
-import { GRAPH_NEIGHBOR_ROWS_SQL, GRAPH_RAWS_SQL } from './sql/graph.raw.sql';
+import { GRAPH_NEIGHBOR_RAWS_SQL, GRAPH_RAWS_SQL } from './sql/graph.raw.sql';
 import { GraphRowType } from './type/graph.type';
 import { GraphEdgeDto, GraphNodeDto } from './dto/graph.dto';
 import { GraphResponseDto } from './dto/graph.response.dto';
@@ -298,7 +298,7 @@ export class RecordsService {
     const startRecordId = await this.getRecordIdByPublicId(startRecordPublicId);
 
     const records = await this.prisma.$queryRaw<RecordRowType[]>(
-      GRAPH_NEIGHBOR_ROWS_SQL(startRecordId),
+      GRAPH_NEIGHBOR_RAWS_SQL(startRecordId),
     );
 
     if (records.length === 0) return [];

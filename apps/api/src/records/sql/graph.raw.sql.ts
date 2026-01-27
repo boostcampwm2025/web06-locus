@@ -54,13 +54,24 @@ JOIN records rb ON rb.id = e.b_id
 ORDER BY row_type, node_public_id, from_public_id, to_public_id;
 `;
 
-export const GRAPH_NEIGHBOR_ROWS_SQL = (
+export const GRAPH_NEIGHBOR_RAWS_SQL = (
   startRecordId: bigint,
 ): Prisma.Sql => Prisma.sql`
   WITH neighbors AS ( 
     SELECT to_record_id as record_id
     FROM locus.connections
     WHERE from_record_id=${startRecordId}
+  ),
+  thumb AS (
+    SELECT DISTINCT ON (i.record_id)
+      i.record_id,
+      i.public_id         AS "thumbnailPublicId",
+      i.thumbnail_url     AS "thumbnailUrl",
+      i.thumbnail_width   AS "thumbnailWidth",
+      i.thumbnail_height  AS "thumbnailHeight",
+      i.thumbnail_size    AS "thumbnailSize"
+    FROM locus.images i
+    ORDER BY i.record_id ASC, i.order ASC
   )
 
   SELECT 
@@ -74,9 +85,17 @@ export const GRAPH_NEIGHBOR_ROWS_SQL = (
     r.location_name    AS "locationName",
     r.location_address AS "locationAddress",
     r.created_at       AS "createdAt",
-    r.updated_at       AS "updatedAt"
+    r.updated_at       AS "updatedAt",
+
+    t."thumbnailPublicId",
+    t."thumbnailUrl",
+    t."thumbnailWidth",
+    t."thumbnailHeight",
+    t."thumbnailSize"
   FROM neighbors n
   JOIN locus.records r
     ON r.id = n.record_id
+  LEFT JOIN thumb t
+    ON t.record_id = r.id
   ORDER BY r.created_at DESC;
 `;

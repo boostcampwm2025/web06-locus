@@ -27,20 +27,4 @@ export class ImagesService {
       },
     });
   }
-
-  async getThumbnailsByRecordIds(recordIds: bigint[]) {
-    return await this.prisma.image.findMany({
-      where: { recordId: { in: recordIds } },
-      distinct: ['recordId'],
-      orderBy: { order: 'asc' },
-      select: {
-        recordId: true,
-        publicId: true,
-        thumbnailUrl: true,
-        thumbnailWidth: true,
-        thumbnailHeight: true,
-        thumbnailSize: true,
-      },
-    });
-  }
 }

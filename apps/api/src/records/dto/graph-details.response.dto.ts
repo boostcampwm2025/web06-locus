@@ -1,5 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { RecordRowType } from '../type/record.type';
+import { ImageSizeDto } from './record-response.dto';
 /** 위치 정보 */
 export class GraphRecordLocationDto {
   @ApiProperty({ example: 37.5219, description: '위도' })
@@ -41,6 +42,9 @@ export class GraphRecordDto {
   @ApiProperty({ type: [GraphRecordTagDto] })
   tags: GraphRecordTagDto[];
 
+  @ApiProperty({ type: ImageSizeDto, nullable: true })
+  thumbnail: ImageSizeDto | null;
+
   @ApiProperty({
     example: '2024-01-14T10:20:00Z',
     description: '생성 시각',
@@ -70,6 +74,14 @@ export class GraphRecordDto {
         publicId: tag.tagPublicId,
         name: tag.tagName,
       })),
+      thumbnail: record.thumbnailUrl
+        ? {
+            url: record.thumbnailUrl,
+            width: record.thumbnailWidth!,
+            height: record.thumbnailHeight!,
+            size: record.thumbnailSize!,
+          }
+        : null,
       createdAt: record.createdAt.toISOString(),
       updatedAt: record.updatedAt.toISOString(),
     };
