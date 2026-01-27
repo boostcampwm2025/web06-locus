@@ -42,7 +42,6 @@ model UserNotificationSetting {
 
   user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@index([userId, isActive])
   @@map("user_notification_settings")
   @@schema("locus")
 }
@@ -76,7 +75,7 @@ model Record {
   userId          BigInt      @map("user_id")
   title           String   @db.VarChar(100)
   content         String?  @db.VarChar(500)
-  location        Unsupported("geometry")?
+  location        Unsupported("cdb_admin.geometry")?
   locationName    String?   @map("location_name") @db.VarChar(200)
   locationAddress String?   @map("location_address") @db.VarChar(500)
   isFavorite      Boolean  @default(false) @map("is_favorite")
