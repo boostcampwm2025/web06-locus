@@ -12,6 +12,25 @@ import {
 import { NotificationSettingResponseDto } from '../dto/notification-setting-response.dto';
 import { NotificationErrorCode } from '../exception/notification-error-code';
 
+export const GetNotificationSettingSwagger = () =>
+  applyDecorators(
+    ApiBearerAuth(),
+    ApiOperation({
+      summary: '알림 설정 조회',
+      description: '사용자의 알림 활성화 여부 및 알림 시간을 조회합니다.',
+    }),
+    ApiSuccessResponse(NotificationSettingResponseDto),
+    ApiFailResponse(HttpStatus.UNAUTHORIZED, {
+      code: 'INVALID_ACCESS_TOKEN',
+      message: '유효하지 않은 Access Token입니다',
+    }),
+    ApiFailResponse(HttpStatus.NOT_FOUND, {
+      code: NotificationErrorCode.NOT_FOUND_NOTIFICATION,
+      message: '알림 설정이 존재하지 않습니다.',
+    }),
+    ApiErrorResponse(),
+  );
+
 export const UpdateNotificationSettingSwagger = () =>
   applyDecorators(
     ApiBearerAuth(),

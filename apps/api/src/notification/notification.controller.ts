@@ -1,4 +1,4 @@
-import { Body, Controller, Patch, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Patch, Post, UseGuards } from '@nestjs/common';
 import { NotificationService } from './notification.service';
 import { JwtAuthGuard } from '@/jwt/guard/jwt.auth.guard';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
@@ -7,6 +7,7 @@ import {
   UpdateNotifyTimeDto,
 } from './dto/update-notification-setting.dto';
 import {
+  GetNotificationSettingSwagger,
   UpdateNotificationSettingSwagger,
   UpdateNotifyTimeSwagger,
 } from './swagger/notification.swagger';
@@ -16,6 +17,14 @@ import { NotificationSettingResponseDto } from './dto/notification-setting-respo
 @UseGuards(JwtAuthGuard)
 export class NotificationController {
   constructor(private readonly notificationService: NotificationService) {}
+
+  @Get('settings')
+  @GetNotificationSettingSwagger()
+  async getUserNotifySettings(
+    @CurrentUser('sub') userId: bigint,
+  ): Promise<NotificationSettingResponseDto> {
+    return await this.notificationService.getSetting(userId);
+  }
 
   @Post('settings')
   @UpdateNotificationSettingSwagger()
