@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ElasticsearchService } from '@nestjs/elasticsearch';
 import { errors } from '@elastic/elasticsearch';
 import {
+  RecordConnectionsCountSyncPayload,
   RecordFavoriteSyncPayload,
   RecordSyncPayload,
 } from './type/record-sync.types';
@@ -86,6 +87,29 @@ export class RecordSearchService {
     } catch (error) {
       this.logger.error(
         `❌ Record ${payload.recordId} 즐겨찾기 업데이트 실패`,
+        error,
+      );
+      if (error instanceof errors.ResponseError && error.statusCode === 404) {
+        throw new ESDocumentNotFoundException(payload.recordId);
+      }
+      throw error;
+    }
+  }
+
+  async updateConnectionsCountInRecord(
+    payload: RecordConnectionsCountSyncPayload,
+  ) {
+    try {
+      await this.elasticsearchService.update({
+        index: RECORD_INDEX_NAME,
+        id: String(payload.recordId),
+        doc: payload,
+      });
+
+      this.logger.log(`✅ Record ${payload.recordId} 연결 수 업데이트 완료`);
+    } catch (error) {
+      this.logger.error(
+        `❌ Record ${payload.recordId} 연결 수 업데이트 실패`,
         error,
       );
       if (error instanceof errors.ResponseError && error.statusCode === 404) {

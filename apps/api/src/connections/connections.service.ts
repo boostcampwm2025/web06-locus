@@ -31,8 +31,8 @@ export class ConnectionsService {
 
     await this.validateConnection(fromRecord, toRecord, userId);
 
-    const [created] = await this.prismaService.$transaction([
-      this.prismaService.connection.create({
+    const created = await this.prismaService.$transaction(async (tx) => {
+      const createdConnection = await tx.connection.create({
         data: {
           userId,
           fromRecordId: fromRecord.id,
@@ -44,16 +44,22 @@ export class ConnectionsService {
           fromRecord: { select: { publicId: true } },
           toRecord: { select: { publicId: true } },
         },
-      }),
-      this.prismaService.connection.create({
+      });
+
+      await tx.connection.create({
         data: {
           userId,
           fromRecordId: toRecord.id,
           toRecordId: fromRecord.id,
         },
-        select: { id: true }, // 두 번째는 반환 최소화
-      }),
-    ]);
+        select: { id: true },
+      });
+
+      await this.recordsService.incrementConnectionsCount(tx, fromRecord.id, 1);
+      await this.recordsService.incrementConnectionsCount(tx, toRecord.id, 1);
+
+      return createdConnection;
+    });
 
     return {
       publicId: created.publicId,
@@ -72,14 +78,26 @@ export class ConnectionsService {
       publicId,
     );
 
-    await this.prismaService.$transaction([
-      this.prismaService.connection.delete({
+    await this.prismaService.$transaction(async (tx) => {
+      //양방향 연결 삭제
+      await tx.connection.delete({
         where: { id: findOne.id },
-      }),
-      this.prismaService.connection.delete({
+      });
+      await tx.connection.delete({
         where: { id: findPair.id },
-      }),
-    ]);
+      });
+
+      await this.recordsService.incrementConnectionsCount(
+        tx,
+        findOne.toRecordId,
+        -1,
+      );
+      await this.recordsService.incrementConnectionsCount(
+        tx,
+        findOne.fromRecordId,
+        -1,
+      );
+    });
 
     return {
       publicId: findOne.publicId,
@@ -130,12 +148,6 @@ export class ConnectionsService {
   private async findPairConnections(userId: bigint, publicId: string) {
     const findOne = await this.prismaService.connection.findFirst({
       where: { userId, publicId },
-      select: {
-        id: true,
-        fromRecordId: true,
-        toRecordId: true,
-        publicId: true,
-      },
     });
 
     if (!findOne) {
@@ -148,7 +160,6 @@ export class ConnectionsService {
         fromRecordId: findOne.toRecordId,
         toRecordId: findOne.fromRecordId,
       },
-      select: { id: true, publicId: true },
     });
 
     if (!findPair) {

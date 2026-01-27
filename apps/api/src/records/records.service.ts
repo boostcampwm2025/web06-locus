@@ -25,6 +25,7 @@ import { GraphEdgeDto, GraphNodeDto } from './dto/graph.dto';
 import { GraphResponseDto } from './dto/graph.response.dto';
 import {
   createRecordFavoriteSyncPayload,
+  createRecordConnectionsCountSyncPayload,
   createRecordSyncPayload,
 } from './type/record-sync.types';
 import { Prisma, Record } from '@prisma/client';
@@ -204,6 +205,30 @@ export class RecordsService {
     });
 
     return { publicId: updated.publicId, isFavorite: updated.isFavorite };
+  }
+
+  async incrementConnectionsCount(
+    tx: Prisma.TransactionClient,
+    recordId: bigint,
+    delta: number,
+  ) {
+    const updated = await tx.record.update({
+      where: { id: recordId },
+      data: { connectionsCount: { increment: delta } },
+      select: { id: true, connectionsCount: true },
+    });
+
+    await this.outboxService.publish(tx, {
+      aggregateType: AGGREGATE_TYPE.RECORD,
+      aggregateId: updated.id.toString(),
+      eventType: OUTBOX_EVENT_TYPE.RECORD_CONNECTIONS_COUNT_UPDATED,
+      payload: createRecordConnectionsCountSyncPayload(
+        updated.id,
+        updated.connectionsCount,
+      ),
+    });
+
+    return updated;
   }
 
   async searchRecords(
