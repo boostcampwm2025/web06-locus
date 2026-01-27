@@ -244,7 +244,7 @@ function RecordContent({
     <div className="pb-10">
       {imageUrl && (
         <div className="w-full mb-6 px-4">
-          <div className="w-full aspect-[4/3] rounded-lg overflow-hidden">
+          <div className="w-full aspect-4/3 rounded-lg overflow-hidden">
             <img
               src={imageUrl}
               alt={title}
