@@ -12,12 +12,22 @@ export class FcmTokenRequiredException extends BusinessException {
   }
 }
 
-export class NotFoundNotifiyException extends BusinessException {
+export class NotificationNotFoundException extends BusinessException {
   constructor() {
     super(
       HttpStatus.NOT_FOUND,
       NotificationErrorCode.NOT_FOUND_NOTIFICATION,
       '알림 설정이 존재하지 않습니다.',
+    );
+  }
+}
+
+export class InactiveNotificationException extends BusinessException {
+  constructor() {
+    super(
+      HttpStatus.BAD_REQUEST,
+      NotificationErrorCode.INACTIVE_NOTIFICATION,
+      '알림이 비활성화 상태입니다. 먼저 알림을 활성화해주세요.',
     );
   }
 }
