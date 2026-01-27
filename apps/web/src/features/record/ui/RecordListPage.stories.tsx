@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import RecordListPage from './RecordListPage';
+import { RecordListPageMobile } from './mobile/RecordListPage.mobile';
+import { RecordListPageDesktop } from './desktop/RecordListPage.desktop';
 import FilterBottomSheet from './FilterBottomSheet';
 import type { SortOrder } from '@/features/record/types';
 
@@ -37,6 +39,13 @@ const meta = {
           styles: {
             width: '360px',
             height: '800px',
+          },
+        },
+        desktop: {
+          name: 'Desktop',
+          styles: {
+            width: '1920px',
+            height: '1080px',
           },
         },
       },
@@ -269,6 +278,80 @@ export const WithFilter: Story = {
       description: {
         story:
           '필터 버튼을 클릭하면 바텀시트가 열립니다. 실제 동작을 확인할 수 있습니다.',
+      },
+    },
+  },
+};
+
+/**
+ * 모바일 버전
+ */
+export const Mobile: Story = {
+  render: (args) => <RecordListPageMobile {...args} />,
+  parameters: {
+    viewport: {
+      viewports: {
+        mobile1: {
+          name: 'iPhone SE',
+          styles: {
+            width: '375px',
+            height: '667px',
+          },
+        },
+        mobile2: {
+          name: 'iPhone 12/13',
+          styles: {
+            width: '390px',
+            height: '844px',
+          },
+        },
+        mobile3: {
+          name: 'iPhone 14 Pro Max',
+          styles: {
+            width: '430px',
+            height: '932px',
+          },
+        },
+        mobile4: {
+          name: 'Samsung Galaxy S20',
+          styles: {
+            width: '360px',
+            height: '800px',
+          },
+        },
+      },
+      defaultViewport: 'mobile2',
+    },
+    docs: {
+      description: {
+        story: '모바일 버전 UI입니다.',
+      },
+    },
+  },
+};
+
+/**
+ * 데스크톱 버전
+ */
+export const Desktop: Story = {
+  render: (args) => <RecordListPageDesktop {...args} />,
+  parameters: {
+    viewport: {
+      viewports: {
+        desktop: {
+          name: 'Desktop',
+          styles: {
+            width: '1920px',
+            height: '1080px',
+          },
+        },
+      },
+      defaultViewport: 'desktop',
+    },
+    docs: {
+      description: {
+        story:
+          '데스크톱 버전 UI입니다. 좌측 사이드바와 메인 콘텐츠 영역으로 구성되어 있습니다. DesktopUI 스타일을 적용했습니다.',
       },
     },
   },
