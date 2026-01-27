@@ -305,7 +305,7 @@ export class RecordsService {
         createdAt: { ...(startDate && { gte: startDate }), lt: endDate },
       }),
       ...(tagIds?.length && {
-        recordTags: { some: { tagId: { in: tagIds } } },
+        tags: { some: { tagId: { in: tagIds } } },
       }),
     };
 
