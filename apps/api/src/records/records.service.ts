@@ -17,7 +17,6 @@ import {
   RecordCreationFailedException,
   RecordDeletionFailedException,
   RecordNotFoundException,
-  SameFavoriteRequestException,
 } from './exceptions/record.exceptions';
 import { GRAPH_NEIGHBOR_RAWS_SQL, GRAPH_RAWS_SQL } from './sql/graph.raw.sql';
 import { GraphRowType } from './type/graph.type';
@@ -173,7 +172,7 @@ export class RecordsService {
     }
 
     if (record.isFavorite === requestedIsFavorite) {
-      throw new SameFavoriteRequestException(publicId, requestedIsFavorite);
+      return { publicId, isFavorite: record.isFavorite };
     }
 
     const updated = await this.prisma.$transaction(async (tx) => {
