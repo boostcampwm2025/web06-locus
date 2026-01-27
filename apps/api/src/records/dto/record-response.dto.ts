@@ -39,14 +39,19 @@ export class LocationResponseDto {
   @ApiProperty({ description: '경도', example: 127.0411 })
   longitude: number;
 
-  @ApiProperty({ description: '장소 이름', example: '한강공원' })
-  name: string;
+  @ApiProperty({
+    description: '장소 이름',
+    example: '한강공원',
+    nullable: true,
+  })
+  name: string | null;
 
   @ApiProperty({
     description: '장소 주소',
     example: '서울특별시 강남구 삼성동',
+    nullable: true,
   })
-  address: string;
+  address: string | null;
 }
 
 export class RecordTagDto {

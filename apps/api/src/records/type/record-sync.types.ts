@@ -15,7 +15,7 @@ export interface RecordSyncPayload {
   title: string;
   content: string | null;
   isFavorite: boolean;
-  locationName: string;
+  locationName: string | null;
   tags: string[];
   hasImages: boolean;
   thumbnailImage: string | null;

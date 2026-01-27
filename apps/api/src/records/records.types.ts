@@ -5,8 +5,8 @@ export interface RecordModel {
   content: string | null;
   longitude: number;
   latitude: number;
-  locationName: string;
-  locationAddress: string;
+  locationName: string | null;
+  locationAddress: string | null;
   isFavorite: boolean;
   createdAt: Date;
   updatedAt: Date;
