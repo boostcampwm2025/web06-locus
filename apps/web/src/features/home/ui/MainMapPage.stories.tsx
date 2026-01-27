@@ -1,5 +1,4 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { MemoryRouter } from 'react-router-dom';
 import MainMapPage from './MainMapPage';
 import { MainMapPageMobile } from './mobile/MainMapPage.mobile';
 import { MainMapPageDesktop } from './desktop/MainMapPage.desktop';
@@ -7,13 +6,6 @@ import { MainMapPageDesktop } from './desktop/MainMapPage.desktop';
 const meta: Meta<typeof MainMapPage> = {
   title: 'Features/Home/MainMapPage',
   component: MainMapPage,
-  decorators: [
-    (Story) => (
-      <MemoryRouter>
-        <Story />
-      </MemoryRouter>
-    ),
-  ],
   parameters: {
     layout: 'fullscreen',
   },
@@ -41,11 +33,7 @@ export const Default: Story = {
  * 모바일 버전
  */
 export const Mobile: Story = {
-  render: () => (
-    <MemoryRouter>
-      <MainMapPageMobile />
-    </MemoryRouter>
-  ),
+  render: () => <MainMapPageMobile />,
   parameters: {
     viewport: {
       viewports: {
@@ -93,11 +81,7 @@ export const Mobile: Story = {
  * 데스크톱 버전
  */
 export const Desktop: Story = {
-  render: () => (
-    <MemoryRouter>
-      <MainMapPageDesktop />
-    </MemoryRouter>
-  ),
+  render: () => <MainMapPageDesktop />,
   parameters: {
     viewport: {
       viewports: {
