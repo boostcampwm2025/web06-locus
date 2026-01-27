@@ -56,6 +56,7 @@ import { UpdateRecordDto } from './dto/update-record.dto';
 import { RecordRowType } from './type/record.type';
 import { TagsService } from '@/tags/tags.services';
 import { GraphRecordDto } from './dto/graph-details.response.dto';
+import { ImagesService } from '@/images/images.service';
 
 @Injectable()
 export class RecordsService {
@@ -70,6 +71,7 @@ export class RecordsService {
     private readonly usersService: UsersService,
     private readonly recordTagsService: RecordTagsService,
     private readonly tagsService: TagsService,
+    private readonly imagesService: ImagesService,
   ) {}
 
   /**
@@ -140,10 +142,9 @@ export class RecordsService {
         payload: createRecordSyncPayload(userId, updatedRecord),
       });
 
-      const [recordWithImages] = await this.attachImagesToRecords(
-        [updatedRecord],
-        tx,
-      );
+      const [recordWithImages] = await this.attachImagesToRecords([
+        updatedRecord,
+      ]);
 
       return recordWithImages;
     });
@@ -555,10 +556,7 @@ export class RecordsService {
           payload: createRecordSyncPayload(userId, updated),
         });
 
-        const [recordWithImages] = await this.attachImagesToRecords(
-          [updated],
-          tx,
-        );
+        const [recordWithImages] = await this.attachImagesToRecords([updated]);
 
         return { record: recordWithImages, tags };
       });
@@ -723,36 +721,14 @@ export class RecordsService {
 
   private async attachImagesToRecords(
     records: RecordModel[],
-    tx?: Prisma.TransactionClient,
   ): Promise<RecordListItemSource[]> {
     if (records.length === 0) {
       return [];
     }
 
-    const prismaClient = tx ?? this.prisma;
     const recordIds = records.map((r) => r.id);
 
-    const images = await prismaClient.image.findMany({
-      where: { recordId: { in: recordIds } },
-      orderBy: { order: 'asc' },
-      select: {
-        recordId: true,
-        publicId: true,
-        order: true,
-        thumbnailUrl: true,
-        thumbnailWidth: true,
-        thumbnailHeight: true,
-        thumbnailSize: true,
-        mediumUrl: true,
-        mediumWidth: true,
-        mediumHeight: true,
-        mediumSize: true,
-        originalUrl: true,
-        originalWidth: true,
-        originalHeight: true,
-        originalSize: true,
-      },
-    });
+    const images = await this.imagesService.findManyByRecordIds(recordIds);
 
     const imagesByRecordId = new Map<bigint, ImageModel[]>();
     for (const img of images) {

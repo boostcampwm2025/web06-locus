@@ -13,6 +13,7 @@ import { ObjectStorageService } from './services/object-storage.service';
 import { UsersService } from '@/users/users.service';
 import { RecordTagsService } from './record-tags.service';
 import { TagsModule } from '@/tags/tags.module';
+import { ImagesModule } from '@/images/images.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { TagsModule } from '@/tags/tags.module';
     ElasticsearchConfigModule,
     OutboxModule,
     TagsModule,
+    ImagesModule,
   ],
   controllers: [RecordsController, RecordSyncConsumer],
   providers: [
