@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import AppHeader from '@/shared/ui/header/AppHeader';
 import CategoryChips from '@/shared/ui/category/CategoryChips';
 import { RecordCard } from '@/shared/ui/record';
@@ -47,6 +47,7 @@ export function RecordListPageMobile({
   className = '',
 }: RecordListPageProps) {
   const navigate = useNavigate();
+  const location = useLocation();
   const [isSearchActive, setIsSearchActive] = useState(false);
   const [searchValue, setSearchValue] = useState('');
 
@@ -64,8 +65,26 @@ export function RecordListPageMobile({
     ];
   }, [propCategories, allTags]);
 
+  // location state에서 초기 선택된 카테고리 가져오기
+  const initialCategory =
+    (location.state as { selectedCategory?: string })?.selectedCategory ??
+    'all';
+
   // 필터 상태 관리
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [selectedCategory, setSelectedCategory] =
+    useState<string>(initialCategory);
+
+  // location state 변경 시 카테고리 업데이트
+  useEffect(() => {
+    const stateCategory = (location.state as { selectedCategory?: string })
+      ?.selectedCategory;
+    if (stateCategory && stateCategory !== selectedCategory) {
+      setSelectedCategory(stateCategory);
+      // state 초기화
+      void navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location.state, location.pathname, navigate, selectedCategory]);
   const [sortOrder, setSortOrder] = useState<SortOrder>('newest');
   const [favoritesOnly, setFavoritesOnly] = useState(false);
   const [includeImages, setIncludeImages] = useState(false);
@@ -73,6 +92,12 @@ export function RecordListPageMobile({
   // 무한 스크롤: 표시할 아이템 수 관리
   const [displayCount, setDisplayCount] = useState(20); // 초기 표시 개수
   const ITEMS_PER_LOAD = 20; // 한 번에 추가로 표시할 개수
+
+  // 선택된 카테고리가 태그인 경우 태그 publicId 추출
+  const tagPublicId =
+    selectedCategory && selectedCategory !== 'all'
+      ? selectedCategory
+      : undefined;
 
   // 검색어가 있을 때는 검색 API 사용, 없을 때는 전체 기록 조회 API 사용
   const hasSearchKeyword = isSearchActive && searchValue.trim().length > 0;
@@ -85,13 +110,14 @@ export function RecordListPageMobile({
   });
 
   // 전체 기록 조회 API 사용 (GET /records/all)
-  // 좌표 없음, 리스트 뷰 전용, 클라이언트 사이드 필터링 지원
+  // 태그 필터링 지원 (서버 사이드 필터링)
   const {
     data: allRecordsData,
     isLoading: isAllRecordsLoading,
     isError: isAllRecordsError,
   } = useAllRecords({
     enabled: !hasSearchKeyword,
+    tagPublicIds: tagPublicId ? [tagPublicId] : undefined,
   });
 
   // 검색 모드일 때 검색 결과를 RecordListItem으로 변환
@@ -278,7 +304,11 @@ export function RecordListPageMobile({
 
       {/* 필터 바 */}
       <div className="pt-[72px]">
-        <CategoryChips categories={categories} />
+        <CategoryChips
+          categories={categories}
+          defaultSelectedId={selectedCategory}
+          onCategoryChange={setSelectedCategory}
+        />
       </div>
 
       {/* 리스트 */}
