@@ -140,7 +140,7 @@ export class RecordsService {
         payload: createRecordSyncPayload(userId, updatedRecord),
       });
 
-      const imagesMap = await this.fetchImagesByRecordIds({
+      const imagesMap = await this.getImagesByRecordIds({
         recordIds: [updatedRecord.id],
         tx,
       });
@@ -237,7 +237,7 @@ export class RecordsService {
     const recordIds = records.map((r) => r.id);
     const [tagsMap, imagesMap] = await Promise.all([
       this.recordTagsService.fetchTagsByRecordIds(recordIds),
-      this.fetchImagesByRecordIds({ recordIds }),
+      this.getImagesByRecordIds({ recordIds }),
     ]);
 
     return RecordListResponseDto.of(
@@ -279,7 +279,7 @@ export class RecordsService {
     const recordIds = records.map((r) => r.id);
     const [tagsMap, imagesMap, connectionCountMap] = await Promise.all([
       this.recordTagsService.fetchTagsByRecordIds(recordIds),
-      this.fetchImagesByRecordIds({ recordIds }),
+      this.getImagesByRecordIds({ recordIds }),
       this.getConnectionCountByRecordIds(recordIds),
     ]);
 
@@ -341,7 +341,7 @@ export class RecordsService {
     const recordIds = records.map((r) => r.id);
     const [tagsMap, imagesMap, connectionCountMap] = await Promise.all([
       this.recordTagsService.fetchTagsByRecordIds(recordIds),
-      this.fetchImagesByRecordIds({ recordIds, onlyFirst: true }),
+      this.getImagesByRecordIds({ recordIds, onlyFirst: true }),
       this.getConnectionCountByRecordIds(recordIds),
     ]);
 
@@ -409,7 +409,7 @@ export class RecordsService {
 
     const [tags, imagesMap] = await Promise.all([
       this.recordTagsService.getRecordTags(record.id),
-      this.fetchImagesByRecordIds({ recordIds: [record.id] }),
+      this.getImagesByRecordIds({ recordIds: [record.id] }),
     ]);
     const images = imagesMap.get(record.id) ?? [];
 
@@ -710,7 +710,7 @@ export class RecordsService {
           payload: createRecordSyncPayload(userId, updated),
         });
 
-        const imagesMap = await this.fetchImagesByRecordIds({
+        const imagesMap = await this.getImagesByRecordIds({
           recordIds: [updated.id],
           tx,
         });
@@ -877,7 +877,7 @@ export class RecordsService {
     ]);
   }
 
-  private async fetchImagesByRecordIds({
+  private async getImagesByRecordIds({
     recordIds,
     tx,
     onlyFirst = false,
