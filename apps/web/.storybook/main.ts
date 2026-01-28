@@ -31,6 +31,7 @@ const config: StorybookConfig = {
       '@public': resolve(rootDir, 'public'),
       '@locus/shared': resolve(rootDir, '../../packages/shared/src'),
       '@features/home': resolve(rootDir, 'src/features/home'),
+      '@features/settings': resolve(rootDir, 'src/features/settings'),
     };
     return config;
   },

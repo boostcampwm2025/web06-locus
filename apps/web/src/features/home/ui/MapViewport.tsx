@@ -33,6 +33,7 @@ export default function MapViewport({
   connectedRecords,
   targetLocation,
   onTargetLocationChange,
+  onCreateRecord,
 }: MapViewportProps) {
   const navigate = useNavigate();
   const [isBottomSheetOpen, setIsBottomSheetOpen] = useState(false);
@@ -679,15 +680,26 @@ export default function MapViewport({
   // 파란 핀(현재 위치) 클릭 핸들러 - 기록 작성 페이지로 이동
   const handleCurrentLocationClick = () => {
     if (latitude !== null && longitude !== null) {
-      void navigate(ROUTES.RECORD, {
-        state: {
-          location: {
+      if (onCreateRecord) {
+        onCreateRecord(
+          {
             name: '현재 위치',
             address: '현재 위치',
-            coordinates: { lat: latitude, lng: longitude },
           },
-        },
-      });
+          { lat: latitude, lng: longitude },
+        );
+      } else {
+        // 하위 호환성: onCreateRecord가 없으면 기존 방식 사용
+        void navigate(ROUTES.RECORD, {
+          state: {
+            location: {
+              name: '현재 위치',
+              address: '현재 위치',
+              coordinates: { lat: latitude, lng: longitude },
+            },
+          },
+        });
+      }
     }
   };
 
@@ -702,22 +714,30 @@ export default function MapViewport({
 
     setIsBottomSheetOpen(false);
 
-    // locationId가 있으면 쿼리에 넣고, state로도 전달 (북마크/새로고침 대비)
-    // locationId가 없으면 state만 사용 (즉시 사용 가능, 새로고침 대비)
-    if (selectedPinId) {
-      // locationId를 쿼리로 전달
-      void navigate(`${ROUTES.RECORD}?locationId=${selectedPinId}`, {
-        state: {
-          location: selectedLocation,
+    if (onCreateRecord) {
+      // MainMapPage의 상태 관리 사용
+      onCreateRecord(
+        {
+          name: selectedLocation.name,
+          address: selectedLocation.address,
         },
-      });
+        selectedLocation.coordinates,
+      );
     } else {
-      // locationId가 없으면 state만 사용
-      void navigate(ROUTES.RECORD, {
-        state: {
-          location: selectedLocation,
-        },
-      });
+      // 하위 호환성: onCreateRecord가 없으면 기존 방식 사용
+      if (selectedPinId) {
+        void navigate(`${ROUTES.RECORD}?locationId=${selectedPinId}`, {
+          state: {
+            location: selectedLocation,
+          },
+        });
+      } else {
+        void navigate(ROUTES.RECORD, {
+          state: {
+            location: selectedLocation,
+          },
+        });
+      }
     }
   };
 
@@ -772,15 +792,26 @@ export default function MapViewport({
             isSelected={false}
             onClick={() => {
               // 검색 결과 위치 클릭 시 기록 작성 페이지로 이동
-              void navigate(ROUTES.RECORD, {
-                state: {
-                  location: {
+              if (onCreateRecord) {
+                onCreateRecord(
+                  {
                     name: '검색한 위치',
                     address: '',
-                    coordinates: targetLocation,
                   },
-                },
-              });
+                  targetLocation,
+                );
+              } else {
+                // 하위 호환성
+                void navigate(ROUTES.RECORD, {
+                  state: {
+                    location: {
+                      name: '검색한 위치',
+                      address: '',
+                      coordinates: targetLocation,
+                    },
+                  },
+                });
+              }
             }}
             onDragEnd={(newPosition: Coordinates) => {
               // 드래그 종료 시 위치 업데이트

@@ -21,6 +21,7 @@ import { RecordsService } from './records.service';
 import { CreateRecordDto } from './dto/create-record.dto';
 import { GetRecordsQueryDto } from './dto/get-records-query.dto';
 import { GetRecordsByLocationDto } from './dto/get-records-by-location.dto';
+import { GetAllRecordsDto } from './dto/get-all-records.dto';
 import { RecordResponseDto } from './dto/record-response.dto';
 import { RecordListResponseDto } from './dto/records-list-reponse.dto';
 import { JwtAuthGuard } from '@/jwt/guard/jwt.auth.guard';
@@ -34,6 +35,7 @@ import {
   GetRecordDetailSwagger,
   GetRecordsSwagger,
   GetRecordsByLocationSwagger,
+  GetAllRecordsSwagger,
   SearchRecordsSwagger,
 } from './swagger/records.swagger';
 import { JsonBody } from '@/common/decorators/json-body.decorator';
@@ -66,6 +68,16 @@ export class RecordsController {
     @Query() query: GetRecordsByLocationDto,
   ): Promise<RecordListResponseDto> {
     return await this.recordsService.getRecordsByLocation(userId, query);
+  }
+
+  @Get('all')
+  @UseGuards(JwtAuthGuard)
+  @GetAllRecordsSwagger()
+  async getAllRecords(
+    @CurrentUser('sub') userId: bigint,
+    @Query() query: GetAllRecordsDto,
+  ): Promise<RecordListResponseDto> {
+    return await this.recordsService.getAllRecords(userId, query);
   }
 
   @Get('search')

@@ -47,6 +47,7 @@ const RecordWritePageRoute = lazy(() => import('./RecordWritePageRoute'));
 const OnboardingPage = lazy(
   () => import('@/features/onboarding/pages/OnboardingPage'),
 );
+const SettingsPage = lazy(() => import('@/features/settings/ui/SettingsPage'));
 
 // 로딩 폴백 컴포넌트
 const RouteLoadingFallback = () => {
@@ -123,8 +124,8 @@ function RecordDetailPageRoute() {
       : 0;
 
   // API 응답을 RecordDetailPageProps로 변환
-  // 이미지가 있는 경우 첫 번째 이미지의 medium URL 사용
-  const mediumImageUrl =
+  // 이미지가 있는 경우 첫 번째 이미지의 썸네일 URL 사용
+  const thumbnailImageUrl =
     detail.images && detail.images.length > 0
       ? detail.images[0]?.medium.url
       : undefined;
@@ -141,7 +142,7 @@ function RecordDetailPageRoute() {
     },
     tags,
     description: detail.content ?? '',
-    imageUrl: mediumImageUrl,
+    imageUrl: thumbnailImageUrl,
     connectionCount,
     isFavorite: detail.isFavorite,
   };
@@ -167,10 +168,22 @@ function RecordDetailPageRoute() {
     })();
   };
 
+  // 연결된 기록 목록 (API 연동 전이므로 빈 배열)
+  // TODO: API 연동 후 graphData에서 연결된 기록 상세 정보를 가져와서 전달
+  const connectedRecords: {
+    id: string;
+    title: string;
+    location: { name: string; address: string };
+    date: Date;
+    tags: string[];
+    imageUrl?: string;
+  }[] = [];
+
   return (
     <Suspense fallback={<RouteLoadingFallback />}>
       <RecordDetailPage
         {...recordProps}
+        connectedRecords={connectedRecords}
         onBack={() => void navigate(ROUTES.RECORD_LIST)}
         // TODO: API 연동 후 구현 예정
         onFavoriteToggle={() => {
@@ -188,6 +201,9 @@ function RecordDetailPageRoute() {
         }}
         onDelete={() => {
           void handleDelete();
+        }}
+        onRecordClick={(recordId) => {
+          void navigate(generatePath(ROUTES.RECORD_DETAIL, { id: recordId }));
         }}
       />
     </Suspense>
@@ -451,6 +467,14 @@ export function AppRoutes() {
           element={
             <ProtectedRoute>
               <OnboardingPageRoute />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path={ROUTES.SETTINGS}
+          element={
+            <ProtectedRoute>
+              <SettingsPage />
             </ProtectedRoute>
           }
         />

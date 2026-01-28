@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { ArrowLeftIcon } from '@/shared/ui/icons/ArrowLeftIcon';
+import { ChevronLeftIcon } from '@/shared/ui/icons/ChevronLeftIcon';
 import type {
   RecordConnectionPageProps,
   RecordConnectionItem,
@@ -215,7 +215,7 @@ export default function RecordConnectionPage({
           className="p-2 -ml-2 hover:bg-gray-100 rounded-lg transition-colors"
           aria-label="뒤로 가기"
         >
-          <ArrowLeftIcon className="w-6 h-6 text-gray-700" />
+          <ChevronLeftIcon className="w-6 h-6 text-gray-700" />
         </button>
         <h1 className="text-lg font-semibold text-gray-900">
           연결할 기록 선택

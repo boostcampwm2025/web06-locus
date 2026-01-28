@@ -22,6 +22,17 @@ export default defineConfig(
       },
     },
   },
+  // 스토리북 파일들에 대한 타입 체크 (.storybook/tsconfig.json 사용)
+  {
+    files: ['.storybook/**/*.{ts,tsx}'],
+    languageOptions: {
+      parserOptions: {
+        projectService: false,
+        project: ['./.storybook/tsconfig.json'],
+        tsconfigRootDir: import.meta.dirname,
+      },
+    },
+  },
   // 소스 파일들에 대한 타입 체크 (tsconfig.app.json 사용)
   {
     files: ['src/**/*.{ts,tsx}'],
@@ -35,7 +46,6 @@ export default defineConfig(
   },
   {
     files: ['**/*.{ts,tsx,js,jsx}'],
-    ignores: ['.storybook/**'],
     extends: [
       reactHooks.configs['recommended-latest'],
       reactRefresh.configs.vite,
