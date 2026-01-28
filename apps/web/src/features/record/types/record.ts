@@ -296,5 +296,17 @@ export interface UseSidebarRecordsProps {
   favoritesOnly?: boolean; // 추가 가능성 대비
   includeImages?: boolean; // 추가 가능성 대비
   selectedCategory?: string;
-  categories: { id: string; label: string }[];
+  categories?: { id: string; label: string }[]; // 서버 사이드 필터링으로 변경
+}
+
+/**
+ * 검색 결과 데이터
+ */
+export interface SearchRecordsData {
+  records: SearchRecordItem[];
+  pagination: {
+    hasMore: boolean;
+    nextCursor: string | null;
+    totalCount: number;
+  };
 }

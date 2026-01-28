@@ -20,4 +20,7 @@ export type {
   UpdateRecordFavoriteParams,
   RecordsData,
   UseSidebarRecordsProps,
+  SearchRecordsData,
 } from './record';
+
+export type { SearchRecordItem } from '@locus/shared';

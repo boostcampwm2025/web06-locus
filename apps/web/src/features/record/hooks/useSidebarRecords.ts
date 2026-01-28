@@ -11,16 +11,28 @@ export function useSidebarRecords({
   favoritesOnly,
   includeImages,
   selectedCategory,
-  categories,
 }: UseSidebarRecordsProps) {
-  const { data: allRecordsData, isLoading, isError } = useAllRecords();
+  // 선택된 카테고리가 태그인 경우 태그 publicId 추출
+  const tagPublicId =
+    selectedCategory && selectedCategory !== 'all'
+      ? selectedCategory
+      : undefined;
+
+  // 서버 사이드 태그 필터링 적용
+  const {
+    data: allRecordsData,
+    isLoading,
+    isError,
+  } = useAllRecords({
+    tagPublicIds: tagPublicId ? [tagPublicId] : undefined,
+  });
 
   const filteredAndSortedRecords = useMemo(() => {
     if (!allRecordsData?.records) return [];
 
     let result = [...allRecordsData.records];
 
-    // 1. 날짜 필터링
+    // 1. 날짜 필터링 (클라이언트 사이드)
     if (startDate || endDate) {
       result = result.filter((record) => {
         const recordDate = new Date(record.createdAt);
@@ -43,17 +55,9 @@ export function useSidebarRecords({
       });
     }
 
-    // 2. 카테고리(태그) 필터링
-    if (selectedCategory && selectedCategory !== 'all') {
-      const targetLabel = categories.find(
-        (c) => c.id === selectedCategory,
-      )?.label;
-      result = result.filter((r) =>
-        extractTagNames(r.tags).includes(targetLabel ?? ''),
-      );
-    }
+    // 2. 카테고리(태그) 필터링은 서버 사이드에서 처리됨
 
-    // 3. 즐겨찾기/이미지 필터링 (필요시 추가)
+    // 3. 즐겨찾기/이미지 필터링 (클라이언트 사이드)
     if (favoritesOnly) {
       result = result.filter((r) => r.isFavorite);
     }
@@ -85,10 +89,8 @@ export function useSidebarRecords({
     sortOrder,
     startDate,
     endDate,
-    selectedCategory,
     favoritesOnly,
     includeImages,
-    categories,
   ]);
 
   return { records: filteredAndSortedRecords, isLoading, isError };

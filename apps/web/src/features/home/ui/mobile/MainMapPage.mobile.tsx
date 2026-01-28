@@ -219,7 +219,7 @@ export function MainMapPageMobile() {
       />
 
       <div className="pt-[72px]">
-        <MainMapTags />
+        <MainMapTags navigate={navigate} />
       </div>
 
       <div className="flex-1 relative pb-[72px] min-h-0">
@@ -315,8 +315,29 @@ export function MainMapPageMobile() {
   );
 }
 
-function MainMapTags() {
+function MainMapTags({
+  navigate,
+}: {
+  navigate: ReturnType<typeof useNavigate>;
+}) {
   const { data: allTags = [] } = useGetTags();
+  const [selectedTagId, setSelectedTagId] = useState<string | null>(null);
+
+  const handleTagClick = (tagPublicId: string) => {
+    if (selectedTagId === tagPublicId) {
+      // 같은 태그 클릭 시 선택 해제
+      setSelectedTagId(null);
+      // 기록 목록으로 이동 (필터 없음)
+      void navigate(ROUTES.RECORD_LIST);
+    } else {
+      // 다른 태그 선택
+      setSelectedTagId(tagPublicId);
+      // 기록 목록으로 이동 (태그 필터 적용)
+      void navigate(ROUTES.RECORD_LIST, {
+        state: { selectedCategory: tagPublicId },
+      });
+    }
+  };
 
   return (
     <div className="flex gap-2 overflow-x-auto px-4 py-3 snap-x snap-mandatory [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
@@ -324,10 +345,8 @@ function MainMapTags() {
         <CategoryChip
           key={tag.publicId}
           label={tag.name}
-          isSelected={false}
-          onClick={() => {
-            // TODO: 태그 클릭 시 필터링 기능 구현
-          }}
+          isSelected={selectedTagId === tag.publicId}
+          onClick={() => handleTagClick(tag.publicId)}
         />
       ))}
     </div>
