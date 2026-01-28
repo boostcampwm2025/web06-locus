@@ -19,6 +19,7 @@ export const SELECT_RECORDS_IN_BOUNDS_SQL = (
       public_id AS "publicId",
       title,
       content,
+      connections_count AS "connectionsCount",
       ST_Y(location) AS latitude,
       ST_X(location) AS longitude,
       location_name AS "locationName",
