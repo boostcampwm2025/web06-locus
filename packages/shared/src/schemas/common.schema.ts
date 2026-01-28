@@ -57,10 +57,9 @@ export const ImageResponseSchema = z.object({
  * @api GET /records/search - 응답의 pagination 필드
  */
 export const CursorPaginationResponseSchema = z.object({
-  hasMore: z.boolean().optional(),
-  nextCursor: z.string().optional(),
-  hasNext: z.boolean().optional(),
-  limit: z.number().optional(),
+  hasMore: z.boolean(),
+  nextCursor: z.string().nullable(),
+  totalCount: z.number(),
 });
 
 /**
