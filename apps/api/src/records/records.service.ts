@@ -280,7 +280,7 @@ export class RecordsService {
     const [tagsMap, imagesMap, connectionCountMap] = await Promise.all([
       this.recordTagsService.fetchTagsByRecordIds(recordIds),
       this.fetchImagesByRecordIds({ recordIds }),
-      this.fetchConnectionCountByRecordIds(recordIds),
+      this.getConnectionCountByRecordIds(recordIds),
     ]);
 
     return RecordListResponseDto.of(
@@ -342,7 +342,7 @@ export class RecordsService {
     const [tagsMap, imagesMap, connectionCountMap] = await Promise.all([
       this.recordTagsService.fetchTagsByRecordIds(recordIds),
       this.fetchImagesByRecordIds({ recordIds, onlyFirst: true }),
-      this.fetchConnectionCountByRecordIds(recordIds),
+      this.getConnectionCountByRecordIds(recordIds),
     ]);
 
     return RecordListResponseDto.of(
@@ -928,7 +928,7 @@ export class RecordsService {
     return map;
   }
 
-  private async fetchConnectionCountByRecordIds(
+  private async getConnectionCountByRecordIds(
     recordIds: bigint[],
   ): Promise<Map<bigint, number>> {
     if (recordIds.length === 0) {
