@@ -64,6 +64,7 @@ import { RecordRowType } from './type/record.type';
 import { TagsService } from '@/tags/tags.services';
 import { GraphRecordDto } from './dto/graph-details.response.dto';
 import { ImagesService } from '@/images/images.service';
+import { UpdateFavoriteResponseDto } from './dto/update-favorite.response.dto';
 
 @Injectable()
 export class RecordsService {
@@ -163,7 +164,7 @@ export class RecordsService {
     userId: bigint,
     publicId: string,
     requestedIsFavorite: boolean,
-  ) {
+  ): Promise<UpdateFavoriteResponseDto> {
     const record = await this.findOneByPublicId(publicId);
 
     // Todo: 그룹 기능 추가시 수정 필요
