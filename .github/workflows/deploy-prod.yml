@@ -113,6 +113,7 @@ jobs:
       - name: Remove Github Action IP from ACG
         if: always()
         run: |
+          sleep 10
           cd CLI_*/cli_linux
           RULE=$(echo "${{ env.ACG_RULE_FORMAT }}" | sed "s/GITHUB_IP/${{ steps.ip.outputs.public_ip }}/")
           ./ncloud vserver removeAccessControlGroupInboundRule \
