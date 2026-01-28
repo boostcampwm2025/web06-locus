@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AppHeader from '@/shared/ui/header/AppHeader';
 import CategoryChips from '@/shared/ui/category/CategoryChips';
@@ -10,6 +10,7 @@ import type { Category } from '@/shared/types/category';
 import { ROUTES } from '@/router/routes';
 import { useBottomTabNavigation } from '@/shared/hooks/useBottomTabNavigation';
 import { useAllRecords } from '@/features/record/hooks/useRecords';
+import { useIntersectionObserver } from '@/shared/hooks/useIntersectionObserver';
 import type { RecordWithoutCoords } from '@locus/shared';
 import { extractTagNames } from '@/shared/utils/tagUtils';
 import { sortRecordsByFavorite } from '@/shared/utils/recordSortUtils';
@@ -62,13 +63,17 @@ export function RecordListPageMobile({
   const [favoritesOnly, setFavoritesOnly] = useState(false);
   const [includeImages, setIncludeImages] = useState(false);
 
+  // 무한 스크롤: 표시할 아이템 수 관리
+  const [displayCount, setDisplayCount] = useState(20); // 초기 표시 개수
+  const ITEMS_PER_LOAD = 20; // 한 번에 추가로 표시할 개수
+
   // 전체 기록 조회 API 사용 (GET /records/all)
   // 좌표 없음, 리스트 뷰 전용, 클라이언트 사이드 필터링 지원
   const { data: allRecordsData, isLoading, isError } = useAllRecords();
 
   // API 응답을 RecordListItem으로 변환 및 필터링/정렬
   // GET /records/all API 사용 (좌표 없음, isFavorite 포함)
-  const records = useMemo<RecordListItem[]>(() => {
+  const allRecords = useMemo<RecordListItem[]>(() => {
     if (!allRecordsData?.records) {
       return [];
     }
@@ -124,6 +129,29 @@ export function RecordListPageMobile({
       };
     });
   }, [allRecordsData, sortOrder, favoritesOnly, includeImages]);
+
+  // 무한 스크롤: 표시할 레코드만 선택
+  const records = useMemo(() => {
+    return allRecords.slice(0, displayCount);
+  }, [allRecords, displayCount]);
+
+  // 필터 변경 시 표시 개수 리셋
+  const hasMore = displayCount < allRecords.length;
+
+  // 무한 스크롤: 더 많은 아이템 로드
+  const loadMore = useCallback(() => {
+    if (!isLoading && hasMore) {
+      setDisplayCount((prev) => prev + ITEMS_PER_LOAD);
+    }
+  }, [isLoading, hasMore]);
+
+  // Intersection Observer로 무한 스크롤 구현
+  const { targetRef } = useIntersectionObserver({
+    onIntersect: loadMore,
+    rootMargin: '200px',
+    threshold: 0.1,
+    enabled: hasMore && !isLoading,
+  });
 
   const handleSearchClick = () => {
     setIsSearchActive(true);
@@ -216,6 +244,15 @@ export function RecordListPageMobile({
                 onClick={() => handleRecordClick(record.id)}
               />
             ))}
+            {/* 무한 스크롤 트리거 */}
+            {hasMore && (
+              <div
+                ref={targetRef}
+                className="h-4 flex items-center justify-center"
+              >
+                <div className="text-xs text-gray-400">더 불러오는 중...</div>
+              </div>
+            )}
           </div>
         )}
       </div>

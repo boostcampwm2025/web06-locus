@@ -1,4 +1,4 @@
-import { useMemo, useState, useRef, useEffect } from 'react';
+import { useMemo, useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'motion/react';
 import { Logo } from '@/shared/ui/icons/Logo';
@@ -12,6 +12,7 @@ import { ChevronRightIcon } from '@/shared/ui/icons/ChevronRightIcon';
 import { LinkIcon } from '@/shared/ui/icons/LinkIcon';
 import { ImageSkeleton } from '@/shared/ui/skeleton';
 import { useScrollPosition } from '@/shared/hooks/useScrollPosition';
+import { useIntersectionObserver } from '@/shared/hooks/useIntersectionObserver';
 import { ROUTES } from '@/router/routes';
 import { useGetTags } from '@/features/record/hooks/useGetTags';
 import { useSidebarRecords } from '@/features/record/hooks/useSidebarRecords';
@@ -103,8 +104,17 @@ export function DesktopSidebar({
     [allTags],
   );
 
+  // 무한 스크롤: 표시할 아이템 수 관리
+  const [displayCount, setDisplayCount] = useState(20); // 초기 표시 개수
+  const ITEMS_PER_LOAD = 20; // 한 번에 추가로 표시할 개수
+
+  // 필터 변경 시 표시 개수 리셋
+  useEffect(() => {
+    setDisplayCount(20);
+  }, [sortOrder, startDate, endDate, selectedCategory]);
+
   // 일반 모드일 때는 useSidebarRecords 사용
-  const { records: sidebarRecords, isLoading: isRecordsLoading } =
+  const { records: allSidebarRecords, isLoading: isRecordsLoading } =
     useSidebarRecords({
       sortOrder,
       startDate,
@@ -114,7 +124,7 @@ export function DesktopSidebar({
     });
 
   // 기록 목록 변환 (연결 모드 vs 일반 모드)
-  const records = useMemo(() => {
+  const allRecords = useMemo(() => {
     if (connectionFromRecordId) {
       // 연결 모드: connectionModeData의 records 사용
       return connectionModeData.records.map((record) => ({
@@ -128,8 +138,31 @@ export function DesktopSidebar({
       }));
     }
     // 일반 모드: useSidebarRecords에서 필터링/정렬된 records 사용
-    return sidebarRecords;
-  }, [connectionFromRecordId, connectionModeData.records, sidebarRecords]);
+    return allSidebarRecords;
+  }, [connectionFromRecordId, connectionModeData.records, allSidebarRecords]);
+
+  // 무한 스크롤: 표시할 레코드만 선택
+  const records = useMemo(() => {
+    return allRecords.slice(0, displayCount);
+  }, [allRecords, displayCount]);
+
+  // 무한 스크롤: 더 많은 아이템이 있는지 확인
+  const hasMore = displayCount < allRecords.length;
+
+  // 무한 스크롤: 더 많은 아이템 로드
+  const loadMore = useCallback(() => {
+    if (!isRecordsLoading && hasMore) {
+      setDisplayCount((prev) => prev + ITEMS_PER_LOAD);
+    }
+  }, [isRecordsLoading, hasMore]);
+
+  // Intersection Observer로 무한 스크롤 구현
+  const { targetRef: infiniteScrollRef } = useIntersectionObserver({
+    onIntersect: loadMore,
+    rootMargin: '200px',
+    threshold: 0.1,
+    enabled: hasMore && !isRecordsLoading && !connectionFromRecordId,
+  });
 
   // 연결 모드일 때 검색어는 connectionModeData의 searchQuery 사용
   const effectiveSearchValue = connectionFromRecordId
@@ -313,6 +346,17 @@ export function DesktopSidebar({
                         }
                       />
                     ))}
+                    {/* 무한 스크롤 트리거 */}
+                    {hasMore && !connectionFromRecordId && (
+                      <div
+                        ref={infiniteScrollRef}
+                        className="h-4 flex items-center justify-center py-4"
+                      >
+                        <div className="text-xs text-gray-400">
+                          더 불러오는 중...
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
