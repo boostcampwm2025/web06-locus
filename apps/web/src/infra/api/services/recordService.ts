@@ -62,15 +62,34 @@ export async function getRecordsByBounds(
   const validatedRequest = GetRecordsByBoundsRequestSchema.parse(request);
 
   // 2. Bounds 유효성 검사
-  if (validatedRequest.neLat <= validatedRequest.swLat) {
-    throw new Error(
-      `Invalid bounds: neLat (${validatedRequest.neLat}) must be greater than swLat (${validatedRequest.swLat})`,
+  // 반올림으로 인해 같은 값이 될 수 있으므로 최소 차이(0.0001)를 보장
+  // 지도가 처음 로드될 때 높이가 0이면 같은 값이 들어올 수 있으므로
+  // 에러를 던지지 않고 빈 결과를 반환하여 컴포넌트 크래시 방지
+  const MIN_BOUNDS_DIFF = 0.0001;
+
+  if (validatedRequest.neLat - validatedRequest.swLat < MIN_BOUNDS_DIFF) {
+    logger.warn(
+      'Invalid bounds: neLat and swLat가 너무 가까워서 기록 조회 불가',
+      {
+        neLat: validatedRequest.neLat,
+        swLat: validatedRequest.swLat,
+        diff: validatedRequest.neLat - validatedRequest.swLat,
+        sendToSentry: false, // 빈번한 경고이므로 Sentry 전송 비활성화
+      },
     );
+    return { records: [], totalCount: 0 };
   }
-  if (validatedRequest.neLng <= validatedRequest.swLng) {
-    throw new Error(
-      `Invalid bounds: neLng (${validatedRequest.neLng}) must be greater than swLng (${validatedRequest.swLng})`,
+  if (validatedRequest.neLng - validatedRequest.swLng < MIN_BOUNDS_DIFF) {
+    logger.warn(
+      'Invalid bounds: neLng and swLng가 너무 가까워서 기록 조회 불가',
+      {
+        neLng: validatedRequest.neLng,
+        swLng: validatedRequest.swLng,
+        diff: validatedRequest.neLng - validatedRequest.swLng,
+        sendToSentry: false, // 빈번한 경고이므로 Sentry 전송 비활성화
+      },
     );
+    return { records: [], totalCount: 0 };
   }
 
   // 3. Query 파라미터 구성 (소수점 4자리로 고정)
@@ -93,11 +112,33 @@ export async function getRecordsByBounds(
   );
 
   // 4. Response 검증 + data 추출
-  const validated = validateApiResponse(
-    RecordsByBoundsResponseSchema,
-    response,
-  );
-  return validated.data;
+  try {
+    const validated = validateApiResponse(
+      RecordsByBoundsResponseSchema,
+      response,
+    );
+    return validated.data;
+  } catch (error) {
+    // 스키마 검증 실패 시 상세 로깅
+    logger.error(
+      error instanceof Error ? error : new Error('Schema validation failed'),
+      {
+        schema: 'RecordsByBoundsResponseSchema',
+        request: validatedRequest,
+        responseData: response,
+        errorMessage: error instanceof Error ? error.message : String(error),
+        errorStack: error instanceof Error ? error.stack : undefined,
+      },
+    );
+
+    // 개발 환경에서는 에러를 던져서 문제를 빠르게 발견
+    // 프로덕션에서는 빈 결과를 반환하여 앱 크래시 방지
+    if (import.meta.env.DEV) {
+      throw error;
+    }
+
+    return { records: [], totalCount: 0 };
+  }
 }
 
 /**
