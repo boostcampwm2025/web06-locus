@@ -9,6 +9,7 @@ export default function ImageSelectBottomSheet({
   onClose,
   onTakePhoto,
   onSelectFromLibrary,
+  canTakePhoto = false,
 }: ImageSelectBottomSheetProps) {
   const handleTakePhoto = () => {
     onTakePhoto();
@@ -23,12 +24,14 @@ export default function ImageSelectBottomSheet({
   return (
     <BaseBottomSheet isOpen={isOpen} onClose={onClose} height="image">
       <div className="px-6 py-6 pb-12">
-        <OptionButton
-          icon={<CameraIcon className="w-6 h-6 text-gray-700" />}
-          title="사진 촬영"
-          description="지금 순간을 바로 기록하기"
-          onClick={handleTakePhoto}
-        />
+        {canTakePhoto && (
+          <OptionButton
+            icon={<CameraIcon className="w-6 h-6 text-gray-700" />}
+            title="사진 촬영"
+            description="지금 순간을 바로 기록하기"
+            onClick={handleTakePhoto}
+          />
+        )}
 
         <OptionButton
           icon={<ImageIcon className="w-6 h-6 text-gray-700" />}

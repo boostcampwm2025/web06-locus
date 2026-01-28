@@ -55,6 +55,8 @@ export interface ImageSelectBottomSheetProps {
   onClose: () => void;
   onTakePhoto: () => void;
   onSelectFromLibrary: () => void;
+  /** true일 때만 "사진 촬영" 옵션 노출 (모바일 + 카메라 있을 때) */
+  canTakePhoto?: boolean;
 }
 
 /**
@@ -135,9 +137,12 @@ export interface RecordWriteFormProps {
   onConfirmAddTag: () => void;
   onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => void;
   onCancelAddTag: () => void;
-  onAddImage: () => void;
+  onFilesSelected: (files: File[]) => void | Promise<void>;
   selectedImages?: File[];
+  previewUrls?: string[];
   onRemoveImage?: (index: number) => void;
+  isCompressing?: boolean;
+  onMobileAddClick?: () => void;
   onSave: () => void;
   onCancel: () => void;
   canSave: boolean;

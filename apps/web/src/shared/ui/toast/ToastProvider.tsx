@@ -8,7 +8,20 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
 
   const showToast = useCallback(
-    (message: string, variant: ToastVariant = 'error') => {
+    (
+      messageOrOptions: string | { message: string; variant?: ToastVariant },
+      variant: ToastVariant = 'error',
+    ) => {
+      // 객체 형태인지 문자열 형태인지 확인
+      const message =
+        typeof messageOrOptions === 'string'
+          ? messageOrOptions
+          : messageOrOptions.message;
+      const toastVariant =
+        typeof messageOrOptions === 'string'
+          ? variant
+          : (messageOrOptions.variant ?? 'error');
+
       let wasAdded = false;
       const id = `${Date.now()}-${Math.random()}`;
 
@@ -21,7 +34,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 
         // 중복이 아닐 때만 새 토스트 추가
         wasAdded = true;
-        return [...prev, { id, message, variant }];
+        return [...prev, { id, message, variant: toastVariant }];
       });
 
       // 실제로 추가되었을 때만 타이머 설정 (setToasts 밖에서 실행)
