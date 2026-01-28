@@ -298,3 +298,15 @@ export interface UseSidebarRecordsProps {
   selectedCategory?: string;
   categories: { id: string; label: string }[];
 }
+
+/**
+ * 검색 결과 데이터
+ */
+export interface SearchRecordsData {
+  records: SearchRecordItem[];
+  pagination: {
+    hasMore: boolean;
+    nextCursor: string | null;
+    totalCount: number;
+  };
+}

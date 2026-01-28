@@ -234,13 +234,12 @@ export const DeleteRecordResponseSchema = SuccessResponseSchema;
  * @api GET /records/search - 검색 응답의 records 배열 아이템
  */
 export const SearchRecordItemResponseSchema = z.object({
-  recordId: z.number(),
+  recordId: z.string(),
   title: z.string(),
   tags: z.array(z.string()),
-  locationName: z.string(),
+  locationName: z.string().nullable(),
   isFavorite: z.boolean(),
-  thumbnailImage: z.string().url().optional(),
-  date: z.string(),
+  thumbnailImage: z.string().nullable(),
   connectionCount: z.number(),
   createdAt: z.string().datetime(),
 });
