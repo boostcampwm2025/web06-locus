@@ -114,7 +114,7 @@ export default function MapViewport({
           swLat: fetchBounds.swLat,
           swLng: fetchBounds.swLng,
           page: 1,
-          limit: 500, // 클러스터링용: 충분한 데이터 필요 (좌표 포함)
+          limit: 100, //  클러스터링용 100개 제한
           sortOrder: 'desc',
         }
       : null,

@@ -70,8 +70,8 @@ export function useRecords(request: SearchRecordsRequest | null) {
  * - 필터링은 클라이언트 사이드에서 처리 (즉시 반응, 0ms 지연)
  * - 리스트 뷰 전용 (좌표 없음, 클러스터링 불가)
  *
- * limit: 500
- * - 리스트 뷰에서 충분한 데이터를 보여주기 위해 설정
+ * limit: 100
+ * - 백엔드 DTO 최대값에 맞춤
  * - 클라이언트 사이드 페이지네이션으로 추가 로딩 없이 처리 가능
  * - 메모리 효율적 (좌표 데이터 제외)
  */
@@ -82,7 +82,7 @@ export function useAllRecords(options?: { enabled?: boolean }) {
       getAllRecords({
         page: 1,
         sortOrder: 'desc',
-        limit: 500, // 리스트 뷰용: 충분한 데이터 (클라이언트 사이드 페이지네이션)
+        limit: 100, // 백엔드 DTO 최대값에 맞춤
       }),
     enabled: options?.enabled !== false,
     staleTime: 5 * 60 * 1000, // 5분
