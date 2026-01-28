@@ -8,7 +8,7 @@ export const ALLOWED_MIME_TYPES = [
   'image/heif',
 ];
 
-export const MAX_FILE_SIZE = 2 * 1024 * 1024; // 2MB
+export const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 export const MAX_FILE_COUNT = 5;
 
 export const imageFileFilter = (

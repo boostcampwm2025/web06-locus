@@ -17,6 +17,8 @@ import { MailModule } from './mail/mail.module';
 import { ConnectionsModule } from './connections/connections.module';
 import { TagsModule } from './tags/tags.module';
 import { MapsModule } from './maps/maps.module';
+import { NotificationModule } from './notification/notification.module';
+import { ImagesModule } from './images/images.module';
 
 @Module({
   imports: [
@@ -33,6 +35,8 @@ import { MapsModule } from './maps/maps.module';
     RecordsModule,
     TagsModule,
     MapsModule,
+    NotificationModule,
+    ImagesModule,
   ],
   controllers: [AppController],
   providers: [

@@ -73,7 +73,7 @@ export class GetRecordsQueryDto {
   @IsOptional()
   @IsInt()
   @Min(10)
-  @Max(100)
+  @Max(Number.MAX_SAFE_INTEGER)
   @Type(() => Number)
   limit = 10;
 
