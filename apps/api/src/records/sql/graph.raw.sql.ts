@@ -86,6 +86,7 @@ export const GRAPH_NEIGHBOR_RAWS_SQL = (
     r.location_address AS "locationAddress",
     r.created_at       AS "createdAt",
     r.updated_at       AS "updatedAt",
+    r.connections_count AS "connectionsCount",
 
     t."thumbnailPublicId",
     t."thumbnailUrl",
