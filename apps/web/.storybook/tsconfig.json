@@ -20,7 +20,8 @@
       "@features/onboarding/*": ["./src/features/onboarding/*"],
       "@features/record/*": ["./src/features/record/*"],
       "@features/settings/*": ["./src/features/settings/*"]
-    }
+    },
+    "tsBuildInfoFile": "../../../.cache/tsbuildinfo/tsconfig.storybook.tsbuildinfo"
   },
   "include": ["./**/*.ts", "./**/*.tsx"]
 }
