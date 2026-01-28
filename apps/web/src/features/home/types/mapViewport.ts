@@ -14,4 +14,6 @@ export interface MapViewportProps {
   targetLocation?: Coordinates | null;
   onTargetLocationChange?: (coordinates: Coordinates) => void;
   onCreateRecord?: (location: Location, coordinates?: Coordinates) => void;
+  /** 데스크톱 등에서 제공 시: 핀 클릭 시 바텀시트 대신 이 콜백만 호출 (바텀시트 미표시) */
+  onRecordPinClick?: (recordId: string) => void;
 }

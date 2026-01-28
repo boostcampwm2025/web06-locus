@@ -48,6 +48,9 @@ export function DesktopSidebar({
   onRecordSelect,
   onOpenFullDetail,
   onStartConnection,
+  pinSelectedRecordIds = null,
+  pinSelectedRecordsOverride = null,
+  onClearPinSelection,
 }: DesktopSidebarProps) {
   const navigate = useNavigate();
   const [isFilterOpen, setIsFilterOpen] = useState(false);
@@ -179,13 +182,33 @@ export function DesktopSidebar({
       ? isSearchLoading
       : isRecordsLoading;
 
-  // 무한 스크롤: 표시할 레코드만 선택
-  const records = useMemo(() => {
-    return allRecords.slice(0, displayCount);
-  }, [allRecords, displayCount]);
+  // 핀 선택 시 해당 기록만 필터링 (override가 있으면 사용, 없으면 allRecords에서 필터)
+  const filteredRecords = useMemo(() => {
+    if (pinSelectedRecordIds && pinSelectedRecordIds.length > 0) {
+      if (pinSelectedRecordsOverride && pinSelectedRecordsOverride.length > 0) {
+        return pinSelectedRecordsOverride.map((r) => ({
+          ...r,
+          connectionCount: r.connectionCount ?? 0,
+        }));
+      }
+      const idSet = new Set(pinSelectedRecordIds);
+      return allRecords.filter((r) => idSet.has(r.id));
+    }
+    return allRecords;
+  }, [allRecords, pinSelectedRecordIds, pinSelectedRecordsOverride]);
 
-  // 무한 스크롤: 더 많은 아이템이 있는지 확인
-  const hasMore = displayCount < allRecords.length;
+  // 무한 스크롤: 표시할 레코드만 선택 (핀 선택 모드에서는 전체 표시)
+  const records = useMemo(() => {
+    if (pinSelectedRecordIds && pinSelectedRecordIds.length > 0) {
+      return filteredRecords;
+    }
+    return filteredRecords.slice(0, displayCount);
+  }, [filteredRecords, displayCount, pinSelectedRecordIds]);
+
+  // 무한 스크롤: 더 많은 아이템이 있는지 확인 (핀 선택 모드에서는 더보기 없음)
+  const hasMore =
+    !(pinSelectedRecordIds && pinSelectedRecordIds.length > 0) &&
+    displayCount < filteredRecords.length;
 
   // 무한 스크롤: 더 많은 아이템 로드
   const loadMore = useCallback(() => {
@@ -309,11 +332,27 @@ export function DesktopSidebar({
                 </div>
               </SidebarSection>
 
+              {/* 핀 선택 시 전체 보기 버튼 */}
+              {pinSelectedRecordIds && pinSelectedRecordIds.length > 0 && (
+                <SidebarSection className="px-8 pb-2">
+                  <button
+                    type="button"
+                    onClick={onClearPinSelection}
+                    className="flex items-center gap-2 text-sm text-[#FE8916] font-medium hover:underline"
+                  >
+                    <ChevronRightIcon className="w-4 h-4 rotate-180" />
+                    전체 목록 보기
+                  </button>
+                </SidebarSection>
+              )}
+
               {/* 검색 결과 정보 + 필터 버튼 */}
               <SidebarSection>
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium text-gray-900">
-                    검색 결과 {records.length}
+                    {pinSelectedRecordIds && pinSelectedRecordIds.length > 0
+                      ? `선택한 위치 기록 ${records.length}`
+                      : `검색 결과 ${records.length}`}
                   </span>
                   <div className="relative">
                     <button
