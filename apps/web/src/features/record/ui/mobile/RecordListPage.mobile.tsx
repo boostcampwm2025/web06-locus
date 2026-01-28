@@ -10,6 +10,7 @@ import { ROUTES } from '@/router/routes';
 import { useBottomTabNavigation } from '@/shared/hooks/useBottomTabNavigation';
 import { useGetRecordsByBounds } from '@/features/record/hooks/useGetRecordsByBounds';
 import type { Record as ApiRecord } from '@locus/shared';
+import { extractTagNames } from '@/shared/utils/tagUtils';
 
 export interface RecordListItem {
   id: string;
@@ -104,7 +105,7 @@ export function RecordListPageMobile({
           address: record.location.address ?? '',
         },
         date: new Date(record.createdAt),
-        tags: record.tags,
+        tags: extractTagNames(record.tags),
         connectionCount: 0, // TODO: 연결 개수 API 연동 필요
         imageUrl: thumbnailUrl,
       };

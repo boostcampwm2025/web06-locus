@@ -8,6 +8,7 @@ import type { Record as ApiRecord } from '@locus/shared';
 import type { RecordConnectionItem } from '../../types/recordConnection';
 import type { RecordConnectionDrawerProps } from '@/features/record/types/record';
 import RecordSearchInput from '../RecordSearchInput';
+import { extractTagNames } from '@/shared/utils/tagUtils';
 import RecommendedRecordsSection from '../RecommendedRecordsSection';
 import RecordSelectionContextSheet from '../RecordSelectionContextSheet';
 import ConnectionConfirmDialog from './ConnectionConfirmDialog';
@@ -145,7 +146,7 @@ export default function RecordConnectionDrawer({
             record.location.name?.toLowerCase().includes(query) ?? false;
           const isAddressMatch =
             record.location.address?.toLowerCase().includes(query) ?? false;
-          const isTagMatch = record.tags.some((tag) =>
+          const isTagMatch = extractTagNames(record.tags).some((tag) =>
             tag.toLowerCase().includes(query),
           );
 
@@ -178,7 +179,7 @@ export default function RecordConnectionDrawer({
             address: record.location.address ?? '',
           },
           date: new Date(record.createdAt),
-          tags: record.tags,
+          tags: extractTagNames(record.tags),
           isRelated: Boolean(trimmedQuery),
           isConnected: connectedRecordIds.has(record.publicId),
           imageUrl: thumbnailUrl,
