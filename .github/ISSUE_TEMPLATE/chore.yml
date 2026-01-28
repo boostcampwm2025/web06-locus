@@ -1,0 +1,47 @@
+name: Chore
+description: 설정, 정리, 유지보수 작업
+title: '[Chore] '
+labels: []
+assignees: []
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## 🧹 작업 설명
+
+  - type: textarea
+    id: description
+    attributes:
+      label: 작업 내용
+      placeholder: |
+        * 어떤 설정/정리 작업인지
+        * 왜 지금 필요한지
+    validations:
+      required: true
+
+  - type: markdown
+    attributes:
+      value: |
+        ## 💡 완료조건
+
+  - type: textarea
+    id: completion-criteria
+    attributes:
+      label: 완료조건
+      placeholder: |
+        - Given: [현재 상태에서]
+        - When: [정리/설정을 수행하면]
+        - Then: [개발/운영에 어떤 개선이 있다]
+    validations:
+      required: true
+
+  - type: textarea
+    id: references
+    attributes:
+      label: 참고 자료 (선택)
+      placeholder: |
+        * 관련 문서
+        * 참고 링크
+    validations:
+      required: false

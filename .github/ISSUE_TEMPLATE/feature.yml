@@ -1,0 +1,50 @@
+name: Feature request
+description: 사용자에게 제공되는 기능 구현 이슈
+title: '[Feature] '
+labels: []
+assignees: []
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## 🚀 설명
+        구현하려는 기능과 배경을 간단히 설명해주세요.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: 기능 설명
+      placeholder: |
+        * 어떤 기능인지
+        * 왜 필요한지
+        * 사용자 입장에서 어떤 변화가 있는지
+    validations:
+      required: true
+
+  - type: markdown
+    attributes:
+      value: |
+        ## 💡 완료조건 (BDD)
+
+  - type: textarea
+    id: completion-criteria
+    attributes:
+      label: 완료조건
+      placeholder: |
+        - Given: [전제 조건]
+        - When: [사용자가 어떤 행동을 하면]
+        - Then: [어떤 결과가 발생한다]
+    validations:
+      required: true
+
+  - type: textarea
+    id: references
+    attributes:
+      label: 참고 자료 (선택)
+      placeholder: |
+        * 기획 문서
+        * 디자인 시안
+        * 레퍼런스 링크
+    validations:
+      required: false

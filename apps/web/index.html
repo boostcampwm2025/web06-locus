@@ -1,0 +1,216 @@
+<!doctype html>
+<html lang="ko">
+    <head>
+        <meta charset="UTF-8" />
+        <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta name="description" content="Locus - 생각이 태어난 장소를 기억하고, 그 생각으로 다시 돌아갈 수 있도록 돕는 공간 기반 기록 서비스" />
+        <title>Locus</title>
+
+        <!-- 로딩 페이지 LCP 최적화를 위한 Critical CSS -->
+        <style>
+            /* 로딩 페이지를 위한 Critical CSS - 빠른 LCP를 위해 인라인으로 작성 */
+            #root {
+                min-height: 100dvh;
+                width: 100%;
+            }
+            /* 초기 로딩 페이지 - React 마운트 전에 표시 */
+            #initial-loading {
+                position: fixed;
+                inset: 0;
+                z-index: 9999;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                background: linear-gradient(to bottom, #f0f9ff, #e0f2fe, #f0f9ff);
+            }
+            #initial-loading.hidden {
+                display: none;
+            }
+            .loading-container {
+                position: relative;
+                min-height: 100dvh;
+                width: 100%;
+                overflow: hidden;
+            }
+            .loading-background {
+                pointer-events: none;
+                position: absolute;
+                inset: 0;
+                background: radial-gradient(ellipse at center, rgba(255,255,255,0.9), transparent 60%);
+            }
+            .loading-main {
+                position: relative;
+                margin: 0 auto;
+                min-height: 100dvh;
+                max-width: 28rem;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                padding: 1.5rem;
+                text-align: center;
+            }
+            .loading-brand {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+            }
+            .loading-image-wrapper {
+                position: relative;
+            }
+            .loading-glow {
+                position: absolute;
+                inset: -2.5rem;
+                border-radius: 9999px;
+                background: rgba(125, 211, 252, 0.4);
+                filter: blur(3rem);
+            }
+            .loading-image {
+                position: relative;
+                height: 7rem;
+                width: 7rem;
+                user-select: none;
+                display: block;
+                animation: float 1.6s ease-in-out infinite;
+            }
+            @keyframes float {
+                0%, 100% { transform: translateY(0px); }
+                50% { transform: translateY(-10px); }
+            }
+            .loading-title {
+                margin-top: 1.5rem;
+                font-size: 2.25rem;
+                font-weight: 600;
+                letter-spacing: 0.025em;
+                color: #0f172a;
+            }
+            .loading-subtitle {
+                margin-top: 0.5rem;
+                font-size: 0.875rem;
+                color: #475569;
+            }
+            .loading-indicator {
+                margin-top: 2.5rem;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                gap: 1.25rem;
+                width: 100%;
+            }
+            .loading-dots {
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
+            }
+            .loading-dot {
+                height: 0.5rem;
+                width: 0.5rem;
+                border-radius: 9999px;
+                background: #818cf8;
+            }
+            .loading-dot:nth-child(1) {
+                animation: dot 1s ease-in-out infinite;
+                animation-delay: 0s;
+            }
+            .loading-dot:nth-child(2) {
+                animation: dot 1s ease-in-out infinite;
+                animation-delay: 0.15s;
+            }
+            .loading-dot:nth-child(3) {
+                animation: dot 1s ease-in-out infinite;
+                animation-delay: 0.3s;
+            }
+            @keyframes dot {
+                0%, 100% {
+                    opacity: 0.35;
+                    transform: translateY(0px);
+                }
+                50% {
+                    opacity: 1;
+                    transform: translateY(-4px);
+                }
+            }
+            .loading-progress {
+                height: 0.25rem;
+                width: 100%;
+                overflow: hidden;
+                border-radius: 9999px;
+                background: rgba(226, 232, 240, 0.7);
+            }
+            .loading-progress-bar {
+                height: 100%;
+                width: 33.333333%;
+                border-radius: 9999px;
+                background: #818cf8;
+                animation: progress 1.8s ease-in-out infinite;
+            }
+            @keyframes progress {
+                0% { transform: translateX(-120%); }
+                50% { transform: translateX(40%); }
+                100% { transform: translateX(220%); }
+            }
+            @media (prefers-reduced-motion: reduce) {
+                .loading-image,
+                .loading-dot,
+                .loading-progress-bar {
+                    animation: none !important;
+                }
+            }
+            /* Prevent layout shift */
+            img {
+                display: block;
+                max-width: 100%;
+                height: auto;
+            }
+        </style>
+
+        <link rel="preload" as="image" href="/loading-duck-1.webp" fetchpriority="high" />
+
+
+        <link rel="preconnect" href="https://oapi.map.naver.com" />
+        <link rel="preconnect" href="https://nrbe.map.naver.net" />
+        <link rel="dns-prefetch" href="https://oapi.map.naver.com" />
+        <link rel="dns-prefetch" href="https://nrbe.map.naver.net" />
+    </head>
+    <body>
+        <!-- 초기 로딩 페이지 - React 마운트 전에 표시 - LCP 최적화를 위해 -->
+        <div id="initial-loading">
+            <div class="loading-container">
+                <div class="loading-background"></div>
+                <main class="loading-main">
+                    <section class="loading-brand">
+                        <div class="loading-image-wrapper">
+                            <div class="loading-glow"></div>
+                            <img
+                                src="/loading-duck-1.webp"
+                                alt="character"
+                                width="112"
+                                height="112"
+                                class="loading-image"
+                                fetchpriority="high"
+                                loading="eager"
+                                decoding="async"
+                            />
+                        </div>
+                        <h1 class="loading-title">Locus</h1>
+                        <p class="loading-subtitle">당신의 위치 탐험이 시작됩니다</p>
+                    </section>
+                    <section class="loading-indicator">
+                        <div class="loading-dots">
+                            <span class="loading-dot"></span>
+                            <span class="loading-dot"></span>
+                            <span class="loading-dot"></span>
+                        </div>
+                        <div class="loading-progress">
+                            <div class="loading-progress-bar"></div>
+                        </div>
+                    </section>
+                </main>
+            </div>
+        </div>
+        <div id="root"></div>
+        <script type="module" src="/src/main.tsx"></script>
+    </body>
+</html>

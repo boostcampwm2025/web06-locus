@@ -1,0 +1,48 @@
+name: Bug report
+description: 버그 수정 이슈
+title: '[Bug] '
+labels: []
+assignees: []
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## 🐛 문제 설명
+
+  - type: textarea
+    id: description
+    attributes:
+      label: 문제 상황
+      placeholder: |
+        * 어떤 문제가 발생하는지
+        * 기대한 동작과 실제 동작
+    validations:
+      required: true
+
+  - type: markdown
+    attributes:
+      value: |
+        ## 💡 완료조건 (정상 동작 기준)
+
+  - type: textarea
+    id: completion-criteria
+    attributes:
+      label: 완료조건
+      placeholder: |
+        - Given: [특정 환경/상태에서]
+        - When: [동작을 수행하면]
+        - Then: [문제가 발생하지 않는다]
+    validations:
+      required: true
+
+  - type: textarea
+    id: references
+    attributes:
+      label: 재현 정보 / 로그 (선택)
+      placeholder: |
+        * 재현 방법
+        * 에러 로그
+        * 스크린샷 / 영상
+    validations:
+      required: false

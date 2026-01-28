@@ -1,8 +1,9 @@
 packages:
-    - fe
-    - be
+  - 'apps/*'
+  - 'packages/*'
 
 onlyBuiltDependencies:
     - '@nestjs/core'
     - esbuild
     - unrs-resolver
+

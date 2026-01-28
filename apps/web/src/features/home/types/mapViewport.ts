@@ -1,0 +1,17 @@
+import type { Record } from '@/features/record/types';
+import type { Coordinates, Location } from '@/features/record/types';
+
+export interface MapViewportProps {
+  className?: string;
+  createdRecordPins?: {
+    record: Record;
+    coordinates?: Coordinates;
+  }[];
+  connectedRecords?: {
+    fromId: string;
+    toId: string;
+  } | null;
+  targetLocation?: Coordinates | null;
+  onTargetLocationChange?: (coordinates: Coordinates) => void;
+  onCreateRecord?: (location: Location, coordinates?: Coordinates) => void;
+}

@@ -1,0 +1,173 @@
+import { ApiProperty } from '@nestjs/swagger';
+import {
+  ImageModel,
+  RecordModel,
+  RecordModelWithoutCoords,
+} from '../records.types';
+import { ImageResponseDto, RecordTagDto } from './record-response.dto';
+
+export class RecordLocationDto {
+  @ApiProperty({ description: '위도', example: 37.5219 })
+  latitude: number;
+
+  @ApiProperty({ description: '경도', example: 127.0411 })
+  longitude: number;
+
+  @ApiProperty({
+    description: '장소 이름',
+    example: '광화문',
+    nullable: true,
+  })
+  name: string | null;
+
+  @ApiProperty({
+    description: '주소',
+    example: '서울특별시 강남구 삼성동',
+    nullable: true,
+  })
+  address: string | null;
+}
+
+export class RecordLocationWithoutCoordsDto {
+  @ApiProperty({
+    description: '장소 이름',
+    example: '광화문',
+    nullable: true,
+  })
+  name: string | null;
+
+  @ApiProperty({
+    description: '주소',
+    example: '서울특별시 강남구 삼성동',
+    nullable: true,
+  })
+  address: string | null;
+}
+
+export class RecordListItemDto {
+  @ApiProperty({ description: '기록 공개 ID', example: 'rec_7K9mP2nQ5xL' })
+  publicId: string;
+
+  @ApiProperty({ description: '기록 제목', example: '한강 산책' })
+  title: string;
+
+  @ApiProperty({
+    description: '기록 내용',
+    example: '날씨가 좋아서 한강을 따라 걸었다.',
+    nullable: true,
+  })
+  content: string | null;
+
+  @ApiProperty({
+    description: '위치 정보',
+    oneOf: [
+      { $ref: '#/components/schemas/RecordLocationDto' },
+      { $ref: '#/components/schemas/RecordLocationWithoutCoordsDto' },
+    ],
+  })
+  location: RecordLocationDto | RecordLocationWithoutCoordsDto;
+
+  @ApiProperty({ description: '즐겨찾기 여부', example: false })
+  isFavorite: boolean;
+
+  @ApiProperty({
+    description: '태그 목록',
+    type: [RecordTagDto],
+  })
+  tags: RecordTagDto[];
+
+  @ApiProperty({
+    description: '이미지 목록',
+    type: [ImageResponseDto],
+  })
+  images: ImageResponseDto[];
+
+  @ApiProperty({
+    description: '생성 시간',
+    example: '2024-01-15T14:30:00Z',
+  })
+  createdAt: string;
+
+  @ApiProperty({
+    description: '수정 시간',
+    example: '2024-01-15T14:30:00Z',
+  })
+  updatedAt: string;
+
+  @ApiProperty({
+    description: '연결 수 (다른 기록에서 이 기록으로 연결된 수)',
+    example: 3,
+  })
+  connectionCount: number;
+}
+
+export class RecordListResponseDto {
+  @ApiProperty({
+    description: '기록 목록',
+    type: [RecordListItemDto],
+  })
+  records: RecordListItemDto[];
+
+  @ApiProperty({
+    description: '전체 기록 수',
+    example: 543,
+  })
+  totalCount: number;
+
+  static of(
+    records: (RecordModel | RecordModelWithoutCoords)[],
+    tagsMap: Map<bigint, RecordTagDto[]>,
+    imagesMap: Map<bigint, ImageModel[]>,
+    totalCount: number,
+  ): RecordListResponseDto {
+    return {
+      records: records.map((r) => {
+        const tags = tagsMap.get(r.id) ?? [];
+        const images = imagesMap.get(r.id) ?? [];
+
+        return {
+          publicId: r.publicId,
+          title: r.title,
+          content: r.content,
+          location:
+            'latitude' in r
+              ? {
+                  latitude: r.latitude,
+                  longitude: r.longitude,
+                  name: r.locationName,
+                  address: r.locationAddress,
+                }
+              : { name: r.locationName, address: r.locationAddress },
+          isFavorite: r.isFavorite,
+          tags,
+          images: images.map((img) => ({
+            publicId: img.publicId,
+            thumbnail: {
+              url: img.thumbnailUrl,
+              width: img.thumbnailWidth,
+              height: img.thumbnailHeight,
+              size: img.thumbnailSize,
+            },
+            medium: {
+              url: img.mediumUrl,
+              width: img.mediumWidth,
+              height: img.mediumHeight,
+              size: img.mediumSize,
+            },
+            original: {
+              url: img.originalUrl,
+              width: img.originalWidth,
+              height: img.originalHeight,
+              size: img.originalSize,
+            },
+            order: img.order,
+          })),
+          createdAt: r.createdAt.toISOString(),
+          updatedAt: r.updatedAt.toISOString(),
+          connectionCount: r.connectionsCount,
+        };
+      }),
+      totalCount,
+    };
+  }
+}

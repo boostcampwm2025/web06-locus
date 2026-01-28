@@ -1,0 +1,17 @@
+# 모든 텍스트 파일 기본 설정 (OS 간 줄바꿈 통일)
+* text=auto eol=lf
+
+# Lock files - 항상 LF로 통일 (OS 간 충돌 방지)
+pnpm-lock.yaml text eol=lf
+
+# 바이너리 파일 (줄바꿈 변환 대상 제외)
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.svg binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.eot binary

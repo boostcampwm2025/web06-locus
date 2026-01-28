@@ -1,0 +1,39 @@
+{
+  "compilerOptions": {
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
+    "target": "ES2022",
+    "useDefineForClassFields": true,
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "types": ["vite/client", "navermaps"],
+    "skipLibCheck": true,
+
+    "moduleResolution": "bundler",
+    "resolvePackageJsonExports": true,
+    "allowImportingTsExtensions": true,
+    "verbatimModuleSyntax": true,
+    "moduleDetection": "force",
+    "noEmit": true,
+    "jsx": "react-jsx",
+
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "erasableSyntaxOnly": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedSideEffectImports": true,
+
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"],
+      "@public/*": ["./public/*"],
+      "@features/auth/*": ["./src/features/auth/*"],
+      "@features/connection/*": ["./src/features/connection/*"],
+      "@features/home/*": ["./src/features/home/*"],
+      "@features/onboarding/*": ["./src/features/onboarding/*"],
+      "@features/record/*": ["./src/features/record/*"],
+      "@features/settings/*": ["./src/features/settings/*"]
+    }
+  },
+  "include": ["src", ".storybook/**/*"]
+}

@@ -1,0 +1,26 @@
+services:
+  locus-elasticsearch:
+    image: ${PROD_REGISTRY}/locus-elasticsearch:latest
+    container_name: locus-elasticsearch
+    ports:
+      - '9200:9200'
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - xpack.security.http.ssl.enabled=false
+      - 'ES_JAVA_OPTS=-Xms4g -Xmx4g'
+    volumes:
+      - ./elasticsearch_data:/usr/share/elasticsearch/data
+    restart: always
+
+  locus-kibana:
+    image: ${PROD_REGISTRY}/locus-kibana:latest
+    container_name: locus-kibana
+    ports:
+      - '5601:5601'
+    environment:
+      - ELASTICSEARCH_HOSTS=http://locus-elasticsearch:9200
+      - I18N_LOCALE=ko-KR
+    depends_on:
+      - locus-elasticsearch
+    restart: always

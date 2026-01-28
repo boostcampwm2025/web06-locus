@@ -1,0 +1,73 @@
+services:
+  elasticsearch:
+    build:
+      context: .
+      dockerfile: Dockerfile-es
+    container_name: locus-elasticsearch
+    ports:
+      - 9200:9200 # 9200번 포트에서 Elasticsearch 실행
+    environment:
+      # 아래 설정은 개발/테스트 환경에서 간단하게 테스트하기 위한 옵션 (운영 환경에서는 설정하면 안 됨)
+      - discovery.type=single-node # 단일 노드
+      - xpack.security.enabled=false # 보안 설정
+      - xpack.security.http.ssl.enabled=false # 보안 설정
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    networks:
+      - locus-network
+  kibana:
+    image: docker.elastic.co/kibana/kibana:9.2.3
+    container_name: locus-kibana
+    ports:
+      - 5601:5601 # 5601번 포트에서 kibana 실행
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200 # kibana에게 통신할 Elasticsearch 주소 알려주기
+    depends_on:
+      - elasticsearch
+    networks:
+      - locus-network
+
+  postgres:
+    image: postgis/postgis:17-3.4
+    container_name: locus-postgres
+    ports:
+      - '5432:5432'
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=1234
+      - POSTGRES_DB=locus
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - locus-network
+
+  redis:
+    image: redis:8.4.0-alpine
+    container_name: locus-redis
+    ports:
+      - '6379:6379'
+    networks:
+      - locus-network
+    volumes:
+      - redis_data:/data
+
+  rabbitmq:
+    image: rabbitmq:4-management
+    container_name: locus-rabbitmq
+    ports:
+      - '5672:5672' # AMQP 용도 port
+      - '15672:15672' # Management UI용 port
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    networks:
+      - locus-network
+
+volumes:
+  elasticsearch_data:
+  postgres_data:
+  redis_data:
+
+networks:
+  locus-network:
+    driver: bridge

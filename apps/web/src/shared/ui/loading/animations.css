@@ -1,0 +1,62 @@
+/* 공통 애니메이션 keyframes */
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* 위아래로 부드럽게 떠다니는 애니메이션 (V1, V3 공통) */
+@keyframes float {
+    0%,
+    100% {
+        transform: translateY(0px);
+    }
+    50% {
+        transform: translateY(-10px);
+    }
+}
+
+/* 호흡 효과 - 살짝 커졌다 작아지는 애니메이션 (V2, V3 공통) */
+@keyframes breathe {
+    0%,
+    100% {
+        scale: 1;
+    }
+    50% {
+        scale: 1.05;
+    }
+}
+
+/* 미세한 회전 애니메이션 (V2, V3 공통) */
+@keyframes microRotate {
+    0%,
+    100% {
+        rotate: -2deg;
+    }
+    50% {
+        rotate: 2deg;
+    }
+}
+
+/* 그림자 크기와 투명도 변화 애니메이션 (V2, V3 공통) */
+@keyframes shadow {
+    0%,
+    100% {
+        transform: scaleX(1);
+        opacity: 0.22;
+    }
+    50% {
+        transform: scaleX(0.82);
+        opacity: 0.14;
+    }
+}
+
+/* 모션 줄이기 선호하는 유저 대응 - 모든 로딩 페이지에 공통 적용 */
+@media (prefers-reduced-motion: reduce) {
+    img[alt='loading character'],
+    .reduce-motion,
+    * {
+        animation: none !important;
+    }
+}

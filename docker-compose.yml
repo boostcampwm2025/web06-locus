@@ -1,0 +1,91 @@
+services:
+  locus-api:
+    image: locus-dev-registry.kr.ncr.ntruss.com/locus-api:latest
+    container_name: locus-api
+    ports:
+      - '3000:3000'
+    env_file:
+      - .env.prod
+    depends_on:
+      - locus-redis
+      - locus-rabbitmq
+      - locus-elasticsearch
+    networks:
+      - locus-network
+    restart: always
+
+  locus-redis:
+    image: redis:7-alpine
+    container_name: locus-redis
+    ports:
+      - '6379:6379'
+    networks:
+      - locus-network
+    restart: always
+
+  locus-elasticsearch:
+    build:
+      context: .
+      dockerfile: ./apps/api/Dockerfile-es
+    container_name: locus-elasticsearch
+    ports:
+      - '9200:9200'
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - xpack.security.http.ssl.enabled=false
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    networks:
+      - locus-network
+    restart: always
+
+  locus-kibana:
+    image: docker.elastic.co/kibana/kibana-wolfi:9.2.4
+    container_name: locus-kibana
+    ports:
+      - '5601:5601'
+    environment:
+      - ELASTICSEARCH_HOSTS=http://locus-elasticsearch:9200
+      - I18N_LOCALE=ko-KR
+    depends_on:
+      - locus-elasticsearch
+    networks:
+      - locus-network
+    restart: always
+
+  locus-rabbitmq:
+    image: rabbitmq:4-management
+    container_name: locus-rabbitmq
+    hostname: locus-rabbit-node
+    ports:
+      - '5672:5672'
+      - '15672:15672'
+    environment:
+      - RABBITMQ_DEFAULT_USER=${RABBITMQ_DEFAULT_USER}
+      - RABBITMQ_DEFAULT_PASS=${RABBITMQ_DEFAULT_PASS}
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - locus-network
+    restart: always
+
+  locus-nginx:
+    image: locus-dev-registry.kr.ncr.ntruss.com/locus-nginx:latest
+    container_name: locus-nginx
+    ports:
+      - '80:80'
+      - '443:443'
+    depends_on:
+      - locus-api
+    networks:
+      - locus-network
+    restart: always
+
+networks:
+  locus-network:
+    driver: bridge
+
+volumes:
+  elasticsearch_data:
+  rabbitmq_data:
