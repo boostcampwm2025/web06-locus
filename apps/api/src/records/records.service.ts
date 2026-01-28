@@ -352,10 +352,9 @@ export class RecordsService {
     ]);
 
     const recordIds = records.map((r) => r.id);
-    const [tagsMap, imagesMap, connectionCountMap] = await Promise.all([
+    const [tagsMap, imagesMap] = await Promise.all([
       this.recordTagsService.getTagsByRecordIds(recordIds),
       this.getImagesByRecordIds({ recordIds }),
-      this.getConnectionCountByRecordIds(recordIds),
     ]);
 
     return RecordListResponseDto.of(
@@ -363,7 +362,6 @@ export class RecordsService {
       tagsMap,
       imagesMap,
       countResult[0].count,
-      connectionCountMap,
     );
   }
 
@@ -405,6 +403,7 @@ export class RecordsService {
           isFavorite: true,
           createdAt: true,
           updatedAt: true,
+          connectionsCount: true,
         },
         orderBy: { createdAt: dto.sortOrder },
         skip: offset,
@@ -414,19 +413,12 @@ export class RecordsService {
     ]);
 
     const recordIds = records.map((r) => r.id);
-    const [tagsMap, imagesMap, connectionCountMap] = await Promise.all([
+    const [tagsMap, imagesMap] = await Promise.all([
       this.recordTagsService.getTagsByRecordIds(recordIds),
       this.getImagesByRecordIds({ recordIds, onlyFirst: true }),
-      this.getConnectionCountByRecordIds(recordIds),
     ]);
 
-    return RecordListResponseDto.of(
-      records,
-      tagsMap,
-      imagesMap,
-      totalCount,
-      connectionCountMap,
-    );
+    return RecordListResponseDto.of(records, tagsMap, imagesMap, totalCount);
   }
 
   private getEndOfDay(dateString: string): Date {
@@ -998,31 +990,6 @@ export class RecordsService {
       const arr = map.get(recordId);
       if (arr) arr.push(imageData);
       else map.set(recordId, [imageData]);
-    }
-
-    return map;
-  }
-
-  private async getConnectionCountByRecordIds(
-    recordIds: bigint[],
-  ): Promise<Map<bigint, number>> {
-    if (recordIds.length === 0) {
-      return new Map();
-    }
-
-    const counts = await this.prisma.connection.groupBy({
-      by: ['toRecordId'],
-      where: {
-        toRecordId: { in: recordIds },
-      },
-      _count: {
-        toRecordId: true,
-      },
-    });
-
-    const map = new Map<bigint, number>();
-    for (const item of counts) {
-      map.set(item.toRecordId, item._count.toRecordId);
     }
 
     return map;
