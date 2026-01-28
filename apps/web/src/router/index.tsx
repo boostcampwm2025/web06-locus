@@ -47,9 +47,7 @@ const RecordWritePageRoute = lazy(() => import('./RecordWritePageRoute'));
 const OnboardingPage = lazy(
   () => import('@/features/onboarding/pages/OnboardingPage'),
 );
-const SettingsPageDesktop = lazy(
-  () => import('@/features/settings/ui/desktop/SettingsPage.desktop'),
-);
+const SettingsPage = lazy(() => import('@/features/settings/ui/SettingsPage'));
 
 // 로딩 폴백 컴포넌트
 const RouteLoadingFallback = () => {
@@ -476,9 +474,7 @@ export function AppRoutes() {
           path={ROUTES.SETTINGS}
           element={
             <ProtectedRoute>
-              <Suspense fallback={<RouteLoadingFallback />}>
-                <SettingsPageDesktop />
-              </Suspense>
+              <SettingsPage />
             </ProtectedRoute>
           }
         />

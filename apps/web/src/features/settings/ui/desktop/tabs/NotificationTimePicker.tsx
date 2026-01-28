@@ -2,6 +2,13 @@ import { useState, useRef, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { AnimatePresence, motion } from 'motion/react';
 import { ClockIcon } from '@/shared/ui/icons/ClockIcon';
+import {
+  formatDisplayTime,
+  formatTimeString,
+  parseTimeString,
+  HOURS,
+  MINUTES,
+} from '@features/settings/utils/timeUtils';
 
 const ITEM_HEIGHT = 42;
 const PADDING_HEIGHT = 40;
@@ -26,36 +33,20 @@ export function NotificationTimePicker({
   const [panelPosition, setPanelPosition] = useState({ top: 0, right: 0 });
 
   // "HH:mm" 형식을 파싱
-  const [parsedHours, parsedMinutes] = useMemo(
-    () => value.split(':').map(Number),
+  const { hour: parsedHours, minute: parsedMinutes } = useMemo(
+    () => parseTimeString(value),
     [value],
   );
 
   // 내부 상태 관리 (사용자 선택 반영)
-  const [selectedHour, setSelectedHour] = useState(parsedHours || 19);
-  const [selectedMinute, setSelectedMinute] = useState(parsedMinutes || 0);
+  const [selectedHour, setSelectedHour] = useState(parsedHours);
+  const [selectedMinute, setSelectedMinute] = useState(parsedMinutes);
 
   // value prop이 변경되면 내부 상태 동기화
   useEffect(() => {
-    if (parsedHours !== undefined && parsedMinutes !== undefined) {
-      setSelectedHour(parsedHours);
-      setSelectedMinute(parsedMinutes);
-    }
+    setSelectedHour(parsedHours);
+    setSelectedMinute(parsedMinutes);
   }, [parsedHours, parsedMinutes]);
-
-  // 시간 옵션 생성
-  const hoursList = useMemo(() => Array.from({ length: 24 }, (_, i) => i), []);
-  const minutesList = useMemo(
-    () => Array.from({ length: 60 }, (_, i) => i),
-    [],
-  );
-
-  // 시간 포맷팅 헬퍼
-  const formatTime = (hour: number, minute: number) => {
-    const period = hour >= 12 ? '오후' : '오전';
-    const displayHour = hour > 12 ? hour - 12 : hour === 0 ? 12 : hour;
-    return `${period} ${String(displayHour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
-  };
 
   // 버튼 위치 계산
   useEffect(() => {
@@ -115,7 +106,7 @@ export function NotificationTimePicker({
 
   // 시간/분 변경 시 부모에 전달
   useEffect(() => {
-    const timeString = `${String(selectedHour).padStart(2, '0')}:${String(selectedMinute).padStart(2, '0')}`;
+    const timeString = formatTimeString(selectedHour, selectedMinute);
     onChange(timeString);
   }, [selectedHour, selectedMinute, onChange]);
 
@@ -137,7 +128,7 @@ export function NotificationTimePicker({
           <div className="flex items-start justify-center gap-6">
             <ScrollColumn
               label="시간"
-              list={hoursList}
+              list={HOURS}
               selected={selectedHour}
               onSelect={setSelectedHour}
               scrollRef={hourScrollRef}
@@ -147,7 +138,7 @@ export function NotificationTimePicker({
 
             <ScrollColumn
               label="분"
-              list={minutesList}
+              list={MINUTES}
               selected={selectedMinute}
               onSelect={setSelectedMinute}
               scrollRef={minuteScrollRef}
@@ -158,7 +149,7 @@ export function NotificationTimePicker({
           <div className="mt-3 pt-3 border-t border-gray-100 text-center">
             <p className="text-xs text-gray-400 mb-1">선택된 시간</p>
             <p className="text-sm font-black text-gray-900">
-              {formatTime(selectedHour, selectedMinute)}
+              {formatDisplayTime(selectedHour, selectedMinute)}
             </p>
           </div>
         </motion.div>
@@ -175,7 +166,7 @@ export function NotificationTimePicker({
           className="flex items-center gap-2 bg-white border-none rounded-xl px-6 py-3 font-black text-gray-900 shadow-sm hover:shadow-md transition-all focus:ring-2 focus:ring-orange-100 outline-none"
         >
           <ClockIcon className="w-5 h-5 text-[#FE8916]" />
-          <span>{formatTime(selectedHour, selectedMinute)}</span>
+          <span>{formatDisplayTime(selectedHour, selectedMinute)}</span>
         </button>
       </div>
       {typeof document !== 'undefined' &&

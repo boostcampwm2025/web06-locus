@@ -66,9 +66,8 @@ export function ProfileTab({ onSave }: ProfileTabProps) {
           <div>
             <h3 className="font-bold text-gray-900 mb-1">사용자 프로필</h3>
             <p className="text-sm text-gray-400 leading-relaxed">
-              지도와 소셜 공간에서 보여질 프로필입니다.
-              <br />
-              프로필 이미지를 클릭하면 랜덤으로 변경됩니다.
+              프로필 이미지를 클릭하면 <br />
+              랜덤으로 변경됩니다.
             </p>
           </div>
           <div className="col-span-2 flex items-center gap-6">
@@ -112,9 +111,6 @@ export function ProfileTab({ onSave }: ProfileTabProps) {
               <span>lucus@example.com</span>
               <CheckIcon className="w-[18px] h-[18px] text-[#73C92E]" />
             </div>
-            <p className="text-xs text-gray-400 mt-3 px-1 italic">
-              이메일 변경은 본인 인증이 필요합니다.
-            </p>
           </div>
         </section>
       </div>

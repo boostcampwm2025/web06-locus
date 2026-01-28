@@ -71,3 +71,39 @@ export interface LogoutConfirmModalProps {
   onConfirm: () => void;
   onCancel: () => void;
 }
+
+/**
+ * 모바일 설정 페이지 Props
+ */
+export interface SettingsPageMobileProps {
+  onClose?: () => void;
+  onLogout?: () => void;
+}
+
+/**
+ * 시간 선택 모달 Props
+ */
+export interface TimePickerModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  initialTime: { hour: number; minute: number };
+  onSave: (time: { hour: number; minute: number }) => void;
+}
+
+/**
+ * 커스텀 셀렉트 Props
+ */
+export interface CustomSelectProps {
+  value: number;
+  options: number[];
+  onChange: (val: number) => void;
+  label: string;
+}
+
+/**
+ * 토글 컴포넌트 Props
+ */
+export interface ToggleProps {
+  enabled: boolean;
+  onChange: (val: boolean) => void;
+}
