@@ -26,6 +26,7 @@ export type {
   FormSectionProps,
   TextAreaFieldProps,
   ImageUploadButtonProps,
+  ImageDropzoneProps,
   FormInputFieldProps,
 } from './form';
 export type { OptionButtonProps, SocialLoginButtonProps } from './button';
@@ -37,6 +38,12 @@ export type {
 } from './bottomSheet';
 export type { GeolocationState } from './geolocation';
 export type { UseMapInstanceOptions } from './map';
+export type {
+  ImageCompressionOptions,
+  ImageValidationError,
+  UseImageUploadOptions,
+  UseImageUploadReturn,
+} from './image';
 export type {
   Location,
   Image,
@@ -60,3 +67,16 @@ export type {
   ActionSheetProps,
   ConfirmDialogProps,
 } from './dialog';
+export type { UseIntersectionObserverProps } from './intersectionObserver';
+export type {
+  DesktopCalendarProps,
+  DesktopFilterPanelProps,
+  DesktopSidebarProps,
+  FilterFieldProps,
+  SortOrderButtonProps,
+  SidebarSectionProps,
+  RecordCardProps,
+  ConnectionGraphCTAProps,
+  ConnectedRecordsSectionProps,
+  RecordSummaryPanelProps,
+} from './desktop';

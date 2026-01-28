@@ -1,4 +1,4 @@
-import { apiClient, buildApiUrl } from '../apiClient';
+import { apiClient, buildApiUrl } from '../index';
 import { API_ENDPOINTS } from '../constants';
 import type {
   SignupRequest,
@@ -106,6 +106,7 @@ async function fetchAndThrowAuthErrorIfNotOk(
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
+    credentials: 'include', // 쿠키 전송/수신을 위해 필수
   });
 
   if (!response.ok) {

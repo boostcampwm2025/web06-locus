@@ -1,6 +1,6 @@
 import type { OAuthProvider } from '@/shared/types';
 import { API_ENDPOINTS } from '@/infra/api/constants';
-import { buildApiUrl } from '@/infra/api/apiClient';
+import { buildApiUrl } from '@/infra/api';
 
 /**
  * OAuth 로그인 URL 생성

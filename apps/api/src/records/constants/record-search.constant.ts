@@ -1,6 +1,7 @@
 import {
   MappingTypeMapping,
   IndicesIndexSettings,
+  Sort,
 } from 'node_modules/@elastic/elasticsearch/lib/api/types';
 
 export const RECORD_INDEX_NAME = 'records';
@@ -39,3 +40,16 @@ export const RECORD_SEARCH_MAPPING: MappingTypeMapping = {
     createdAt: { type: 'date' },
   },
 };
+
+export const RECORD_SEARCH_FIELDS = [
+  'title^10',
+  'tags^5',
+  'locationName^3',
+  'content^2',
+];
+
+export const RECORD_SEARCH_SORT_CRITERIA: Sort = [
+  { isFavorite: 'desc' },
+  { _score: { order: 'desc' } },
+  { recordId: 'desc' },
+];

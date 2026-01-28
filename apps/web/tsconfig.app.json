@@ -27,8 +27,13 @@
     "paths": {
       "@/*": ["./src/*"],
       "@public/*": ["./public/*"],
-      "@features/home/*": ["./src/features/home/*"]
+      "@features/auth/*": ["./src/features/auth/*"],
+      "@features/connection/*": ["./src/features/connection/*"],
+      "@features/home/*": ["./src/features/home/*"],
+      "@features/onboarding/*": ["./src/features/onboarding/*"],
+      "@features/record/*": ["./src/features/record/*"],
+      "@features/settings/*": ["./src/features/settings/*"]
     }
   },
-  "include": ["src"]
+  "include": ["src", ".storybook/**/*"]
 }
