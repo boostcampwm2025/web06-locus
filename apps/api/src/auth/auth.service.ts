@@ -14,6 +14,7 @@ import { Provider } from '@prisma/client';
 import {
   EmailAlreadyExistsException,
   EmailAlreadySentException,
+  EmailDeliveryFailedException,
   EmailVerificationExpiredException,
   EmailVerificationFailedException,
   EmailVerificationTooManyTriesException,
@@ -70,13 +71,18 @@ export class AuthService {
       retryCount: 0,
     };
 
-    await this.redisService.set(
-      redisKey,
-      JSON.stringify(pendingUser),
-      this.VALIDATE_EMAIL_TTL,
-    );
+    try {
+      await this.mailService.sendVerificationEmail(email, code);
 
-    await this.mailService.sendVerificationEmail(email, code);
+      // 이메일 발송 성공 시에만 Redis에 기록
+      await this.redisService.set(
+        redisKey,
+        JSON.stringify(pendingUser),
+        this.VALIDATE_EMAIL_TTL,
+      );
+    } catch (_error) {
+      throw new EmailDeliveryFailedException();
+    }
   }
 
   async login(request: LoginRequest) {
