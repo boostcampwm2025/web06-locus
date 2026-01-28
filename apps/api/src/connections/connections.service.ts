@@ -80,11 +80,8 @@ export class ConnectionsService {
 
     await this.prismaService.$transaction(async (tx) => {
       //양방향 연결 삭제
-      await tx.connection.delete({
-        where: { id: findOne.id },
-      });
-      await tx.connection.delete({
-        where: { id: findPair.id },
+      await tx.connection.deleteMany({
+        where: { id: { in: [findOne.id, findPair.id] } },
       });
 
       await this.recordsService.incrementConnectionsCount(

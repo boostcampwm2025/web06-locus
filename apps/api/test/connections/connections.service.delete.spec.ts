@@ -10,6 +10,7 @@ interface PrismaMock {
     findFirst: jest.Mock;
     create: jest.Mock;
     delete: jest.Mock;
+    deleteMany: jest.Mock;
   };
   $transaction: jest.Mock;
 }
@@ -25,6 +26,7 @@ describe('ConnectionsService - delete / findPairConnections', () => {
         findFirst: jest.fn(),
         create: jest.fn(),
         delete: jest.fn(),
+        deleteMany: jest.fn(),
       },
       $transaction: jest.fn(),
     };
@@ -144,7 +146,7 @@ describe('ConnectionsService - delete / findPairConnections', () => {
       );
 
       expect(prismaServiceMock.$transaction).not.toHaveBeenCalled();
-      expect(prismaServiceMock.connection.delete).not.toHaveBeenCalled();
+      expect(prismaServiceMock.connection.deleteMany).not.toHaveBeenCalled();
     });
 
     test('짝(반대방향) 연결이 없으면 PairConnectionNotFoundException을 던지고, 트랜잭션 삭제는 호출하지 않는다', async () => {
@@ -167,7 +169,7 @@ describe('ConnectionsService - delete / findPairConnections', () => {
       );
 
       expect(prismaServiceMock.$transaction).not.toHaveBeenCalled();
-      expect(prismaServiceMock.connection.delete).not.toHaveBeenCalled();
+      expect(prismaServiceMock.connection.deleteMany).not.toHaveBeenCalled();
     });
 
     test('연결과 짝 연결이 모두 존재하면 트랜잭션으로 2건 삭제를 수행하고 publicId/pairPublicId를 반환한다', async () => {
@@ -190,8 +192,8 @@ describe('ConnectionsService - delete / findPairConnections', () => {
         .mockResolvedValueOnce(findOne)
         .mockResolvedValueOnce(findPair);
 
-      // delete는 실제 결과를 사용하지 않으므로 대충 반환
-      prismaServiceMock.connection.delete.mockResolvedValue({} as any);
+      // deleteMany는 실제 결과를 사용하지 않으므로 대충 반환
+      prismaServiceMock.connection.deleteMany.mockResolvedValue({} as any);
 
       // transaction은 배열/콜백 모두 처리
       prismaServiceMock.$transaction.mockImplementation(
@@ -211,14 +213,11 @@ describe('ConnectionsService - delete / findPairConnections', () => {
       });
 
       expect(prismaServiceMock.$transaction).toHaveBeenCalledTimes(1);
-      expect(prismaServiceMock.connection.delete).toHaveBeenCalledTimes(2);
+      expect(prismaServiceMock.connection.deleteMany).toHaveBeenCalledTimes(1);
 
-      // delete 호출 인자 검증
-      expect(prismaServiceMock.connection.delete).toHaveBeenNthCalledWith(1, {
-        where: { id: 100n },
-      });
-      expect(prismaServiceMock.connection.delete).toHaveBeenNthCalledWith(2, {
-        where: { id: 200n },
+      // deleteMany 호출 인자 검증
+      expect(prismaServiceMock.connection.deleteMany).toHaveBeenCalledWith({
+        where: { id: { in: [100n, 200n] } },
       });
     });
   });
