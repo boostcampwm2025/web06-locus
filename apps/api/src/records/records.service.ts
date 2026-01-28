@@ -236,7 +236,7 @@ export class RecordsService {
 
     const recordIds = records.map((r) => r.id);
     const [tagsMap, imagesMap] = await Promise.all([
-      this.recordTagsService.fetchTagsByRecordIds(recordIds),
+      this.recordTagsService.getTagsByRecordIds(recordIds),
       this.getImagesByRecordIds({ recordIds }),
     ]);
 
@@ -278,7 +278,7 @@ export class RecordsService {
 
     const recordIds = records.map((r) => r.id);
     const [tagsMap, imagesMap, connectionCountMap] = await Promise.all([
-      this.recordTagsService.fetchTagsByRecordIds(recordIds),
+      this.recordTagsService.getTagsByRecordIds(recordIds),
       this.getImagesByRecordIds({ recordIds }),
       this.getConnectionCountByRecordIds(recordIds),
     ]);
@@ -340,7 +340,7 @@ export class RecordsService {
 
     const recordIds = records.map((r) => r.id);
     const [tagsMap, imagesMap, connectionCountMap] = await Promise.all([
-      this.recordTagsService.fetchTagsByRecordIds(recordIds),
+      this.recordTagsService.getTagsByRecordIds(recordIds),
       this.getImagesByRecordIds({ recordIds, onlyFirst: true }),
       this.getConnectionCountByRecordIds(recordIds),
     ]);

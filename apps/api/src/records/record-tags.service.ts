@@ -64,7 +64,7 @@ export class RecordTagsService {
     return recordTags.map((recordTag) => recordTag.tag);
   }
 
-  async fetchTagsByRecordIds(
+  async getTagsByRecordIds(
     recordIds: bigint[],
   ): Promise<Map<bigint, RecordTagDto[]>> {
     if (recordIds.length === 0) {
