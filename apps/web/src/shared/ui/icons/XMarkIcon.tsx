@@ -1,21 +1,24 @@
 import type { IconProps } from '../../types';
 
-export function ArrowLeftIcon({ className, ...props }: IconProps) {
+/**
+ * 모바일 설정용 X 마크 아이콘
+ */
+export function XMarkIcon({ className, ...props }: IconProps) {
   return (
     <svg
       {...props}
       className={className}
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 24 24"
       fill="none"
+      viewBox="0 0 10 10"
+      stroke="currentColor"
       aria-hidden="true"
     >
       <path
-        d="M15 18L9 12L15 6"
+        d="M1 1L8.32939 8.32939M8.32939 1L1 8.32939"
         stroke="currentColor"
-        strokeWidth="2"
         strokeLinecap="round"
         strokeLinejoin="round"
+        strokeWidth="1.5"
       />
     </svg>
   );

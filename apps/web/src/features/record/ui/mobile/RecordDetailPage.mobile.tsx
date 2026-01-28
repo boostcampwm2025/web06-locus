@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { ArrowLeftIcon } from '@/shared/ui/icons/ArrowLeftIcon';
+import { ChevronLeftIcon } from '@/shared/ui/icons/ChevronLeftIcon';
 import { FavoriteIcon } from '@/shared/ui/icons/FavoriteIcon';
 import { MoreVerticalIcon } from '@/shared/ui/icons/MoreVerticalIcon';
 import { CalendarIcon } from '@/shared/ui/icons/CalendarIcon';
@@ -144,7 +144,7 @@ function RecordDetailHeader({
         aria-label="뒤로가기"
         className="p-2 -ml-2 rounded-full hover:bg-gray-100 transition-colors"
       >
-        <ArrowLeftIcon className="w-6 h-6 text-gray-700" />
+        <ChevronLeftIcon className="w-6 h-6 text-gray-700" />
       </button>
 
       <h1 className="text-lg font-semibold text-gray-900 truncate px-2">

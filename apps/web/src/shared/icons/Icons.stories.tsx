@@ -9,8 +9,6 @@ import { MapIcon } from '../ui/icons/MapIcon';
 import { SearchIcon } from '../ui/icons/SearchIcon';
 import { BookmarkIcon } from '../ui/icons/BookmarkIcon';
 import { FavoriteIcon } from '../ui/icons/FavoriteIcon';
-import { ArrowLeftIcon } from '../ui/icons/ArrowLeftIcon';
-import { ArrowRightIcon } from '../ui/icons/ArrowRightIcon';
 import { LocationIcon } from '../ui/icons/LocationIcon';
 import { LinkIcon } from '../ui/icons/LinkIcon';
 import { ImageIcon } from '../ui/icons/ImageIcon';
@@ -41,6 +39,15 @@ import { SettingsIcon } from '../ui/icons/SettingsIcon';
 import { ShieldIcon } from '../ui/icons/ShieldIcon';
 import { UsersIcon } from '../ui/icons/UsersIcon';
 import { ClockIcon } from '../ui/icons/ClockIcon';
+import { BackArrowIcon } from '../ui/icons/BackArrowIcon';
+import { ChevronRightIconMobile } from '../ui/icons/ChevronRightIconMobile';
+import { BellIconMobile } from '../ui/icons/BellIconMobile';
+import { ClockIconMobile } from '../ui/icons/ClockIconMobile';
+import { PlusIconMobile } from '../ui/icons/PlusIconMobile';
+import { XMarkIcon } from '../ui/icons/XMarkIcon';
+import { WarningCircleIcon } from '../ui/icons/WarningCircleIcon';
+import { ChevronDownIcon } from '../ui/icons/ChevronDownIcon';
+import { CheckIconMobile } from '../ui/icons/CheckIconMobile';
 
 const meta = {
   title: 'Shared/Icons',
@@ -126,16 +133,6 @@ export const IconCatalog: Story = {
             name="FavoriteIcon"
             icon={<FavoriteIcon className="w-8 h-8 text-yellow-500" />}
             description="즐겨찾기 아이콘"
-          />
-          <IconCard
-            name="ArrowLeftIcon"
-            icon={<ArrowLeftIcon className="w-8 h-8 text-gray-700" />}
-            description="뒤로가기 아이콘"
-          />
-          <IconCard
-            name="ArrowRightIcon"
-            icon={<ArrowRightIcon className="w-8 h-8 text-gray-700" />}
-            description="오른쪽 화살표 아이콘"
           />
           <IconCard
             name="LocationIcon"
@@ -225,12 +222,12 @@ export const IconCatalog: Story = {
           <IconCard
             name="ChevronLeftIcon"
             icon={<ChevronLeftIcon className="w-8 h-8 text-gray-700" />}
-            description="왼쪽 화살표 아이콘"
+            description="왼쪽 chevron 아이콘"
           />
           <IconCard
             name="ChevronRightIcon"
             icon={<ChevronRightIcon className="w-8 h-8 text-gray-700" />}
-            description="오른쪽 화살표 아이콘"
+            description="오른쪽 chevron 아이콘"
           />
           <IconCard
             name="LogoutIcon"
@@ -336,14 +333,6 @@ export const AllIcons: Story = {
         icon={<FavoriteIcon className="w-8 h-8" />}
       />
       <IconCard
-        name="ArrowLeftIcon"
-        icon={<ArrowLeftIcon className="w-8 h-8" />}
-      />
-      <IconCard
-        name="ArrowRightIcon"
-        icon={<ArrowRightIcon className="w-8 h-8" />}
-      />
-      <IconCard
         name="LocationIcon"
         icon={<LocationIcon className="w-8 h-8" />}
       />
@@ -403,6 +392,39 @@ export const AllIcons: Story = {
       <IconCard name="NaverIcon" icon={<NaverIcon className="w-8 h-8" />} />
       <IconCard name="KakaoIcon" icon={<KakaoIcon className="w-8 h-8" />} />
       <IconCard name="Logo" icon={<Logo className="w-16 h-16" />} />
+      <IconCard
+        name="BackArrowIcon"
+        icon={<BackArrowIcon className="w-8 h-8" />}
+      />
+      <IconCard
+        name="ChevronRightIconMobile"
+        icon={<ChevronRightIconMobile className="w-8 h-8" />}
+      />
+      <IconCard
+        name="BellIconMobile"
+        icon={<BellIconMobile className="w-8 h-8" />}
+      />
+      <IconCard
+        name="ClockIconMobile"
+        icon={<ClockIconMobile className="w-8 h-8" />}
+      />
+      <IconCard
+        name="PlusIconMobile"
+        icon={<PlusIconMobile className="w-8 h-8" />}
+      />
+      <IconCard name="XMarkIcon" icon={<XMarkIcon className="w-8 h-8" />} />
+      <IconCard
+        name="WarningCircleIcon"
+        icon={<WarningCircleIcon className="w-8 h-8" />}
+      />
+      <IconCard
+        name="ChevronDownIcon"
+        icon={<ChevronDownIcon className="w-8 h-8" />}
+      />
+      <IconCard
+        name="CheckIconMobile"
+        icon={<CheckIconMobile className="w-8 h-8" />}
+      />
     </div>
   ),
 };

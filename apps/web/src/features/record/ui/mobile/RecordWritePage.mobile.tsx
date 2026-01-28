@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ArrowLeftIcon } from '@/shared/ui/icons/ArrowLeftIcon';
+import { ChevronLeftIcon } from '@/shared/ui/icons/ChevronLeftIcon';
 import { PlusIcon } from '@/shared/ui/icons/PlusIcon';
 import { XIcon } from '@/shared/ui/icons/XIcon';
 import { ZoomInIcon } from '@/shared/ui/icons/ZoomInIcon';
@@ -301,7 +301,7 @@ function RecordWriteHeader({ location, onCancel }: RecordWriteHeaderProps) {
         className="p-2 rounded-full hover:bg-gray-100 transition-colors"
         aria-label="뒤로가기"
       >
-        <ArrowLeftIcon className="w-6 h-6 text-gray-900" />
+        <ChevronLeftIcon className="w-6 h-6 text-gray-900" />
       </button>
       <div className="flex-1 ml-2">
         <h1 className="text-base font-medium text-gray-900">{location.name}</h1>

@@ -1,4 +1,4 @@
-import { ArrowLeftIcon } from '../icons/ArrowLeftIcon';
+import { ChevronLeftIcon } from '../icons/ChevronLeftIcon';
 import type { BackHeaderProps } from '@/shared/types/header';
 
 /**
@@ -19,7 +19,7 @@ export default function BackHeader({
         className="p-1 -ml-1 hover:bg-gray-100 rounded transition-colors"
         aria-label="뒤로 가기"
       >
-        <ArrowLeftIcon className="w-6 h-6 text-gray-900" />
+        <ChevronLeftIcon className="w-6 h-6 text-gray-900" />
       </button>
       <h1 className="text-lg font-medium text-gray-900">{title}</h1>
     </header>
