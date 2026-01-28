@@ -1,0 +1,21 @@
+services:
+  locus-redis:
+    image: ${PROD_REGISTRY}/redis:7-alpine
+    container_name: locus-redis
+    ports:
+      - '6379:6379'
+    restart: always
+
+  locus-rabbitmq:
+    image: ${PROD_REGISTRY}/rabbitmq:4-management
+    container_name: locus-rabbitmq
+    hostname: locus-rabbit-node
+    ports:
+      - '5672:5672'
+      - '15672:15672'
+    environment:
+      - RABBITMQ_DEFAULT_USER=${RABBITMQ_DEFAULT_USER}
+      - RABBITMQ_DEFAULT_PASS=${RABBITMQ_DEFAULT_PASS}
+    volumes:
+      - ./rabbitmq_data:/var/lib/rabbitmq
+    restart: always
