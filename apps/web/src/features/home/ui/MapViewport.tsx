@@ -446,32 +446,12 @@ export default function MapViewport({
     }
 
     const map = mapInstanceRef.current;
+    const container = mapContainerRef.current;
 
-    // ① 컨테이너 크기 체크: 지도가 0x0 픽셀 상태면 강제로 리사이즈
-    if (mapContainerRef.current) {
-      const container = mapContainerRef.current;
-      const containerWidth = container.offsetWidth;
-      const containerHeight = container.offsetHeight;
-      if (containerWidth === 0 || containerHeight === 0) {
-        // 컨테이너 크기가 0이면 0.1초 뒤에 다시 시도하거나 강제로 리사이즈 트리거
-        setTimeout(() => {
-          if (mapInstanceRef.current) {
-            // Naver Maps의 크기 재계산
-            const naverMaps = window.naver?.maps;
-            if (
-              naverMaps &&
-              mapInstanceRef.current &&
-              mapContainerRef.current
-            ) {
-              // 지도 크기를 다시 계산하도록 강제 (resize 이벤트 트리거)
-              // updateSize는 타입에 없을 수 있으므로 직접 크기 재계산
-              window.dispatchEvent(new Event('resize'));
-              setTimeout(() => updateMapBounds(), 50);
-            }
-          }
-        }, 100);
-        return;
-      }
+    // 컨테이너 0x0이면 스킵. useMapInstance(waitForContainerSize)가 초기 공간을 보장하고,
+    // 이후엔 ResizeObserver/지도 이벤트로 updateMapBounds가 다시 호출됨.
+    if (container.offsetWidth === 0 || container.offsetHeight === 0) {
+      return;
     }
 
     const bounds = map.getBounds();
