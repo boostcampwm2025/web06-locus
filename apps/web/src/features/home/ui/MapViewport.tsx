@@ -105,6 +105,7 @@ export default function MapViewport({
   const [fetchBounds, setFetchBounds] = useState<Bounds | null>(null);
 
   // 확장된 bounds로 기록 조회 (GET /records - 확장 bounds 기반)
+  // 지도 뷰 + 클러스터링용: 좌표 포함 데이터 필요
   const { data: recordsByBoundsData } = useGetRecordsByBounds(
     fetchBounds
       ? {
@@ -113,7 +114,7 @@ export default function MapViewport({
           swLat: fetchBounds.swLat,
           swLng: fetchBounds.swLng,
           page: 1,
-          limit: 100, // 충분히 큰 값으로 설정
+          limit: 500, // 클러스터링용: 충분한 데이터 필요 (좌표 포함)
           sortOrder: 'desc',
         }
       : null,

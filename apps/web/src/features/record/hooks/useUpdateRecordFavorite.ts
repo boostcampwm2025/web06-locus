@@ -29,9 +29,24 @@ export function useUpdateRecordFavorite() {
           }
 
           const updatedRecords = oldData.records.map(
-            (record: Record | SearchRecordItem) => {
-              if ('publicId' in record && record.publicId === publicId) {
-                return { ...record, isFavorite } as Record;
+            (
+              record:
+                | Record
+                | SearchRecordItem
+                | {
+                    publicId?: string;
+                    isFavorite?: boolean;
+                    [key: string]: unknown;
+                  },
+            ) => {
+              if (
+                record &&
+                typeof record === 'object' &&
+                'publicId' in record &&
+                record.publicId === publicId
+              ) {
+                // isFavorite 필드만 업데이트
+                return { ...record, isFavorite };
               }
 
               return record;
@@ -40,6 +55,7 @@ export function useUpdateRecordFavorite() {
 
           return {
             ...oldData,
+            // RecordWithoutCoords도 처리 가능 (isFavorite, createdAt 필드만 사용)
             records: sortRecordsByFavorite(updatedRecords),
           };
         });

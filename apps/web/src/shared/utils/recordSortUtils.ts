@@ -1,11 +1,26 @@
 import type { Record, SearchRecordItem } from '@locus/shared';
 
 /**
+ * 정렬 가능한 기록 타입 (isFavorite와 createdAt/date 필드만 필요)
+ * RecordWithoutCoords도 포함하지만 타입 에러 방지를 위해 구조적으로만 체크
+ */
+type SortableRecord =
+  | Record
+  | SearchRecordItem
+  | {
+      isFavorite?: boolean;
+      createdAt?: string;
+      date?: string;
+      publicId?: string;
+      [key: string]: unknown; // location 등 다른 필드 허용
+    };
+
+/**
  * 기록 정렬 기준
  * - 즐겨찾기 우선 (true가 먼저)
  * - 그 다음 생성일 (최신순)
  */
-export function sortRecordsByFavorite<T extends Record | SearchRecordItem>(
+export function sortRecordsByFavorite<T extends SortableRecord>(
   records: T[],
 ): T[] {
   return [...records].sort((a, b) => {

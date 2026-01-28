@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import {
   LocationSchema,
+  LocationWithoutCoordsSchema,
   ImageResponseSchema,
   SuccessResponseSchema,
   FailResponseSchema,
@@ -95,6 +96,20 @@ export const SearchRecordsRequestSchema = z.object({
 });
 
 /**
+ * 전체 기록 조회 Request (Query Parameters)
+ *
+ * @api GET /records/all
+ */
+export const GetAllRecordsRequestSchema = z.object({
+  page: z.number().int().min(1).optional().default(1),
+  limit: z.number().int().min(10).max(100).optional().default(10),
+  sortOrder: z.enum(['desc', 'asc']).optional().default('desc'),
+  startDate: z.string().datetime().optional(),
+  endDate: z.string().datetime().optional(),
+  tagPublicIds: z.array(z.string()).optional(),
+});
+
+/**
  * 기록 생성 Request (Multipart Form Data의 data 필드)
  *
  * @api POST /records
@@ -171,6 +186,37 @@ export const GetConnectedRecordsRequestSchema = z.object({
 export const RecordsByBoundsResponseSchema = SuccessResponseSchema.extend({
   data: z.object({
     records: z.array(RecordResponseSchema),
+    totalCount: z.number(),
+  }),
+});
+
+/**
+ * 전체 기록 조회용 기록 스키마 (좌표 없음, Response용 - camelCase)
+ *
+ * @api GET /records/all - 응답의 records 배열 아이템
+ * 좌표값은 포함하지 않으며, connectionCount 필드를 포함함
+ */
+export const RecordWithoutCoordsResponseSchema = z.object({
+  publicId: z.string(),
+  title: z.string(),
+  content: z.string().nullable().optional(),
+  location: LocationWithoutCoordsSchema,
+  tags: z.array(TagDetailResponseSchema),
+  images: z.array(ImageResponseSchema).optional(),
+  isFavorite: z.boolean().optional(),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+  connectionCount: z.number(),
+});
+
+/**
+ * 전체 기록 조회 응답 스키마
+ *
+ * @api GET /records/all
+ */
+export const GetAllRecordsResponseSchema = SuccessResponseSchema.extend({
+  data: z.object({
+    records: z.array(RecordWithoutCoordsResponseSchema),
     totalCount: z.number(),
   }),
 });

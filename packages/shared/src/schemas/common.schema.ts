@@ -14,6 +14,17 @@ export const LocationSchema = z.object({
 });
 
 /**
+ * 위치 정보 스키마 (좌표 없음, camelCase)
+ *
+ * @usedIn GET /records/all 응답의 location 필드에서 사용
+ * @api GET /records/all - 좌표값은 포함하지 않음
+ */
+export const LocationWithoutCoordsSchema = z.object({
+  name: z.string().nullable(),
+  address: z.string().nullable(),
+});
+
+/**
  * 이미지 크기 정보 스키마 (Response용 - camelCase)
  *
  * @usedIn ImageResponseSchema의 thumbnail, medium, original 필드에서 사용

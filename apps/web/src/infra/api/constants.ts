@@ -21,6 +21,7 @@ export const API_ENDPOINTS = {
 
   // Records
   RECORDS: '/records',
+  RECORDS_ALL: '/records/all',
   RECORDS_BY_ID: (publicId: string) => `/records/${publicId}`,
   RECORDS_FAVORITE: (publicId: string) => `/records/${publicId}/favorite`,
   RECORDS_SEARCH: '/records/search',

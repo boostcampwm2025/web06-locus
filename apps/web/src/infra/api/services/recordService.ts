@@ -4,6 +4,8 @@ import {
   CreateRecordRequestSchema,
   CreateRecordResponseSchema,
   GetRecordsByBoundsRequestSchema,
+  GetAllRecordsRequestSchema,
+  GetAllRecordsResponseSchema,
   RecordsByBoundsResponseSchema,
   RecordDetailResponseSchema,
   SuccessResponseSchema,
@@ -13,7 +15,9 @@ import type {
   CreateRecordRequest,
   RecordWithImages,
   GetRecordsByBoundsRequest,
+  GetAllRecordsRequest,
   Record,
+  RecordWithoutCoords,
   RecordDetail,
 } from '@locus/shared';
 
@@ -139,6 +143,62 @@ export async function getRecordsByBounds(
     }
 
     return { records: [], totalCount: 0 };
+  }
+}
+
+/**
+ * 전체 기록 조회 API 호출
+ * - GET /records/all?page=&limit=&sortOrder=&startDate=&endDate=&tagPublicIds=
+ */
+export async function getAllRecords(
+  request: GetAllRecordsRequest,
+): Promise<{ records: RecordWithoutCoords[]; totalCount: number }> {
+  try {
+    // 1. Request 검증
+    const validatedRequest = GetAllRecordsRequestSchema.parse(request);
+
+    // 2. Query 파라미터 구성
+    const queryParams = new URLSearchParams({
+      page: (validatedRequest.page ?? 1).toString(),
+      limit: (validatedRequest.limit ?? 10).toString(),
+      sortOrder: validatedRequest.sortOrder ?? 'desc',
+    });
+
+    if (validatedRequest.startDate)
+      queryParams.append('startDate', validatedRequest.startDate);
+    if (validatedRequest.endDate)
+      queryParams.append('endDate', validatedRequest.endDate);
+
+    if (validatedRequest.tagPublicIds?.length) {
+      queryParams.append(
+        'tagPublicIds',
+        validatedRequest.tagPublicIds.join(','),
+      );
+    }
+
+    // 3. API 호출
+    const response = await apiClient<unknown>(
+      `${API_ENDPOINTS.RECORDS_ALL}?${queryParams.toString()}`,
+      { method: 'GET' },
+    );
+
+    // 4. Response 검증
+
+    const validated = validateApiResponse(
+      GetAllRecordsResponseSchema,
+      response,
+    );
+
+    return validated.data;
+  } catch (error) {
+    logger.error(
+      error instanceof Error ? error : new Error('전체 기록 조회 실패'),
+      {
+        request,
+        error: String(error),
+      },
+    );
+    throw error;
   }
 }
 
