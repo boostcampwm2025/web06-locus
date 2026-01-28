@@ -21,6 +21,7 @@ import { RecordsService } from './records.service';
 import { CreateRecordDto } from './dto/create-record.dto';
 import { GetRecordsQueryDto } from './dto/get-records-query.dto';
 import { GetRecordsByLocationDto } from './dto/get-records-by-location.dto';
+import { GetAllRecordsDto } from './dto/get-all-records.dto';
 import { RecordResponseDto } from './dto/record-response.dto';
 import { RecordListResponseDto } from './dto/records-list-reponse.dto';
 import { JwtAuthGuard } from '@/jwt/guard/jwt.auth.guard';
@@ -34,9 +35,11 @@ import {
   GetRecordDetailSwagger,
   GetRecordsSwagger,
   GetRecordsByLocationSwagger,
+  GetAllRecordsSwagger,
   SearchRecordsSwagger,
 } from './swagger/records.swagger';
 import { JsonBody } from '@/common/decorators/json-body.decorator';
+import { GraphNeighborRecordsDto } from './dto/graph-details.response.dto';
 import { SearchRecordsDto } from './dto/search-records.dto';
 import { SearchRecordListResponseDto } from './dto/search-record-list-response.dto';
 
@@ -63,6 +66,16 @@ export class RecordsController {
     @Query() query: GetRecordsByLocationDto,
   ): Promise<RecordListResponseDto> {
     return await this.recordsService.getRecordsByLocation(userId, query);
+  }
+
+  @Get('all')
+  @UseGuards(JwtAuthGuard)
+  @GetAllRecordsSwagger()
+  async getAllRecords(
+    @CurrentUser('sub') userId: bigint,
+    @Query() query: GetAllRecordsDto,
+  ): Promise<RecordListResponseDto> {
+    return await this.recordsService.getAllRecords(userId, query);
   }
 
   @Get('search')
@@ -106,6 +119,22 @@ export class RecordsController {
   ): Promise<GraphResponseDto> {
     const graphData = await this.recordsService.getGraph(publicId, userId);
     return graphData;
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get(':publicId/graph/details')
+  async getGraphNeighbor(
+    @CurrentUser('sub') userId: bigint,
+    @Param('publicId') publicId: string,
+  ): Promise<GraphNeighborRecordsDto> {
+    const graphNeighborRecords =
+      await this.recordsService.getGraphNeighborDetail(publicId, userId);
+
+    return {
+      start: publicId,
+      depth: 1,
+      records: graphNeighborRecords,
+    };
   }
 
   @Patch(':publicId')

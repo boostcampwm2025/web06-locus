@@ -63,4 +63,29 @@ export class RecordTagsService {
 
     return recordTags.map((recordTag) => recordTag.tag);
   }
+
+  async fetchTagsByRecordIds(
+    recordIds: bigint[],
+  ): Promise<Map<bigint, RecordTagDto[]>> {
+    if (recordIds.length === 0) {
+      return new Map();
+    }
+
+    const recordTags = await this.prisma.recordTag.findMany({
+      where: { recordId: { in: recordIds } },
+      select: {
+        recordId: true,
+        tag: { select: { publicId: true, name: true } },
+      },
+    });
+
+    const map = new Map<bigint, RecordTagDto[]>();
+    for (const rt of recordTags) {
+      const arr = map.get(rt.recordId);
+      if (arr) arr.push(rt.tag);
+      else map.set(rt.recordId, [rt.tag]);
+    }
+
+    return map;
+  }
 }
