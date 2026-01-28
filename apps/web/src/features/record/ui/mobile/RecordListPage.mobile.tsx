@@ -156,10 +156,12 @@ export function RecordListPageMobile({
       />
 
       {/* 필터 바 */}
-      <CategoryChips categories={categories} />
+      <div className="pt-[72px]">
+        <CategoryChips categories={categories} />
+      </div>
 
       {/* 리스트 */}
-      <div className="flex-1 overflow-y-auto flex flex-col">
+      <div className="flex-1 overflow-y-auto flex flex-col pb-[72px]">
         {isLoading ? (
           <div className="flex-1 flex items-center justify-center text-gray-400">
             기록을 불러오는 중...

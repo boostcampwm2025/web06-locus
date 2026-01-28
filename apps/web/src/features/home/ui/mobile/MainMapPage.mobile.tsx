@@ -192,7 +192,7 @@ export function MainMapPageMobile() {
   const { handleTabChange } = useBottomTabNavigation();
 
   const handleSettingsClick = () => {
-    setIsActionSheetOpen(true);
+    void navigate(ROUTES.SETTINGS);
   };
 
   const handleLogout = async () => {
@@ -218,16 +218,20 @@ export function MainMapPageMobile() {
         onSearch={(value) => setSearchValue(value)}
       />
 
-      <MainMapTags />
+      <div className="pt-[72px]">
+        <MainMapTags />
+      </div>
 
-      <Suspense fallback={<MapLoadingSkeleton />}>
-        <MapViewport
-          createdRecordPins={createdRecordPins}
-          connectedRecords={connectedRecords}
-          targetLocation={targetLocation}
-          onTargetLocationChange={setTargetLocation}
-        />
-      </Suspense>
+      <div className="flex-1 relative pb-[72px]">
+        <Suspense fallback={<MapLoadingSkeleton />}>
+          <MapViewport
+            createdRecordPins={createdRecordPins}
+            connectedRecords={connectedRecords}
+            targetLocation={targetLocation}
+            onTargetLocationChange={setTargetLocation}
+          />
+        </Suspense>
+      </div>
 
       <BottomTabBar activeTab="home" onTabChange={handleTabChange} />
 
