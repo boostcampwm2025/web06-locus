@@ -1,9 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import RecordListPage from './RecordListPage';
 import { RecordListPageMobile } from './mobile/RecordListPage.mobile';
 import FilterBottomSheet from './FilterBottomSheet';
 import type { SortOrder } from '@/features/record/types';
+import type { RecordWithoutCoords } from '@locus/shared';
 
 const meta = {
   title: 'Features/Record/RecordListPage',
@@ -79,8 +81,79 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
+// 모킹 데이터 헬퍼 함수
+function createMockRecord(
+  id: string,
+  title: string,
+  locationName: string,
+  locationAddress: string,
+  createdAt: string,
+  tags: string[],
+  connectionCount: number,
+  hasImage = false,
+  isFavorite = false,
+): RecordWithoutCoords {
+  return {
+    publicId: id,
+    title,
+    location: {
+      name: locationName || null,
+      address: locationAddress || null,
+    },
+    createdAt,
+    updatedAt: createdAt,
+    tags: tags.map((name) => ({ publicId: `tag-${name}`, name })),
+    connectionCount,
+    isFavorite,
+    images: hasImage
+      ? [
+          {
+            publicId: `img-${id}`,
+            thumbnail: {
+              url: 'https://placehold.co/80',
+              width: 80,
+              height: 80,
+              size: 5000,
+            },
+            medium: {
+              url: 'https://placehold.co/400',
+              width: 400,
+              height: 400,
+              size: 50000,
+            },
+            original: {
+              url: 'https://placehold.co/400',
+              width: 400,
+              height: 400,
+              size: 50000,
+            },
+            order: 0,
+          },
+        ]
+      : [],
+  };
+}
+
+// Mock 데이터를 설정하는 컴포넌트
+function RecordListPageWithMockData({
+  records,
+}: {
+  records: RecordWithoutCoords[];
+}) {
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    queryClient.setQueryData(['records', 'all'], {
+      records,
+      totalCount: records.length,
+    });
+  }, [queryClient, records]);
+
+  return <RecordListPage />;
+}
+
 export const Default: Story = {
-  args: {},
+  render: () => <RecordListPageWithMockData records={[]} />,
   parameters: {
     docs: {
       description: {
@@ -91,34 +164,32 @@ export const Default: Story = {
 };
 
 export const WithImages: Story = {
-  args: {
-    records: [
-      {
-        id: '1',
-        title: '경복궁 나들이',
-        location: {
-          name: '경복궁',
-          address: '서울특별시 종로구 사직로 161',
-        },
-        date: new Date('2025-12-15'),
-        tags: ['역사', '명소'],
-        connectionCount: 3,
-        imageUrl: 'https://placehold.co/80',
-      },
-      {
-        id: '2',
-        title: '한옥의 고즈넉한 분위기와 골목길이 인상적인',
-        location: {
-          name: '북촌 한옥마을',
-          address: '서울특별시 종로구 계동길',
-        },
-        date: new Date('2025-12-14'),
-        tags: ['문화', '명소'],
-        connectionCount: 2,
-        imageUrl: 'https://placehold.co/80',
-      },
-    ],
-  },
+  render: () => (
+    <RecordListPageWithMockData
+      records={[
+        createMockRecord(
+          '1',
+          '경복궁 나들이',
+          '경복궁',
+          '서울특별시 종로구 사직로 161',
+          '2025-12-15T10:00:00Z',
+          ['역사', '명소'],
+          3,
+          true,
+        ),
+        createMockRecord(
+          '2',
+          '한옥의 고즈넉한 분위기와 골목길이 인상적인',
+          '북촌 한옥마을',
+          '서울특별시 종로구 계동길',
+          '2025-12-14T10:00:00Z',
+          ['문화', '명소'],
+          2,
+          true,
+        ),
+      ]}
+    />
+  ),
   parameters: {
     docs: {
       description: {
@@ -129,29 +200,32 @@ export const WithImages: Story = {
 };
 
 export const WithoutImages: Story = {
-  args: {
-    records: [
-      {
-        id: '3',
-        title: '서울숲 산책',
-        location: {
-          name: '서울숲',
-          address: '서울특별시 성동구 뚝섬로 273',
-        },
-        date: new Date('2025-12-13'),
-        tags: ['자연', '공원'],
-        connectionCount: 5,
-      },
-      {
-        id: '4',
-        title: '이태원 맛집 탐방',
-        location: { name: '이태원', address: '서울특별시 용산구 이태원로' },
-        date: new Date('2025-12-12'),
-        tags: ['음식', '문화'],
-        connectionCount: 1,
-      },
-    ],
-  },
+  render: () => (
+    <RecordListPageWithMockData
+      records={[
+        createMockRecord(
+          '3',
+          '서울숲 산책',
+          '서울숲',
+          '서울특별시 성동구 뚝섬로 273',
+          '2025-12-13T10:00:00Z',
+          ['자연', '공원'],
+          5,
+          false,
+        ),
+        createMockRecord(
+          '4',
+          '이태원 맛집 탐방',
+          '이태원',
+          '서울특별시 용산구 이태원로',
+          '2025-12-12T10:00:00Z',
+          ['음식', '문화'],
+          1,
+          false,
+        ),
+      ]}
+    />
+  ),
   parameters: {
     docs: {
       description: {
@@ -162,9 +236,7 @@ export const WithoutImages: Story = {
 };
 
 export const Empty: Story = {
-  args: {
-    records: [],
-  },
+  render: () => <RecordListPageWithMockData records={[]} />,
   parameters: {
     docs: {
       description: {
@@ -175,61 +247,62 @@ export const Empty: Story = {
 };
 
 export const Mixed: Story = {
-  args: {
-    records: [
-      {
-        id: '1',
-        title: '경복궁 나들이',
-        location: {
-          name: '경복궁',
-          address: '서울특별시 종로구 사직로 161',
-        },
-        date: new Date('2025-12-15'),
-        tags: ['역사', '명소'],
-        connectionCount: 3,
-        imageUrl: 'https://placehold.co/80',
-      },
-      {
-        id: '2',
-        title: '한옥의 고즈넉한 분위기와 골목길이 인상적인',
-        location: {
-          name: '북촌 한옥마을',
-          address: '서울특별시 종로구 계동길',
-        },
-        date: new Date('2025-12-14'),
-        tags: ['문화', '명소'],
-        connectionCount: 2,
-        imageUrl: 'https://placehold.co/80',
-      },
-      {
-        id: '3',
-        title: '서울숲 산책',
-        location: {
-          name: '서울숲',
-          address: '서울특별시 성동구 뚝섬로 273',
-        },
-        date: new Date('2025-12-13'),
-        tags: ['자연', '공원'],
-        connectionCount: 5,
-      },
-      {
-        id: '4',
-        title: '이태원 맛집 탐방',
-        location: { name: '이태원', address: '서울특별시 용산구 이태원로' },
-        date: new Date('2025-12-12'),
-        tags: ['음식', '문화'],
-        connectionCount: 1,
-      },
-      {
-        id: '5',
-        title: '명동 쇼핑',
-        location: { name: '명동', address: '서울특별시 중구 명동길' },
-        date: new Date('2025-12-10'),
-        tags: ['쇼핑', '명소'],
-        connectionCount: 4,
-      },
-    ],
-  },
+  render: () => (
+    <RecordListPageWithMockData
+      records={[
+        createMockRecord(
+          '1',
+          '경복궁 나들이',
+          '경복궁',
+          '서울특별시 종로구 사직로 161',
+          '2025-12-15T10:00:00Z',
+          ['역사', '명소'],
+          3,
+          true,
+        ),
+        createMockRecord(
+          '2',
+          '한옥의 고즈넉한 분위기와 골목길이 인상적인',
+          '북촌 한옥마을',
+          '서울특별시 종로구 계동길',
+          '2025-12-14T10:00:00Z',
+          ['문화', '명소'],
+          2,
+          true,
+        ),
+        createMockRecord(
+          '3',
+          '서울숲 산책',
+          '서울숲',
+          '서울특별시 성동구 뚝섬로 273',
+          '2025-12-13T10:00:00Z',
+          ['자연', '공원'],
+          5,
+          false,
+        ),
+        createMockRecord(
+          '4',
+          '이태원 맛집 탐방',
+          '이태원',
+          '서울특별시 용산구 이태원로',
+          '2025-12-12T10:00:00Z',
+          ['음식', '문화'],
+          1,
+          false,
+        ),
+        createMockRecord(
+          '5',
+          '명동 쇼핑',
+          '명동',
+          '서울특별시 중구 명동길',
+          '2025-12-10T10:00:00Z',
+          ['쇼핑', '명소'],
+          4,
+          false,
+        ),
+      ]}
+    />
+  ),
   parameters: {
     docs: {
       description: {
@@ -244,6 +317,35 @@ function InteractiveRecordListPage() {
   const [sortOrder, setSortOrder] = useState<SortOrder>('newest');
   const [includeImages, setIncludeImages] = useState(false);
   const [favoritesOnly, setFavoritesOnly] = useState(false);
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    queryClient.setQueryData(['records', 'all'], {
+      records: [
+        createMockRecord(
+          '1',
+          '경복궁 나들이',
+          '경복궁',
+          '서울특별시 종로구 사직로 161',
+          '2025-12-15T10:00:00Z',
+          ['역사', '명소'],
+          3,
+          true,
+        ),
+        createMockRecord(
+          '2',
+          '서울숲 산책',
+          '서울숲',
+          '서울특별시 성동구 뚝섬로 273',
+          '2025-12-13T10:00:00Z',
+          ['자연', '공원'],
+          5,
+          false,
+        ),
+      ],
+      totalCount: 2,
+    });
+  }, [queryClient]);
 
   return (
     <>
@@ -282,11 +384,54 @@ export const WithFilter: Story = {
   },
 };
 
+// Mock 데이터를 설정하는 모바일 컴포넌트
+function RecordListPageMobileWithMockData({
+  records,
+}: {
+  records: RecordWithoutCoords[];
+}) {
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    queryClient.setQueryData(['records', 'all'], {
+      records,
+      totalCount: records.length,
+    });
+  }, [queryClient, records]);
+
+  return <RecordListPageMobile />;
+}
+
 /**
  * 모바일 버전
  */
 export const Mobile: Story = {
-  render: (args) => <RecordListPageMobile {...args} />,
+  render: () => (
+    <RecordListPageMobileWithMockData
+      records={[
+        createMockRecord(
+          '1',
+          '경복궁 나들이',
+          '경복궁',
+          '서울특별시 종로구 사직로 161',
+          '2025-12-15T10:00:00Z',
+          ['역사', '명소'],
+          3,
+          true,
+        ),
+        createMockRecord(
+          '2',
+          '한옥의 고즈넉한 분위기와 골목길이 인상적인',
+          '북촌 한옥마을',
+          '서울특별시 종로구 계동길',
+          '2025-12-14T10:00:00Z',
+          ['문화', '명소'],
+          2,
+          true,
+        ),
+      ]}
+    />
+  ),
   parameters: {
     viewport: {
       viewports: {

@@ -19,4 +19,5 @@ export type {
   RecordDetailPageProps,
   UpdateRecordFavoriteParams,
   RecordsData,
+  UseSidebarRecordsProps,
 } from './record';

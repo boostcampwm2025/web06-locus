@@ -14,7 +14,7 @@ import { ImageSkeleton } from '@/shared/ui/skeleton';
 import { useScrollPosition } from '@/shared/hooks/useScrollPosition';
 import { ROUTES } from '@/router/routes';
 import { useGetTags } from '@/features/record/hooks/useGetTags';
-import { useGetRecordsByBounds } from '@/features/record/hooks/useGetRecordsByBounds';
+import { useSidebarRecords } from '@/features/record/hooks/useSidebarRecords';
 import { useGetRecordDetail } from '@/features/record/hooks/useGetRecordDetail';
 import { useConnectionStore } from '@/features/connection/domain/connectionStore';
 import { useConnectionModeData } from '@/features/connection/hooks/useConnectionModeData';
@@ -26,18 +26,6 @@ import type {
   RecordSummaryPanelProps,
 } from '@/shared/types';
 import { formatDateShort } from '@/shared/utils/dateUtils';
-import { transformRecordApiToUI } from '@/shared/utils/recordTransform';
-
-// 한국 전체를 커버하는 넓은 bounds
-const KOREA_WIDE_BOUNDS = {
-  neLat: 38.6,
-  neLng: 131.9,
-  swLat: 33.1,
-  swLng: 124.6,
-  page: 1,
-  limit: 100,
-  sortOrder: 'desc' as const,
-};
 
 export function DesktopSidebar({
   searchValue = '',
@@ -106,11 +94,26 @@ export function DesktopSidebar({
   // 연결 모드일 때는 useConnectionModeData 사용
   const connectionModeData = useConnectionModeData();
 
-  // 일반 모드일 때는 기존 로직 사용
-  const { data: recordsByBoundsData, isLoading: isRecordsLoading } =
-    useGetRecordsByBounds(KOREA_WIDE_BOUNDS);
+  // 카테고리 목록 (전체 + 태그들)
+  const categories = useMemo(
+    () => [
+      { id: 'all', label: '전체' },
+      ...allTags.map((tag) => ({ id: tag.publicId, label: tag.name })),
+    ],
+    [allTags],
+  );
 
-  // 기록 목록 변환
+  // 일반 모드일 때는 useSidebarRecords 사용
+  const { records: sidebarRecords, isLoading: isRecordsLoading } =
+    useSidebarRecords({
+      sortOrder,
+      startDate,
+      endDate,
+      selectedCategory,
+      categories,
+    });
+
+  // 기록 목록 변환 (연결 모드 vs 일반 모드)
   const records = useMemo(() => {
     if (connectionFromRecordId) {
       // 연결 모드: connectionModeData의 records 사용
@@ -124,10 +127,9 @@ export function DesktopSidebar({
         connectionCount: 0, // TODO: 실제 연결 개수 계산
       }));
     }
-    // 일반 모드: 기존 로직
-    if (!recordsByBoundsData?.records) return [];
-    return recordsByBoundsData.records.map(transformRecordApiToUI);
-  }, [connectionFromRecordId, connectionModeData.records, recordsByBoundsData]);
+    // 일반 모드: useSidebarRecords에서 필터링/정렬된 records 사용
+    return sidebarRecords;
+  }, [connectionFromRecordId, connectionModeData.records, sidebarRecords]);
 
   // 연결 모드일 때 검색어는 connectionModeData의 searchQuery 사용
   const effectiveSearchValue = connectionFromRecordId
@@ -167,12 +169,6 @@ export function DesktopSidebar({
     onCreateRecordClick?.();
     // MainMapPage에서 상태로 관리됨
   };
-
-  // 카테고리 목록 (전체 + 태그들)
-  const categories = [
-    { id: 'all', label: '전체' },
-    ...allTags.map((tag) => ({ id: tag.publicId, label: tag.name })),
-  ];
 
   return (
     <aside className="flex flex-col w-[420px] h-full bg-white border-r border-gray-100 shadow-2xl relative z-20">

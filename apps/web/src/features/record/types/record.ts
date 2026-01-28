@@ -285,3 +285,16 @@ export interface RecordsData {
   records: (ApiRecord | SearchRecordItem)[];
   totalCount?: number;
 }
+
+/**
+ * 사이드바 기록 필터링 훅 Props
+ */
+export interface UseSidebarRecordsProps {
+  sortOrder: SortOrder;
+  startDate?: string;
+  endDate?: string;
+  favoritesOnly?: boolean; // 추가 가능성 대비
+  includeImages?: boolean; // 추가 가능성 대비
+  selectedCategory?: string;
+  categories: { id: string; label: string }[];
+}

@@ -4,12 +4,13 @@ import AppHeader from '@/shared/ui/header/AppHeader';
 import CategoryChips from '@/shared/ui/category/CategoryChips';
 import { RecordCard } from '@/shared/ui/record';
 import BottomTabBar from '@/shared/ui/navigation/BottomTabBar';
-import type { Location } from '@/features/record/types';
+import FilterBottomSheet from '@/features/record/ui/FilterBottomSheet';
+import type { Location, SortOrder } from '@/features/record/types';
 import type { Category } from '@/shared/types/category';
 import { ROUTES } from '@/router/routes';
 import { useBottomTabNavigation } from '@/shared/hooks/useBottomTabNavigation';
-import { useGetRecordsByBounds } from '@/features/record/hooks/useGetRecordsByBounds';
-import type { Record as ApiRecord } from '@locus/shared';
+import { useAllRecords } from '@/features/record/hooks/useRecords';
+import type { RecordWithoutCoords } from '@locus/shared';
 import { extractTagNames } from '@/shared/utils/tagUtils';
 import { sortRecordsByFavorite } from '@/shared/utils/recordSortUtils';
 
@@ -24,7 +25,6 @@ export interface RecordListItem {
 }
 
 export interface RecordListPageProps {
-  records?: RecordListItem[];
   categories?: Category[];
   onRecordClick?: (recordId: string) => void;
   onFilterClick?: () => void;
@@ -43,19 +43,7 @@ const defaultCategories: Category[] = [
   { id: 'shopping', label: '쇼핑' },
 ];
 
-// 한국 전체를 커버하는 넓은 bounds (임시로 전체 기록 조회용)
-const KOREA_WIDE_BOUNDS = {
-  neLat: 38.6, // 북한 포함
-  neLng: 131.9, // 동해
-  swLat: 33.1, // 제주도 남쪽
-  swLng: 124.6, // 서해
-  page: 1,
-  limit: 100, // 충분히 많은 기록 가져오기
-  sortOrder: 'desc' as const,
-};
-
 export function RecordListPageMobile({
-  records: propRecords,
   categories = defaultCategories,
   onRecordClick,
   onFilterClick,
@@ -68,38 +56,58 @@ export function RecordListPageMobile({
   const [isSearchActive, setIsSearchActive] = useState(false);
   const [searchValue, setSearchValue] = useState('');
 
-  // API에서 기록 목록 가져오기 (넓은 bounds 사용)
-  const {
-    data: recordsByBoundsData,
-    isLoading,
-    isError,
-  } = useGetRecordsByBounds(KOREA_WIDE_BOUNDS);
+  // 필터 상태 관리
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [sortOrder, setSortOrder] = useState<SortOrder>('newest');
+  const [favoritesOnly, setFavoritesOnly] = useState(false);
+  const [includeImages, setIncludeImages] = useState(false);
 
-  // API 응답을 RecordListItem으로 변환 및 정렬
+  // 전체 기록 조회 API 사용 (GET /records/all)
+  // 좌표 없음, 리스트 뷰 전용, 클라이언트 사이드 필터링 지원
+  const { data: allRecordsData, isLoading, isError } = useAllRecords();
+
+  // API 응답을 RecordListItem으로 변환 및 필터링/정렬
+  // GET /records/all API 사용 (좌표 없음, isFavorite 포함)
   const records = useMemo<RecordListItem[]>(() => {
-    // propRecords가 제공된 경우 우선 사용 (테스트/스토리북용)
-    if (propRecords) return propRecords;
-
-    if (!recordsByBoundsData?.records) {
+    if (!allRecordsData?.records) {
       return [];
     }
 
-    // 즐겨찾기 우선 정렬 적용
-    const sortedApiRecords = sortRecordsByFavorite(recordsByBoundsData.records);
+    // 필터링 적용 (클라이언트 사이드)
+    let filteredRecords = allRecordsData.records;
+
+    // 즐겨찾기 필터
+    if (favoritesOnly) {
+      filteredRecords = filteredRecords.filter(
+        (record) => record.isFavorite === true,
+      );
+    }
+
+    // 이미지 필터
+    if (includeImages) {
+      filteredRecords = filteredRecords.filter(
+        (record) => record.images && record.images.length > 0,
+      );
+    }
+
+    // 정렬 적용
+    let sortedRecords: RecordWithoutCoords[];
+    if (sortOrder === 'newest') {
+      // 최신순: 즐겨찾기 우선 정렬 후 최신순
+      sortedRecords = sortRecordsByFavorite(filteredRecords);
+    } else {
+      // 오래된순: 즐겨찾기 우선 정렬 후 오래된순
+      const favoriteFirst = sortRecordsByFavorite(filteredRecords);
+      sortedRecords = [...favoriteFirst].reverse();
+    }
 
     // 정렬된 API 응답을 RecordListItem으로 변환
-    return sortedApiRecords.map((record: ApiRecord) => {
+    // RecordWithoutCoords는 좌표 없음 (name, address만), isFavorite와 connectionCount 포함
+    return sortedRecords.map((record: RecordWithoutCoords) => {
       // 이미지가 있는 경우 첫 번째 이미지의 thumbnail URL 사용
-      const recordWithImages = record as ApiRecord & {
-        images?: {
-          thumbnail: { url: string };
-          medium: { url: string };
-          original: { url: string };
-        }[];
-      };
       const thumbnailUrl =
-        recordWithImages.images && recordWithImages.images.length > 0
-          ? recordWithImages.images[0].thumbnail.url
+        record.images && record.images.length > 0
+          ? record.images[0].thumbnail.url
           : undefined;
 
       return {
@@ -111,11 +119,11 @@ export function RecordListPageMobile({
         },
         date: new Date(record.createdAt),
         tags: extractTagNames(record.tags),
-        connectionCount: 0, // TODO: 연결 개수 API 연동 필요
+        connectionCount: record.connectionCount,
         imageUrl: thumbnailUrl,
       };
     });
-  }, [propRecords, recordsByBoundsData]);
+  }, [allRecordsData, sortOrder, favoritesOnly, includeImages]);
 
   const handleSearchClick = () => {
     setIsSearchActive(true);
@@ -145,6 +153,20 @@ export function RecordListPageMobile({
     void navigate(ROUTES.HOME);
   };
 
+  const handleFilterClick = () => {
+    setIsFilterOpen(true);
+    onFilterClick?.();
+  };
+
+  const handleFilterClose = () => {
+    setIsFilterOpen(false);
+  };
+
+  const handleFilterApply = () => {
+    // 필터 적용 로직은 useMemo에서 처리됨
+    setIsFilterOpen(false);
+  };
+
   return (
     <div
       className={`flex flex-col min-h-screen h-full bg-white overflow-hidden ${className}`}
@@ -152,7 +174,7 @@ export function RecordListPageMobile({
       {/* 헤더 */}
       <AppHeader
         onTitleClick={handleTitleClick}
-        onFilterClick={onFilterClick}
+        onFilterClick={handleFilterClick}
         onSearchClick={handleSearchClick}
         isSearchActive={isSearchActive}
         searchPlaceholder="키워드, 장소, 태그 검색"
@@ -200,6 +222,19 @@ export function RecordListPageMobile({
 
       {/* 바텀 탭 */}
       <BottomTabBar activeTab="record" onTabChange={handleTabChange} />
+
+      {/* 필터 바텀시트 */}
+      <FilterBottomSheet
+        isOpen={isFilterOpen}
+        onClose={handleFilterClose}
+        sortOrder={sortOrder}
+        favoritesOnly={favoritesOnly}
+        includeImages={includeImages}
+        onSortOrderChange={setSortOrder}
+        onFavoritesOnlyChange={setFavoritesOnly}
+        onIncludeImagesChange={setIncludeImages}
+        onApply={handleFilterApply}
+      />
     </div>
   );
 }
