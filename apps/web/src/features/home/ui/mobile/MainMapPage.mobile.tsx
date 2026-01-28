@@ -222,7 +222,7 @@ export function MainMapPageMobile() {
         <MainMapTags />
       </div>
 
-      <div className="flex-1 relative pb-[72px]">
+      <div className="flex-1 relative pb-[72px] min-h-0">
         <Suspense fallback={<MapLoadingSkeleton />}>
           <MapViewport
             createdRecordPins={createdRecordPins}

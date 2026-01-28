@@ -14,6 +14,7 @@ import RecordSearchInput from './RecordSearchInput';
 import RecommendedRecordsSection from './RecommendedRecordsSection';
 import ConnectActionButton from './ConnectActionButton';
 import RecordSelectionContextSheet from './RecordSelectionContextSheet';
+import { extractTagNames } from '@/shared/utils/tagUtils';
 
 // 한국 전체를 커버하는 넓은 bounds (전체 기록 조회용)
 const KOREA_WIDE_BOUNDS = {
@@ -114,7 +115,7 @@ export default function RecordConnectionPage({
             record.location.name?.toLowerCase().includes(query) ?? false;
           const isAddressMatch =
             record.location.address?.toLowerCase().includes(query) ?? false;
-          const isTagMatch = record.tags.some((tag) =>
+          const isTagMatch = extractTagNames(record.tags).some((tag) =>
             tag.toLowerCase().includes(query),
           );
 
@@ -146,7 +147,7 @@ export default function RecordConnectionPage({
           address: record.location.address ?? '',
         },
         date: new Date(record.createdAt),
-        tags: record.tags,
+        tags: extractTagNames(record.tags),
         isRelated: Boolean(trimmedQuery), // 검색어가 있으면 관련 기록으로 표시
         isConnected: connectedRecordIds.has(record.publicId), // 이미 연결된 기록인지 여부
         imageUrl: thumbnailUrl,

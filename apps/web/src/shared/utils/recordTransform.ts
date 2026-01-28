@@ -1,4 +1,5 @@
 import type { Record as ApiRecord } from '@locus/shared';
+import { extractTagNames } from './tagUtils';
 
 /**
  * UI에서 사용할 기록 데이터 타입
@@ -42,7 +43,7 @@ export function transformRecordApiToUI(record: ApiRecord): UIRecord {
       address: record.location.address ?? '',
     },
     date: new Date(record.createdAt),
-    tags: record.tags,
+    tags: extractTagNames(record.tags),
     imageUrl: thumbnailUrl,
   };
 }
