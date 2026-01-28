@@ -4,15 +4,20 @@ import {
   CreateRecordRequestSchema,
   CreateRecordResponseSchema,
   GetRecordsByBoundsRequestSchema,
+  GetAllRecordsRequestSchema,
+  GetAllRecordsResponseSchema,
   RecordsByBoundsResponseSchema,
   RecordDetailResponseSchema,
+  SuccessResponseSchema,
   validateApiResponse,
 } from '@locus/shared';
 import type {
   CreateRecordRequest,
   RecordWithImages,
   GetRecordsByBoundsRequest,
+  GetAllRecordsRequest,
   Record,
+  RecordWithoutCoords,
   RecordDetail,
 } from '@locus/shared';
 
@@ -142,6 +147,62 @@ export async function getRecordsByBounds(
 }
 
 /**
+ * 전체 기록 조회 API 호출
+ * - GET /records/all?page=&limit=&sortOrder=&startDate=&endDate=&tagPublicIds=
+ */
+export async function getAllRecords(
+  request: GetAllRecordsRequest,
+): Promise<{ records: RecordWithoutCoords[]; totalCount: number }> {
+  try {
+    // 1. Request 검증
+    const validatedRequest = GetAllRecordsRequestSchema.parse(request);
+
+    // 2. Query 파라미터 구성
+    const queryParams = new URLSearchParams({
+      page: (validatedRequest.page ?? 1).toString(),
+      limit: (validatedRequest.limit ?? 10).toString(),
+      sortOrder: validatedRequest.sortOrder ?? 'desc',
+    });
+
+    if (validatedRequest.startDate)
+      queryParams.append('startDate', validatedRequest.startDate);
+    if (validatedRequest.endDate)
+      queryParams.append('endDate', validatedRequest.endDate);
+
+    if (validatedRequest.tagPublicIds?.length) {
+      queryParams.append(
+        'tagPublicIds',
+        validatedRequest.tagPublicIds.join(','),
+      );
+    }
+
+    // 3. API 호출
+    const response = await apiClient<unknown>(
+      `${API_ENDPOINTS.RECORDS_ALL}?${queryParams.toString()}`,
+      { method: 'GET' },
+    );
+
+    // 4. Response 검증
+
+    const validated = validateApiResponse(
+      GetAllRecordsResponseSchema,
+      response,
+    );
+
+    return validated.data;
+  } catch (error) {
+    logger.error(
+      error instanceof Error ? error : new Error('전체 기록 조회 실패'),
+      {
+        request,
+        error: String(error),
+      },
+    );
+    throw error;
+  }
+}
+
+/**
  * 기록 상세 조회 API 호출
  * - GET /records/{publicId}
  */
@@ -169,6 +230,61 @@ export async function getRecordDetail(publicId: string): Promise<RecordDetail> {
       error instanceof Error ? error : new Error('기록 상세 조회 실패'),
       {
         publicId,
+        error: String(error),
+      },
+    );
+    throw error;
+  }
+}
+
+/**
+ * 기록 즐겨찾기 변경 API 호출
+ * - PATCH /records/{publicId}/favorite
+ */
+export async function updateRecordFavorite(
+  publicId: string,
+  isFavorite: boolean,
+): Promise<{ publicId: string; isFavorite: boolean }> {
+  try {
+    logger.info('기록 즐겨찾기 변경 시작', { publicId, isFavorite });
+
+    // 1. API 호출
+    const response = await apiClient<unknown>(
+      API_ENDPOINTS.RECORDS_FAVORITE(publicId),
+      {
+        method: 'PATCH',
+        body: JSON.stringify({ isFavorite }),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      },
+    );
+
+    // 2. Response 검증
+    const FavoriteResponseSchema = SuccessResponseSchema.extend({
+      data: z.object({
+        publicId: z.string(),
+        isFavorite: z.boolean(),
+      }),
+    });
+
+    const validated = validateApiResponse(
+      FavoriteResponseSchema,
+      response,
+    ) as z.infer<typeof FavoriteResponseSchema>;
+
+    logger.info('기록 즐겨찾기 변경 성공', {
+      publicId,
+      isFavorite: validated.data.isFavorite,
+    });
+
+    return validated.data;
+  } catch (error) {
+    logger.error(
+      error instanceof Error ? error : new Error('기록 즐겨찾기 변경 실패'),
+      {
+        publicId,
+        isFavorite,
         error: String(error),
       },
     );

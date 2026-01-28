@@ -17,4 +17,7 @@ export type {
   SortOrder,
   FilterBottomSheetProps,
   RecordDetailPageProps,
+  UpdateRecordFavoriteParams,
+  RecordsData,
+  UseSidebarRecordsProps,
 } from './record';
