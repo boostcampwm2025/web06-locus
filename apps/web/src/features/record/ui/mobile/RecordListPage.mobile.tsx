@@ -11,6 +11,7 @@ import { ROUTES } from '@/router/routes';
 import { useBottomTabNavigation } from '@/shared/hooks/useBottomTabNavigation';
 import { useAllRecords } from '@/features/record/hooks/useRecords';
 import { useSearchRecords } from '@/features/record/hooks/useSearchRecords';
+import { useGetTags } from '@/features/record/hooks/useGetTags';
 import { useIntersectionObserver } from '@/shared/hooks/useIntersectionObserver';
 import type { RecordWithoutCoords } from '@locus/shared';
 import { extractTagNames } from '@/shared/utils/tagUtils';
@@ -36,17 +37,8 @@ export interface RecordListPageProps {
   className?: string;
 }
 
-const defaultCategories: Category[] = [
-  { id: 'all', label: '전체' },
-  { id: 'history', label: '역사' },
-  { id: 'culture', label: '문화' },
-  { id: 'attraction', label: '명소' },
-  { id: 'nature', label: '자연' },
-  { id: 'shopping', label: '쇼핑' },
-];
-
 export function RecordListPageMobile({
-  categories = defaultCategories,
+  categories: propCategories,
   onRecordClick,
   onFilterClick,
   onSearchClick,
@@ -57,6 +49,20 @@ export function RecordListPageMobile({
   const navigate = useNavigate();
   const [isSearchActive, setIsSearchActive] = useState(false);
   const [searchValue, setSearchValue] = useState('');
+
+  // 태그 조회
+  const { data: allTags = [] } = useGetTags();
+
+  // 카테고리 목록 (전체 + 태그들)
+  const categories = useMemo<Category[]>(() => {
+    if (propCategories) {
+      return propCategories;
+    }
+    return [
+      { id: 'all', label: '전체' },
+      ...allTags.map((tag) => ({ id: tag.publicId, label: tag.name })),
+    ];
+  }, [propCategories, allTags]);
 
   // 필터 상태 관리
   const [isFilterOpen, setIsFilterOpen] = useState(false);
