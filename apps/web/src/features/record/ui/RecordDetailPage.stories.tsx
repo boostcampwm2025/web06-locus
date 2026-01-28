@@ -1,5 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import RecordDetailPage from './RecordDetailPage';
+import { RecordDetailPageMobile } from './mobile/RecordDetailPage.mobile';
+import { RecordDetailPageDesktop } from './desktop/RecordDetailPage.desktop';
 
 const meta = {
   title: 'Features/Record/RecordDetailPage',
@@ -34,6 +36,13 @@ const meta = {
           styles: {
             width: '360px',
             height: '800px',
+          },
+        },
+        desktop: {
+          name: 'Desktop',
+          styles: {
+            width: '1920px',
+            height: '1080px',
           },
         },
       },
@@ -210,6 +219,66 @@ export const ManyTags: Story = {
     docs: {
       description: {
         story: '태그가 많은 경우 (+N 표시)',
+      },
+    },
+  },
+};
+
+/**
+ * 모바일 버전
+ */
+export const Mobile: Story = {
+  render: (args) => <RecordDetailPageMobile {...args} />,
+  args: {
+    ...defaultArgs,
+    imageUrl: 'https://placehold.co/400x300',
+  },
+  parameters: {
+    viewport: {
+      viewports: {
+        mobile2: {
+          name: 'iPhone 12/13',
+          styles: {
+            width: '390px',
+            height: '844px',
+          },
+        },
+      },
+      defaultViewport: 'mobile2',
+    },
+    docs: {
+      description: {
+        story: '모바일 버전 UI입니다.',
+      },
+    },
+  },
+};
+
+/**
+ * 데스크톱 버전
+ */
+export const Desktop: Story = {
+  render: (args) => <RecordDetailPageDesktop {...args} />,
+  args: {
+    ...defaultArgs,
+    imageUrl: 'https://placehold.co/1200x500',
+  },
+  parameters: {
+    viewport: {
+      viewports: {
+        desktop: {
+          name: 'Desktop',
+          styles: {
+            width: '1920px',
+            height: '1080px',
+          },
+        },
+      },
+      defaultViewport: 'desktop',
+    },
+    docs: {
+      description: {
+        story: '데스크톱 버전 UI입니다. 전체 화면 오버레이 형태로 표시됩니다.',
       },
     },
   },

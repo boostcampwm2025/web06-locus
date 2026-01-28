@@ -1,6 +1,6 @@
 import { LinkIcon } from '@/shared/ui/icons/LinkIcon';
 import { LocationIcon } from '@/shared/ui/icons/LocationIcon';
-import { ArrowRightIcon } from '@/shared/ui/icons/ArrowRightIcon';
+import { ChevronRightIcon } from '@/shared/ui/icons/ChevronRightIcon';
 import type { RecordCardProps } from './RecordCard.types';
 import { formatDateShort } from '@/shared/utils/dateUtils';
 import { getDisplayTags } from '@/shared/utils/tagUtils';
@@ -79,7 +79,7 @@ export default function RecordCard({
       </div>
 
       {/* 오른쪽 화살표 */}
-      <ArrowRightIcon className="w-5 h-5 text-gray-400 shrink-0 mt-1" />
+      <ChevronRightIcon className="w-5 h-5 text-gray-400 shrink-0 mt-1" />
     </button>
   );
 }

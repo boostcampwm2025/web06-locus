@@ -1,5 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import RecordWritePage from './RecordWritePage';
+import { RecordWritePageMobile } from './mobile/RecordWritePage.mobile';
+import { RecordWritePageDesktop } from './desktop/RecordWritePage.desktop';
 
 const meta = {
   title: 'Features/Record/RecordWritePage',
@@ -23,6 +25,13 @@ const meta = {
         mobile4: {
           name: 'Samsung Galaxy S20',
           styles: { width: '360px', height: '800px' },
+        },
+        desktop: {
+          name: 'Desktop',
+          styles: {
+            width: '1920px',
+            height: '1080px',
+          },
         },
       },
       defaultViewport: 'mobile2',
@@ -111,5 +120,101 @@ export const WithLongLocationName: Story = {
   },
   parameters: {
     docs: { description: { story: '긴 위치 이름을 표시하는 예시입니다.' } },
+  },
+};
+
+/**
+ * 모바일 버전
+ */
+export const Mobile: Story = {
+  render: (args) => (
+    <RecordWritePageMobile
+      {...args}
+      initialCoordinates={{ lat: 37.5665, lng: 126.978 }}
+    />
+  ),
+  args: {
+    initialLocation: {
+      name: '경복궁',
+      address: '서울시 종로구 사직로 161',
+    },
+    // eslint-disable-next-line @typescript-eslint/no-empty-function
+    onSave: () => {},
+    // eslint-disable-next-line @typescript-eslint/no-empty-function
+    onCancel: () => {},
+    // eslint-disable-next-line @typescript-eslint/no-empty-function
+    onTakePhoto: () => {},
+    // eslint-disable-next-line @typescript-eslint/no-empty-function
+    onSelectFromLibrary: () => {},
+  },
+  parameters: {
+    viewport: {
+      viewports: {
+        mobile1: {
+          name: 'iPhone SE',
+          styles: { width: '375px', height: '667px' },
+        },
+        mobile2: {
+          name: 'iPhone 12/13',
+          styles: { width: '390px', height: '844px' },
+        },
+        mobile3: {
+          name: 'iPhone 14 Pro Max',
+          styles: { width: '430px', height: '932px' },
+        },
+        mobile4: {
+          name: 'Samsung Galaxy S20',
+          styles: { width: '360px', height: '800px' },
+        },
+      },
+      defaultViewport: 'mobile2',
+    },
+    docs: {
+      description: {
+        story: '모바일 버전 UI입니다.',
+      },
+    },
+  },
+};
+
+/**
+ * 데스크톱 버전
+ */
+export const Desktop: Story = {
+  render: (args) => (
+    <RecordWritePageDesktop
+      {...args}
+      initialCoordinates={{ lat: 37.5665, lng: 126.978 }}
+    />
+  ),
+  args: {
+    initialLocation: {
+      name: '경복궁',
+      address: '서울시 종로구 사직로 161',
+    },
+    // eslint-disable-next-line @typescript-eslint/no-empty-function
+    onSave: () => {},
+    // eslint-disable-next-line @typescript-eslint/no-empty-function
+    onCancel: () => {},
+  },
+  parameters: {
+    viewport: {
+      viewports: {
+        desktop: {
+          name: 'Desktop',
+          styles: {
+            width: '1920px',
+            height: '1080px',
+          },
+        },
+      },
+      defaultViewport: 'desktop',
+    },
+    docs: {
+      description: {
+        story:
+          '데스크톱 버전 UI입니다. 오른쪽 패널 형태로 표시됩니다. DesktopUI 스타일을 적용했습니다.',
+      },
+    },
   },
 };

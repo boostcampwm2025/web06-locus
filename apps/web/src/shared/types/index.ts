@@ -67,3 +67,16 @@ export type {
   ActionSheetProps,
   ConfirmDialogProps,
 } from './dialog';
+export type { UseIntersectionObserverProps } from './intersectionObserver';
+export type {
+  DesktopCalendarProps,
+  DesktopFilterPanelProps,
+  DesktopSidebarProps,
+  FilterFieldProps,
+  SortOrderButtonProps,
+  SidebarSectionProps,
+  RecordCardProps,
+  ConnectionGraphCTAProps,
+  ConnectedRecordsSectionProps,
+  RecordSummaryPanelProps,
+} from './desktop';
