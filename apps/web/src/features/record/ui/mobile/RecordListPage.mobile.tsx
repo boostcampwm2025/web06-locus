@@ -11,6 +11,7 @@ import { useBottomTabNavigation } from '@/shared/hooks/useBottomTabNavigation';
 import { useGetRecordsByBounds } from '@/features/record/hooks/useGetRecordsByBounds';
 import type { Record as ApiRecord } from '@locus/shared';
 import { extractTagNames } from '@/shared/utils/tagUtils';
+import { sortRecordsByFavorite } from '@/shared/utils/recordSortUtils';
 
 export interface RecordListItem {
   id: string;
@@ -74,7 +75,7 @@ export function RecordListPageMobile({
     isError,
   } = useGetRecordsByBounds(KOREA_WIDE_BOUNDS);
 
-  // API 응답을 RecordListItem으로 변환
+  // API 응답을 RecordListItem으로 변환 및 정렬
   const records = useMemo<RecordListItem[]>(() => {
     // propRecords가 제공된 경우 우선 사용 (테스트/스토리북용)
     if (propRecords) return propRecords;
@@ -83,7 +84,11 @@ export function RecordListPageMobile({
       return [];
     }
 
-    return recordsByBoundsData.records.map((record: ApiRecord) => {
+    // 즐겨찾기 우선 정렬 적용
+    const sortedApiRecords = sortRecordsByFavorite(recordsByBoundsData.records);
+
+    // 정렬된 API 응답을 RecordListItem으로 변환
+    return sortedApiRecords.map((record: ApiRecord) => {
       // 이미지가 있는 경우 첫 번째 이미지의 thumbnail URL 사용
       const recordWithImages = record as ApiRecord & {
         images?: {

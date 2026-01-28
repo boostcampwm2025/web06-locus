@@ -1,3 +1,6 @@
+import type { ChangeEvent } from 'react';
+import type { Record as ApiRecord, SearchRecordItem } from '@locus/shared';
+
 /**
  * 위치 정보
  */
@@ -119,8 +122,6 @@ export interface RecordWriteHeaderProps {
   location: Location;
   onCancel: () => void;
 }
-
-import type { ChangeEvent } from 'react';
 
 /**
  * 기록 작성 폼 Props
@@ -267,4 +268,20 @@ export interface RecordConnectionHeaderProps {
     location: Location;
   } | null;
   onCancel: () => void;
+}
+
+/**
+ * 기록 즐겨찾기 변경 파라미터
+ */
+export interface UpdateRecordFavoriteParams {
+  publicId: string;
+  isFavorite: boolean;
+}
+
+/**
+ * 기록 목록 데이터 (캐시용)
+ */
+export interface RecordsData {
+  records: (ApiRecord | SearchRecordItem)[];
+  totalCount?: number;
 }

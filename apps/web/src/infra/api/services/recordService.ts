@@ -6,6 +6,7 @@ import {
   GetRecordsByBoundsRequestSchema,
   RecordsByBoundsResponseSchema,
   RecordDetailResponseSchema,
+  SuccessResponseSchema,
   validateApiResponse,
 } from '@locus/shared';
 import type {
@@ -169,6 +170,61 @@ export async function getRecordDetail(publicId: string): Promise<RecordDetail> {
       error instanceof Error ? error : new Error('기록 상세 조회 실패'),
       {
         publicId,
+        error: String(error),
+      },
+    );
+    throw error;
+  }
+}
+
+/**
+ * 기록 즐겨찾기 변경 API 호출
+ * - PATCH /records/{publicId}/favorite
+ */
+export async function updateRecordFavorite(
+  publicId: string,
+  isFavorite: boolean,
+): Promise<{ publicId: string; isFavorite: boolean }> {
+  try {
+    logger.info('기록 즐겨찾기 변경 시작', { publicId, isFavorite });
+
+    // 1. API 호출
+    const response = await apiClient<unknown>(
+      API_ENDPOINTS.RECORDS_FAVORITE(publicId),
+      {
+        method: 'PATCH',
+        body: JSON.stringify({ isFavorite }),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      },
+    );
+
+    // 2. Response 검증
+    const FavoriteResponseSchema = SuccessResponseSchema.extend({
+      data: z.object({
+        publicId: z.string(),
+        isFavorite: z.boolean(),
+      }),
+    });
+
+    const validated = validateApiResponse(
+      FavoriteResponseSchema,
+      response,
+    ) as z.infer<typeof FavoriteResponseSchema>;
+
+    logger.info('기록 즐겨찾기 변경 성공', {
+      publicId,
+      isFavorite: validated.data.isFavorite,
+    });
+
+    return validated.data;
+  } catch (error) {
+    logger.error(
+      error instanceof Error ? error : new Error('기록 즐겨찾기 변경 실패'),
+      {
+        publicId,
+        isFavorite,
         error: String(error),
       },
     );
