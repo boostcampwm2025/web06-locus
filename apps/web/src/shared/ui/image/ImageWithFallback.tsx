@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 import { RECORD_PLACEHOLDER_IMAGE } from '@/shared/constants/record';
 
@@ -30,6 +30,12 @@ export function ImageWithFallback({
 }: ImageWithFallbackProps) {
   const [imgSrc, setImgSrc] = useState(src);
   const [hasError, setHasError] = useState(false);
+
+  // src가 바뀌면 내부 state를 동기화 (비동기로 나중에 전달되는 URL 대응)
+  useEffect(() => {
+    setImgSrc(src);
+    setHasError(false);
+  }, [src]);
 
   const handleError = () => {
     if (!hasError && imgSrc !== fallbackSrc) {

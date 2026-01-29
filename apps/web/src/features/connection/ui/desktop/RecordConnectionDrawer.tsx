@@ -263,7 +263,11 @@ export default function RecordConnectionDrawer({
             id: departure.id,
             title: departure.title,
             location: departure.location,
-            imageUrl: records.find((r) => r.id === departure.id)?.imageUrl,
+            // 출발 기록은 records에서 제외되어 있으므로, fromRecordDetail에서 이미지 사용
+            imageUrl:
+              departure.id === fromRecordId && fromRecordDetail?.images?.length
+                ? fromRecordDetail.images[0].medium.url
+                : records.find((r) => r.id === departure.id)?.imageUrl,
           }}
           arrival={{
             id: arrival.id,
