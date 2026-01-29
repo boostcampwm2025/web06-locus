@@ -5,16 +5,16 @@ import {
   RecordConnectionsCountSyncPayload,
   RecordFavoriteSyncPayload,
   RecordSyncPayload,
-} from './type/record-sync.types';
+} from '../type/record-sync.types';
 import {
   RECORD_INDEX_NAME,
   RECORD_INDEX_SETTINGS,
   RECORD_SEARCH_FIELDS,
   RECORD_SEARCH_MAPPING,
   RECORD_SEARCH_SORT_CRITERIA,
-} from './constants/record-search.constant';
-import { ESDocumentNotFoundException } from './exceptions/record.exceptions';
-import { SearchRecordsDto } from './dto/search-records.dto';
+} from '../constants/record-search.constant';
+import { ESDocumentNotFoundException } from '../exceptions/record.exceptions';
+import { SearchRecordsDto } from '../dto/search-records.dto';
 import {
   FieldValue,
   QueryDslQueryContainer,
