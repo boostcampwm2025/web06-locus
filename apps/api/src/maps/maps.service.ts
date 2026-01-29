@@ -5,23 +5,45 @@ import {
   ReverseGeocodingResult,
 } from './type/reverse-geocoding.types';
 import { GeocodingResult } from './type/geocoding.type';
+import { SearchAddressResponseDto } from './dto/search-address.response.dto';
 
 const GEOCODE_API_URL = 'https://maps.apigw.ntruss.com/map-geocode/v2/geocode';
 const REVERSE_GEOCODE_API_URL =
   'https://maps.apigw.ntruss.com/map-reversegeocode/v2/gc';
+const NAVER_SEARCH_API_URL = 'https://openapi.naver.com/v1/search/local.json';
+
+interface NaverLocalSearchResponse {
+  total: number;
+  items: {
+    title: string;
+    address: string;
+    roadAddress: string;
+    mapx: string;
+    mapy: string;
+  }[];
+}
 
 @Injectable()
 export class MapsService {
   private readonly logger = new Logger(MapsService.name);
-  private readonly clientId: string;
-  private readonly clientSecret: string;
+  private readonly NAVER_MAP_CLIENT_ID: string;
+  private readonly NAVER_MAP_CLIENT_SECRET: string;
+  private readonly NAVER_SEARCH_CLIENT_ID: string;
+  private readonly NAVER_SEARCH_CLIENT_SECRTE: string;
 
   constructor(private configService: ConfigService) {
-    this.clientId = this.configService.getOrThrow<string>(
+    this.NAVER_MAP_CLIENT_ID = this.configService.getOrThrow<string>(
       'NAVER_MAP_CLIENT_ID',
     );
-    this.clientSecret = this.configService.getOrThrow<string>(
+    this.NAVER_MAP_CLIENT_SECRET = this.configService.getOrThrow<string>(
       'NAVER_MAP_CLIENT_SECRET',
+    );
+
+    this.NAVER_SEARCH_CLIENT_ID =
+      this.configService.getOrThrow<string>('NAVER_CLIENT_ID');
+
+    this.NAVER_SEARCH_CLIENT_SECRTE = this.configService.getOrThrow<string>(
+      'NAVER_CLIENT_SECRET',
     );
   }
 
@@ -62,6 +84,26 @@ export class MapsService {
     return result;
   }
 
+  async searchAddress(address: string): Promise<SearchAddressResponseDto> {
+    const qs = new URLSearchParams({ query: address });
+    const url = `${NAVER_SEARCH_API_URL}?${qs.toString()}&display=5&sort=random`; // 정확도 순 내림차 순으로 5개 최대 요청
+
+    const result = (await this.callNaverOpenApi(
+      url,
+    )) as NaverLocalSearchResponse;
+
+    return {
+      meta: { totalCount: result.total },
+      addresses: result.items.map((item) => ({
+        title: item.title,
+        roadAddress: item.roadAddress,
+        jibunAddress: item.address,
+        latitude: this.convertSearchCoordinate(item.mapy),
+        longitude: this.convertSearchCoordinate(item.mapx),
+      })),
+    };
+  }
+
   private buildApiUrl(longitude: number, latitude: number): string {
     // Naver Map API는 경도, 위도 순서 (longitude, latitude)
     const coords = `${longitude},${latitude}`;
@@ -72,15 +114,15 @@ export class MapsService {
   private async callNaverMapApi(url: string) {
     const response = await fetch(url, {
       headers: {
-        'X-NCP-APIGW-API-KEY-ID': this.clientId,
-        'X-NCP-APIGW-API-KEY': this.clientSecret,
+        'X-NCP-APIGW-API-KEY-ID': this.NAVER_MAP_CLIENT_ID,
+        'X-NCP-APIGW-API-KEY': this.NAVER_MAP_CLIENT_SECRET,
         'Accept': 'application/json',
       },
     });
 
     if (!response.ok) {
       this.logger.warn(
-        `Reverse geocoding failed: ${response.status} ${response.statusText}`,
+        `Naver Map API request failed: ${response.status} ${response.statusText}`,
       );
       throw new Error(`API call failed: ${response.status}`);
     }
@@ -89,6 +131,26 @@ export class MapsService {
 
     // TODO: ZOD runtime validation 추가
     return raw;
+  }
+
+  private async callNaverOpenApi(url: string) {
+    const response = await fetch(url, {
+      headers: {
+        'X-Naver-Client-Id': this.NAVER_SEARCH_CLIENT_ID,
+        'X-Naver-Client-Secret': this.NAVER_SEARCH_CLIENT_SECRTE,
+        'Accept': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      const body = await response.text().catch(() => '');
+      this.logger.warn(
+        `Naver API request fail: url [${url}] ${response.status} ${response.statusText} body:${body}`,
+      );
+      throw new Error(`API call failed: ${response.status}`);
+    }
+
+    return response.json() as Promise<unknown>;
   }
 
   private isValidResponse(data: NaverMapResponse): boolean {
@@ -126,5 +188,13 @@ export class MapsService {
     address += ` ${number}`;
 
     return address.trim() || null;
+  }
+
+  private convertSearchCoordinate(value: string): string {
+    const numeric = Number(value);
+    if (!Number.isFinite(numeric)) {
+      return '';
+    }
+    return (numeric / 1e7).toFixed(7);
   }
 }

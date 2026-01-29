@@ -1,12 +1,17 @@
 import { Controller, Get, Query, UseGuards } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { MapsService } from './maps.service';
-import { GeocodeRequestDto } from './dto/geocode.request.dto';
+import { AddressSearchRequestDto } from './dto/address-search.request.dto';
 import { GeocodeResponseDto } from './dto/geocode.response.dto';
+import { SearchAddressResponseDto } from './dto/search-address.response.dto';
 import { ReverseGeocodeRequestDto } from './dto/reverse-geocode.request.dto';
 import { ReverseGeocodeResponseDto } from './dto/reverse-geocode.response.dto';
 import { JwtAuthGuard } from '@/jwt/guard/jwt.auth.guard';
-import { GeocodeSwagger, ReverseGeocodeSwagger } from './swagger/maps.swagger';
+import {
+  GeocodeSwagger,
+  ReverseGeocodeSwagger,
+  SearchAddressSwagger,
+} from './swagger/maps.swagger';
 
 @ApiTags('maps')
 @Controller('maps')
@@ -17,7 +22,7 @@ export class MapsController {
   @GeocodeSwagger()
   @Get('geocode')
   async getCoordinates(
-    @Query() requestDto: GeocodeRequestDto,
+    @Query() requestDto: AddressSearchRequestDto,
   ): Promise<GeocodeResponseDto> {
     const result = await this.MapsService.getCoordinatesFromAddress(
       requestDto.address,
@@ -47,5 +52,14 @@ export class MapsController {
       requestDto.latitude,
       requestDto.longitude,
     );
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get()
+  @SearchAddressSwagger()
+  async searchAddress(
+    @Query() requestDto: AddressSearchRequestDto,
+  ): Promise<SearchAddressResponseDto> {
+    return this.MapsService.searchAddress(requestDto.address);
   }
 }
