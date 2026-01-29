@@ -26,7 +26,7 @@ RUN echo "VITE_NAVER_CLIENT_ID=$VITE_NAVER_CLIENT_ID" > apps/web/.env.production
     echo "VITE_FIREBASE_PROJECT_ID=$VITE_FIREBASE_PROJECT_ID" >> apps/web/.env.production && \
     echo "VITE_FIREBASE_STORAGE_BUCKET=$VITE_FIREBASE_STORAGE_BUCKET" >> apps/web/.env.production && \
     echo "VITE_FIREBASE_MESSAGING_SENDER_ID=$VITE_FIREBASE_MESSAGING_SENDER_ID" >> apps/web/.env.production && \
-    echo "VITE_FIREBASE_APP_ID=$VITE_FIREBASE_APP_ID" >> apps/web/.env.production && \
+    echo "VITE_FIREBASE_APP_ID=$VITE_FIREBASE_APP_ID" >> apps/web/.env.production
 
 RUN pnpm turbo run build --filter=@locus/web
 
