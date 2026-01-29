@@ -12,6 +12,7 @@ import { UsersService } from '@/users/users.service';
 import { RecordTagsService } from './record-tags.service';
 import { TagsModule } from '@/tags/tags.module';
 import { ImagesModule } from '@/images/images.module';
+import { RecordGraphService } from './record-graph.service';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { ImagesModule } from '@/images/images.module';
   providers: [
     RecordsService,
     RecordSearchService,
+    RecordGraphService,
     UsersService,
     MapsService,
     RecordTagsService,
