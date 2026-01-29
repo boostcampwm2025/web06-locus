@@ -24,6 +24,7 @@ export default function SettingsPageDesktop(props: SettingsPageProps) {
     setIsPushEnabled,
     notificationTime,
     setNotificationTime,
+    notificationLoading,
     tags,
     tagToDelete,
     setTagToDelete,
@@ -84,6 +85,8 @@ export default function SettingsPageDesktop(props: SettingsPageProps) {
                 onPushToggle={setIsPushEnabled}
                 notificationTime={notificationTime}
                 onNotificationTimeChange={setNotificationTime}
+                readOnly
+                notificationLoading={notificationLoading}
               />
             )}
             {activeTab === 'tags' && (
