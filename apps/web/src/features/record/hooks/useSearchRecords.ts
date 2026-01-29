@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { useDebounce } from '@/shared/hooks/useDebounce';
 import { apiClient } from '@/infra/api';
 import { API_ENDPOINTS } from '@/infra/api/constants';
 import {
@@ -7,19 +8,53 @@ import {
   validateApiResponse,
 } from '@locus/shared';
 import type { SearchRecordsRequest } from '@locus/shared';
-import { getAllRecords } from '@/infra/api/services/recordService';
 
 /**
- * 기록 검색 훅
+ * 디바운싱이 적용된 기록 검색 훅
+ * @param keyword - 검색 키워드
+ * @param options - 추가 검색 옵션 (tags, hasImage, isFavorite 등)
  */
-export function useRecords(request: SearchRecordsRequest | null) {
+export function useSearchRecords(
+  keyword: string,
+  options?: {
+    tags?: string[];
+    hasImage?: boolean;
+    isFavorite?: boolean;
+    cursor?: string;
+    size?: number;
+    enabled?: boolean;
+  },
+) {
+  // 디바운싱 적용 (300ms 지연)
+  const debouncedKeyword = useDebounce(keyword.trim(), 300);
+
+  // 검색어가 있을 때만 쿼리 활성화
+  const isEnabled = !!debouncedKeyword && options?.enabled !== false;
+
   return useQuery({
-    queryKey: ['records', 'search', request],
+    queryKey: [
+      'records',
+      'search',
+      debouncedKeyword,
+      options?.tags,
+      options?.hasImage,
+      options?.isFavorite,
+      options?.cursor,
+      options?.size,
+    ],
     queryFn: async () => {
-      if (!request) throw new Error('Search request is required');
+      // enabled로 이미 막혔으므로 여기서는 항상 유효한 검색어가 있음
+      const searchRequest: SearchRecordsRequest = {
+        keyword: debouncedKeyword,
+        tags: options?.tags,
+        hasImage: options?.hasImage,
+        isFavorite: options?.isFavorite,
+        cursor: options?.cursor,
+        size: options?.size,
+      };
 
       // 요청 검증
-      const validatedRequest = SearchRecordsRequestSchema.parse(request);
+      const validatedRequest = SearchRecordsRequestSchema.parse(searchRequest);
 
       // 쿼리 파라미터 구성
       const params = new URLSearchParams();
@@ -28,9 +63,6 @@ export function useRecords(request: SearchRecordsRequest | null) {
         validatedRequest.tags.forEach((tag) => {
           params.append('tags', tag);
         });
-      }
-      if (validatedRequest.sortOrder) {
-        params.append('sortOrder', validatedRequest.sortOrder);
       }
       if (validatedRequest.hasImage !== undefined) {
         params.append('hasImage', String(validatedRequest.hasImage));
@@ -58,36 +90,7 @@ export function useRecords(request: SearchRecordsRequest | null) {
 
       return validated.data;
     },
-    enabled: !!request && !!request.keyword.trim(),
+    enabled: isEnabled,
     staleTime: 5 * 60 * 1000, // 5분
-  });
-}
-
-/**
- * 전체 기록 목록 조회 훅
- * - GET /records/all 엔드포인트 사용
- * - 태그 필터링 지원 (서버 사이드 필터링)
- * - 리스트 뷰 전용 (좌표 없음, 클러스터링 불가)
- *
- * limit: 100
- * - 백엔드 DTO 최대값에 맞춤
- * - 메모리 효율적 (좌표 데이터 제외)
- */
-export function useAllRecords(options?: {
-  enabled?: boolean;
-  tagPublicIds?: string[];
-}) {
-  return useQuery({
-    queryKey: ['records', 'all', options?.tagPublicIds], // 태그 필터 포함
-    queryFn: () =>
-      getAllRecords({
-        page: 1,
-        sortOrder: 'desc',
-        limit: 100, // 백엔드 DTO 최대값에 맞춤
-        tagPublicIds: options?.tagPublicIds,
-      }),
-    enabled: options?.enabled !== false,
-    staleTime: 5 * 60 * 1000, // 5분
-    gcTime: 30 * 60 * 1000, // 사용하지 않아도 30분간 메모리 유지
   });
 }

@@ -34,6 +34,54 @@ export function useMapInstance(options: UseMapInstanceOptions = {}) {
   const latitude = shouldUseGeolocation ? geolocation.latitude : null;
   const longitude = shouldUseGeolocation ? geolocation.longitude : null;
 
+  /**
+   * 컨테이너의 크기가 0보다 커질 때까지 requestAnimationFrame으로 대기합니다.
+   */
+  const waitForContainerSize = (): Promise<boolean> => {
+    return new Promise((resolve) => {
+      const check = () => {
+        const container = mapContainerRef.current;
+        if (!container || mapInstanceRef.current) {
+          return resolve(false);
+        }
+
+        if (container.offsetWidth > 0 && container.offsetHeight > 0) {
+          resolve(true);
+        } else {
+          requestAnimationFrame(check);
+        }
+      };
+      check();
+    });
+  };
+
+  /**
+   * 지도 크기 업데이트 수행 (타입 안정성 보장)
+   * updateSize는 SDK 런타임에 존재하나 @types/navermaps에 없을 수 있어 별도 타입으로 접근
+   */
+  type MapWithUpdateSize = naver.maps.Map & { updateSize?: () => void };
+
+  const updateMapSize = (map: naver.maps.Map) => {
+    const container = mapContainerRef.current;
+    if (
+      !container ||
+      container.offsetWidth === 0 ||
+      container.offsetHeight === 0
+    )
+      return;
+
+    try {
+      const m = map as MapWithUpdateSize;
+      if (typeof m.updateSize === 'function') {
+        m.updateSize();
+      } else {
+        window.dispatchEvent(new Event('resize'));
+      }
+    } catch {
+      window.dispatchEvent(new Event('resize'));
+    }
+  };
+
   // 지도는 한 번만 초기화되도록 보장 (의존성 배열 최소화)
   useEffect(() => {
     const clientId = import.meta.env.VITE_NAVER_CLIENT_ID;
@@ -45,6 +93,11 @@ export function useMapInstance(options: UseMapInstanceOptions = {}) {
 
     // 이미 지도가 초기화되었으면 재초기화하지 않음
     if (mapInstanceRef.current) {
+      return;
+    }
+
+    // 컨테이너가 없으면 초기화하지 않음
+    if (!mapContainerRef.current) {
       return;
     }
 
@@ -72,6 +125,10 @@ export function useMapInstance(options: UseMapInstanceOptions = {}) {
           return;
         }
 
+        // 컨테이너 크기가 유효할 때까지 대기
+        const isSizeReady = await waitForContainerSize();
+        if (!isSizeReady) return;
+
         const centerCoords = getCenterCoordinates();
         const center = new naverMaps.LatLng(centerCoords.lat, centerCoords.lng);
 
@@ -97,6 +154,13 @@ export function useMapInstance(options: UseMapInstanceOptions = {}) {
         setIsMapLoaded(true);
         setMapLoadError(null);
 
+        // 지도 생성 직후 크기 업데이트
+        setTimeout(() => {
+          if (mapInstanceRef.current) {
+            updateMapSize(mapInstanceRef.current);
+          }
+        }, 100);
+
         try {
           // 지도가 로드된 확실한 시점에서 PinOverlayView 클래스 초기화
           initializePinOverlayViewClass();
@@ -114,7 +178,10 @@ export function useMapInstance(options: UseMapInstanceOptions = {}) {
       }
     };
 
-    void initializeMap();
+    // 컨테이너 크기 체크 후 초기화 진행
+    void waitForContainerSize().then((isReady) => {
+      if (isReady) void initializeMap();
+    });
 
     // 컴포넌트 언마운트 시 지도 인스턴스 정리
     return () => {
@@ -122,9 +189,6 @@ export function useMapInstance(options: UseMapInstanceOptions = {}) {
         mapInstanceRef.current = null;
       }
     };
-    // 지도는 한 번만 초기화되도록 보장
-    // zoomControlOptions, onMapReady 등 객체/함수는 매 렌더링마다 새로운 참조가 생성되므로 의존성에서 제외
-    // initialCoordinates, zoom, zoomControl, defaultCenter도 초기값만 사용하고 이후 변경은 무시
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // 빈 배열로 한 번만 실행
 
@@ -146,6 +210,28 @@ export function useMapInstance(options: UseMapInstanceOptions = {}) {
       }
     }
   }, [isMapLoaded, latitude, longitude, autoCenterToGeolocation]);
+
+  // 컨테이너 크기 변화 감지 및 지도 크기 업데이트
+  useEffect(() => {
+    if (!isMapLoaded || !mapInstanceRef.current || !mapContainerRef.current) {
+      return;
+    }
+
+    const container = mapContainerRef.current;
+
+    // ResizeObserver로 컨테이너 크기 변화 감지
+    const resizeObserver = new ResizeObserver(() => {
+      if (mapInstanceRef.current) {
+        updateMapSize(mapInstanceRef.current);
+      }
+    });
+
+    resizeObserver.observe(container);
+
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, [isMapLoaded]);
 
   const handleZoomIn = () => {
     if (mapInstanceRef.current) {

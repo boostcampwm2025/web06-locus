@@ -15,12 +15,26 @@ export interface Bounds {
  */
 const GRID_SIZE = 0.01; // 약 1km
 
+/**
+ * 좌표를 격자 번호(정수)로 변환 (부동소수점 문제 방지)
+ */
+function getGridIndex(coord: number): number {
+  return Math.round(coord / GRID_SIZE);
+}
+
+/**
+ * 격자 번호를 좌표로 변환
+ */
+function gridIndexToCoord(gridIndex: number): number {
+  return gridIndex * GRID_SIZE;
+}
+
 export function roundBoundsToGrid(bounds: Bounds): Bounds {
   return {
-    neLat: Math.ceil(bounds.neLat / GRID_SIZE) * GRID_SIZE,
-    neLng: Math.ceil(bounds.neLng / GRID_SIZE) * GRID_SIZE,
-    swLat: Math.floor(bounds.swLat / GRID_SIZE) * GRID_SIZE,
-    swLng: Math.floor(bounds.swLng / GRID_SIZE) * GRID_SIZE,
+    neLat: gridIndexToCoord(Math.ceil(bounds.neLat / GRID_SIZE)),
+    neLng: gridIndexToCoord(Math.ceil(bounds.neLng / GRID_SIZE)),
+    swLat: gridIndexToCoord(Math.floor(bounds.swLat / GRID_SIZE)),
+    swLng: gridIndexToCoord(Math.floor(bounds.swLng / GRID_SIZE)),
   };
 }
 
@@ -108,16 +122,29 @@ export function isNearBoundary(
 }
 
 /**
- * 두 bounds가 같은 Grid인지 확인
+ * 두 bounds가 같은 Grid인지 확인 (정수 변환으로 부동소수점 문제 방지)
  */
 export function isSameGrid(bounds1: Bounds, bounds2: Bounds): boolean {
-  const grid1 = roundBoundsToGrid(bounds1);
-  const grid2 = roundBoundsToGrid(bounds2);
-
+  // 격자 번호(정수)로 직접 비교하여 부동소수점 문제 방지
   return (
-    grid1.neLat === grid2.neLat &&
-    grid1.neLng === grid2.neLng &&
-    grid1.swLat === grid2.swLat &&
-    grid1.swLng === grid2.swLng
+    getGridIndex(bounds1.neLat) === getGridIndex(bounds2.neLat) &&
+    getGridIndex(bounds1.neLng) === getGridIndex(bounds2.neLng) &&
+    getGridIndex(bounds1.swLat) === getGridIndex(bounds2.swLat) &&
+    getGridIndex(bounds1.swLng) === getGridIndex(bounds2.swLng)
+  );
+}
+
+/**
+ * 두 좌표가 같은 Grid인지 확인 (중심점 비교용)
+ */
+export function isSameGridCenter(
+  lat1: number,
+  lng1: number,
+  lat2: number,
+  lng2: number,
+): boolean {
+  return (
+    getGridIndex(lat1) === getGridIndex(lat2) &&
+    getGridIndex(lng1) === getGridIndex(lng2)
   );
 }

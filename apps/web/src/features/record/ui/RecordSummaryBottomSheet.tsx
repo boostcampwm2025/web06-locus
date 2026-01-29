@@ -17,6 +17,7 @@ import type {
   RecordTagsSectionProps,
   RecordSummaryContentProps,
 } from '../types';
+import { extractTagNames } from '@/shared/utils/tagUtils';
 
 export default function RecordSummaryBottomSheet({
   isOpen,
@@ -73,7 +74,7 @@ export default function RecordSummaryBottomSheet({
           title: extractTitle(record.text),
           date: record.createdAt,
           location: record.location,
-          tags: record.tags,
+          tags: Array.isArray(record.tags) ? extractTagNames(record.tags) : [],
           content: record.text,
         }
       : recordDetail

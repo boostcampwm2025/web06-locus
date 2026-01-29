@@ -10,6 +10,7 @@ export interface RecordModel {
   isFavorite: boolean;
   createdAt: Date;
   updatedAt: Date;
+  connectionsCount: number;
 }
 
 export type RecordModelWithoutCoords = Omit<

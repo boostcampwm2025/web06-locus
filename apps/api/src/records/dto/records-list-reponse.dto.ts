@@ -119,13 +119,11 @@ export class RecordListResponseDto {
     tagsMap: Map<bigint, RecordTagDto[]>,
     imagesMap: Map<bigint, ImageModel[]>,
     totalCount: number,
-    connectionCountMap: Map<bigint, number> = new Map<bigint, number>(),
   ): RecordListResponseDto {
     return {
       records: records.map((r) => {
         const tags = tagsMap.get(r.id) ?? [];
         const images = imagesMap.get(r.id) ?? [];
-        const connectionCount = connectionCountMap.get(r.id) ?? 0;
 
         return {
           publicId: r.publicId,
@@ -166,7 +164,7 @@ export class RecordListResponseDto {
           })),
           createdAt: r.createdAt.toISOString(),
           updatedAt: r.updatedAt.toISOString(),
-          connectionCount,
+          connectionCount: r.connectionsCount,
         };
       }),
       totalCount,

@@ -1,17 +1,19 @@
 import { z } from 'zod';
 import {
   LocationSchema,
+  LocationWithoutCoordsSchema,
   ImageResponseSchema,
   RecordResponseSchema,
+  RecordWithoutCoordsResponseSchema,
   RecordWithImagesResponseSchema,
   SearchRecordItemResponseSchema,
   GraphNodeResponseSchema,
   GraphEdgeResponseSchema,
   GraphMetaResponseSchema,
   ConnectedRecordDetailResponseSchema,
-  RecordDetailResponseSchema,
   GetRecordsByBoundsRequestSchema,
   SearchRecordsRequestSchema,
+  GetAllRecordsRequestSchema,
   CreateRecordRequestSchema,
   UpdateRecordRequestSchema,
   DeleteRecordRequestSchema,
@@ -23,8 +25,10 @@ import {
  * Zod 스키마에서 타입 추론 - Response 타입 (camelCase)
  */
 export type Location = z.infer<typeof LocationSchema>;
+export type LocationWithoutCoords = z.infer<typeof LocationWithoutCoordsSchema>;
 export type Image = z.infer<typeof ImageResponseSchema>;
 export type Record = z.infer<typeof RecordResponseSchema>;
+export type RecordWithoutCoords = z.infer<typeof RecordWithoutCoordsResponseSchema>;
 export type RecordWithImages = z.infer<typeof RecordWithImagesResponseSchema>;
 export type SearchRecordItem = z.infer<typeof SearchRecordItemResponseSchema>;
 export type GraphNode = z.infer<typeof GraphNodeResponseSchema>;
@@ -48,6 +52,7 @@ export type GetRecordsByBoundsRequest = z.infer<
   typeof GetRecordsByBoundsRequestSchema
 >;
 export type SearchRecordsRequest = z.infer<typeof SearchRecordsRequestSchema>;
+export type GetAllRecordsRequest = z.infer<typeof GetAllRecordsRequestSchema>;
 export type CreateRecordRequest = z.infer<typeof CreateRecordRequestSchema>;
 export type UpdateRecordRequest = z.infer<typeof UpdateRecordRequestSchema>;
 export type DeleteRecordRequest = z.infer<typeof DeleteRecordRequestSchema>;

@@ -2,6 +2,7 @@ export interface RecordRowType {
   id: bigint;
   publicId: string;
   title: string;
+  connectionsCount: number;
   latitude: number | null;
   longitude: number | null;
   locationName: string | null;
