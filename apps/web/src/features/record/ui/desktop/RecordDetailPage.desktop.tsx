@@ -14,6 +14,7 @@ import type {
   ConnectedRecordsSectionProps,
 } from '@/shared/types';
 import { formatDateShort } from '@/shared/utils/dateUtils';
+import ConnectionNetworkView from '@/features/connection/ui/ConnectionNetworkView';
 
 export function RecordDetailPageDesktop({
   title,
@@ -24,6 +25,9 @@ export function RecordDetailPageDesktop({
   imageUrl,
   connectionCount,
   connectedRecords = [],
+  graphNodes,
+  graphEdges,
+  baseRecordPublicId,
   isFavorite = false,
   onBack,
   onFavoriteToggle,
@@ -35,10 +39,7 @@ export function RecordDetailPageDesktop({
 }: RecordDetailPageProps) {
   const navigate = useNavigate();
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
-
-  // 연결된 기록 그래프 조회 (연결된 기록 목록 표시용)
-  // TODO: recordId를 props에서 받아야 함. 현재는 connectionCount만 있음
-  // const { data: graphData } = useRecordGraph(recordId, { enabled: !!recordId });
+  const [isGraphPanelOpen, setIsGraphPanelOpen] = useState(false);
 
   const handleBack = () => {
     if (onBack) {
@@ -48,14 +49,72 @@ export function RecordDetailPageDesktop({
     }
   };
 
+  /** 연결보기: 그래프 데이터가 있으면 사이드패널 열기, 없으면 연결 모드 페이지로 이동 */
   const handleOpenGraph = () => {
-    onConnectionMode?.();
+    if (
+      graphNodes &&
+      graphNodes.length > 0 &&
+      graphEdges &&
+      baseRecordPublicId
+    ) {
+      setIsGraphPanelOpen(true);
+    } else {
+      onConnectionMode?.();
+    }
+  };
+
+  const handleGraphNodeClick = (publicId: string) => {
+    onRecordClick?.(publicId);
+    setIsGraphPanelOpen(false);
   };
 
   return (
     <div
       className={`fixed inset-0 bg-white z-100 overflow-y-auto ${className}`}
     >
+      {/* 연결 그래프 사이드패널 (데스크톱) */}
+      {isGraphPanelOpen &&
+        graphNodes &&
+        graphNodes.length > 0 &&
+        graphEdges &&
+        baseRecordPublicId && (
+          <>
+            <button
+              type="button"
+              onClick={() => setIsGraphPanelOpen(false)}
+              className="fixed inset-0 bg-black/20 z-110"
+              aria-label="패널 닫기"
+            />
+            <aside
+              className="fixed top-0 right-0 bottom-0 w-full max-w-[480px] bg-white border-l border-gray-100 shadow-2xl z-120 flex flex-col"
+              aria-label="연결 그래프"
+            >
+              <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 shrink-0">
+                <h2 className="text-sm font-black text-gray-900 uppercase tracking-wider">
+                  연결 그래프
+                </h2>
+                <button
+                  type="button"
+                  onClick={() => setIsGraphPanelOpen(false)}
+                  className="p-2 hover:bg-gray-100 rounded-full"
+                  aria-label="닫기"
+                >
+                  <XIcon className="w-5 h-5" />
+                </button>
+              </div>
+              <div className="flex-1 min-h-0 p-4">
+                <ConnectionNetworkView
+                  nodes={graphNodes}
+                  edges={graphEdges}
+                  baseRecordPublicId={baseRecordPublicId}
+                  onNodeClick={handleGraphNodeClick}
+                  className="w-full h-full rounded-2xl"
+                />
+              </div>
+            </aside>
+          </>
+        )}
+
       {/* 네비게이션 바 */}
       <nav className="sticky top-0 bg-white/80 backdrop-blur-md border-b border-gray-100 z-10 px-6 py-4">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
