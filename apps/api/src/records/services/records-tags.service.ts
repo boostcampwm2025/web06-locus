@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
-import { RecordTagDto } from './dto/record-response.dto';
+import { RecordTagDto } from '../dto/record-response.dto';
 import { TagNotFoundException } from '@/tags/exception/tags.exception';
 import { PrismaService } from '@/prisma/prisma.service';
 
@@ -100,5 +100,19 @@ export class RecordTagsService {
     if (!tagPublicIds?.length) return [];
 
     return await this.createRecordTags(tx, userId, recordId, tagPublicIds);
+  }
+
+  async convertTagPublicIdsToIds(
+    userId: bigint,
+    tagPublicIds?: string[],
+  ): Promise<bigint[] | undefined> {
+    if (!tagPublicIds || tagPublicIds.length === 0) return undefined;
+
+    const tags = await this.prisma.tag.findMany({
+      where: { userId, publicId: { in: tagPublicIds } },
+      select: { id: true, publicId: true },
+    });
+
+    return tags.map((tag) => tag.id);
   }
 }
