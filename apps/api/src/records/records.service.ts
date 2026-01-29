@@ -4,7 +4,7 @@ import { MapsService } from '../maps/maps.service';
 import { CreateRecordDto } from './dto/create-record.dto';
 import { RecordResponseDto, RecordTagDto } from './dto/record-response.dto';
 import { GetRecordsQueryDto } from './dto/get-records-query.dto';
-import { ImageModel, LocationInfo, RecordModel } from './records.types';
+import { LocationInfo, RecordModel } from './records.types';
 import {
   LocationNotFoundException,
   ImageDeletionFailedException,
@@ -35,13 +35,13 @@ import {
 } from './sql/record-raw.query';
 import { GetAllRecordsDto } from './dto/get-all-records.dto';
 import { GetRecordsByLocationDto } from './dto/get-records-by-location.dto';
-import { ImageProcessingService } from './services/image-processing.service';
-import { ObjectStorageService } from './services/object-storage.service';
+import { ImageProcessingService } from '@/images/image-processing.service';
+import { ObjectStorageService } from '@/images/object-storage.service';
 import {
   ImageUrls,
   ProcessedImage,
   UploadedImage,
-} from './services/object-storage.types';
+} from '@/images/object-storage.types';
 import { nanoid } from 'nanoid';
 import { UsersService } from '@/users/users.service';
 import { RecordListResponseDto } from './dto/records-list-reponse.dto';
@@ -54,6 +54,7 @@ import { RecordRowType } from './type/record.type';
 import { TagsService } from '@/tags/tags.services';
 import { GraphRecordDto } from './dto/graph-details.response.dto';
 import { ImagesService } from '@/images/images.service';
+import { ImageModel } from '@/images/images.types';
 
 @Injectable()
 export class RecordsService {
@@ -140,7 +141,7 @@ export class RecordsService {
         payload: createRecordSyncPayload(userId, updatedRecord),
       });
 
-      const imagesMap = await this.getImagesByRecordIds({
+      const imagesMap = await this.imagesService.getImagesByRecordIds({
         recordIds: [updatedRecord.id],
         tx,
       });
@@ -237,7 +238,7 @@ export class RecordsService {
     const recordIds = records.map((r) => r.id);
     const [tagsMap, imagesMap] = await Promise.all([
       this.recordTagsService.getTagsByRecordIds(recordIds),
-      this.getImagesByRecordIds({ recordIds }),
+      this.imagesService.getImagesByRecordIds({ recordIds }),
     ]);
 
     return RecordListResponseDto.of(
@@ -279,7 +280,7 @@ export class RecordsService {
     const recordIds = records.map((r) => r.id);
     const [tagsMap, imagesMap, connectionCountMap] = await Promise.all([
       this.recordTagsService.getTagsByRecordIds(recordIds),
-      this.getImagesByRecordIds({ recordIds }),
+      this.imagesService.getImagesByRecordIds({ recordIds }),
       this.getConnectionCountByRecordIds(recordIds),
     ]);
 
@@ -341,7 +342,7 @@ export class RecordsService {
     const recordIds = records.map((r) => r.id);
     const [tagsMap, imagesMap, connectionCountMap] = await Promise.all([
       this.recordTagsService.getTagsByRecordIds(recordIds),
-      this.getImagesByRecordIds({ recordIds, onlyFirst: true }),
+      this.imagesService.getImagesByRecordIds({ recordIds, onlyFirst: true }),
       this.getConnectionCountByRecordIds(recordIds),
     ]);
 
@@ -409,7 +410,7 @@ export class RecordsService {
 
     const [tags, imagesMap] = await Promise.all([
       this.recordTagsService.getRecordTags(record.id),
-      this.getImagesByRecordIds({ recordIds: [record.id] }),
+      this.imagesService.getImagesByRecordIds({ recordIds: [record.id] }),
     ]);
     const images = imagesMap.get(record.id) ?? [];
 
@@ -531,7 +532,7 @@ export class RecordsService {
       medium: img.mediumUrl,
       original: img.originalUrl,
     }));
-    const imageKeys = this.extractImageKeys(imageUrls);
+    const imageKeys = this.objectStorageService.extractImageKeys(imageUrls);
 
     // 5. 트랜잭션: DB 삭제 + Outbox 발행
     try {
@@ -695,7 +696,7 @@ export class RecordsService {
         );
 
         if (processedImages?.length && uploadedImages?.length) {
-          await this.saveImages(
+          await this.imagesService.saveUploadedImages(
             tx,
             updated.id,
             processedImages,
@@ -710,7 +711,7 @@ export class RecordsService {
           payload: createRecordSyncPayload(userId, updated),
         });
 
-        const imagesMap = await this.getImagesByRecordIds({
+        const imagesMap = await this.imagesService.getImagesByRecordIds({
           recordIds: [updated.id],
           tx,
         });
@@ -837,95 +838,6 @@ export class RecordsService {
       );
 
     return { uploadedImages, uploadedKeys, processedImages };
-  }
-
-  private async saveImages(
-    tx: Prisma.TransactionClient,
-    recordId: bigint,
-    processedImages: ProcessedImage[],
-    uploadedImages: UploadedImage[],
-  ): Promise<void> {
-    const imageData = processedImages.map((processed, index) => {
-      const uploaded = uploadedImages[index];
-      return {
-        publicId: processed.imageId,
-        recordId,
-        order: index,
-        thumbnailUrl: uploaded.urls.thumbnail,
-        thumbnailWidth: processed.variants.thumbnail.width,
-        thumbnailHeight: processed.variants.thumbnail.height,
-        thumbnailSize: processed.variants.thumbnail.size,
-        mediumUrl: uploaded.urls.medium,
-        mediumWidth: processed.variants.medium.width,
-        mediumHeight: processed.variants.medium.height,
-        mediumSize: processed.variants.medium.size,
-        originalUrl: uploaded.urls.original,
-        originalWidth: processed.variants.original.width,
-        originalHeight: processed.variants.original.height,
-        originalSize: processed.variants.original.size,
-      };
-    });
-
-    await tx.image.createMany({ data: imageData });
-  }
-
-  private extractImageKeys(images: ImageUrls[]): string[] {
-    return images.flatMap((img) => [
-      this.objectStorageService.extractKeyFromUrl(img.thumbnail),
-      this.objectStorageService.extractKeyFromUrl(img.medium),
-      this.objectStorageService.extractKeyFromUrl(img.original),
-    ]);
-  }
-
-  private async getImagesByRecordIds({
-    recordIds,
-    tx,
-    onlyFirst = false,
-  }: {
-    recordIds: bigint[];
-    tx?: Prisma.TransactionClient;
-    onlyFirst?: boolean;
-  }): Promise<Map<bigint, ImageModel[]>> {
-    if (recordIds.length === 0) {
-      return new Map();
-    }
-
-    const prismaClient = tx ?? this.prisma;
-
-    const images = await prismaClient.image.findMany({
-      where: {
-        recordId: { in: recordIds },
-        ...(onlyFirst && { order: 0 }),
-      },
-      orderBy: { order: 'asc' },
-      select: {
-        recordId: true,
-        publicId: true,
-        order: true,
-        thumbnailUrl: true,
-        thumbnailWidth: true,
-        thumbnailHeight: true,
-        thumbnailSize: true,
-        mediumUrl: true,
-        mediumWidth: true,
-        mediumHeight: true,
-        mediumSize: true,
-        originalUrl: true,
-        originalWidth: true,
-        originalHeight: true,
-        originalSize: true,
-      },
-    });
-
-    const map = new Map<bigint, ImageModel[]>();
-    for (const img of images) {
-      const { recordId, ...imageData } = img;
-      const arr = map.get(recordId);
-      if (arr) arr.push(imageData);
-      else map.set(recordId, [imageData]);
-    }
-
-    return map;
   }
 
   private async getConnectionCountByRecordIds(
