@@ -26,11 +26,16 @@ const PROFILE_IMAGE_OPTIONS: ProfileImageOption[] = [
   { bgGradient: 'from-teal-50 to-teal-100', iconColor: 'text-teal-500' },
 ];
 
-// TODO: api/me 연동
-export function ProfileTab({ onSave }: ProfileTabProps) {
+export function ProfileTab({
+  onSave,
+  user,
+  userLoading,
+  userError,
+}: ProfileTabProps) {
   // 닉네임을 시드로 사용하여 일관된 프로필 이미지 유지
+  const displayName = user?.nickname ?? user?.email ?? '—';
   const [profileImageIndex, setProfileImageIndex] = useState(() =>
-    getRandomProfileIndex('Lucus'),
+    getRandomProfileIndex(displayName),
   );
 
   const currentProfile = PROFILE_IMAGE_OPTIONS[profileImageIndex];
@@ -62,6 +67,11 @@ export function ProfileTab({ onSave }: ProfileTabProps) {
       </header>
 
       <div className="space-y-10">
+        {userError && (
+          <p className="text-red-500 text-sm" role="alert">
+            사용자 정보를 불러오지 못했습니다.
+          </p>
+        )}
         <section className="grid grid-cols-3 gap-8 items-start border-b border-gray-50 pb-10">
           <div>
             <h3 className="font-bold text-gray-900 mb-1">사용자 프로필</h3>
@@ -73,7 +83,8 @@ export function ProfileTab({ onSave }: ProfileTabProps) {
           <div className="col-span-2 flex items-center gap-6">
             <button
               onClick={handleRandomizeProfile}
-              className="w-24 h-24 rounded-[36px] overflow-hidden relative group cursor-pointer shadow-lg hover:shadow-xl transition-all active:scale-95"
+              disabled={userLoading}
+              className="w-24 h-24 rounded-[36px] overflow-hidden relative group cursor-pointer shadow-lg hover:shadow-xl transition-all active:scale-95 disabled:opacity-70"
             >
               <div
                 className={`w-full h-full bg-linear-to-br ${currentProfile.bgGradient} flex items-center justify-center transition-all`}
@@ -98,7 +109,9 @@ export function ProfileTab({ onSave }: ProfileTabProps) {
           <div className="col-span-2">
             <input
               type="text"
-              defaultValue="Lucus"
+              value={user?.nickname ?? ''}
+              placeholder={userLoading ? '불러오는 중…' : '닉네임'}
+              readOnly
               className="w-full bg-gray-50 border-none rounded-2xl p-4 text-gray-900 font-bold focus:ring-2 focus:ring-orange-100 outline-none transition-all"
             />
           </div>
@@ -108,8 +121,16 @@ export function ProfileTab({ onSave }: ProfileTabProps) {
           <h3 className="font-bold text-gray-900">이메일 주소</h3>
           <div className="col-span-2">
             <div className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl text-gray-500 font-medium">
-              <span>lucus@example.com</span>
-              <CheckIcon className="w-[18px] h-[18px] text-[#73C92E]" />
+              <span>
+                {userLoading
+                  ? '불러오는 중…'
+                  : userError
+                    ? '—'
+                    : (user?.email ?? '—')}
+              </span>
+              {!userLoading && !userError && user?.email && (
+                <CheckIcon className="w-[18px] h-[18px] text-[#73C92E]" />
+              )}
             </div>
           </div>
         </section>

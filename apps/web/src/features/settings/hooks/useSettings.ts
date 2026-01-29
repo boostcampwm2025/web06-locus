@@ -2,10 +2,16 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/features/auth/domain/authStore';
 import { ROUTES } from '@/router/routes';
+import { useCurrentUser } from './useCurrentUser';
 import type { SettingsTab, SettingsPageProps } from '../types';
 
 export function useSettings({ onClose, onLogout }: SettingsPageProps) {
   const navigate = useNavigate();
+  const {
+    data: user,
+    isLoading: userLoading,
+    isError: userError,
+  } = useCurrentUser();
   const [activeTab, setActiveTab] = useState<SettingsTab>('profile');
   const [isNotificationEnabled, setIsNotificationEnabled] = useState(true);
   const [isPushEnabled, setIsPushEnabled] = useState(false);
@@ -46,6 +52,9 @@ export function useSettings({ onClose, onLogout }: SettingsPageProps) {
   return {
     activeTab,
     setActiveTab,
+    user,
+    userLoading,
+    userError,
     isNotificationEnabled,
     setIsNotificationEnabled,
     isPushEnabled,

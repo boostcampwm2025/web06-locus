@@ -23,6 +23,9 @@ export interface SettingsSidebarProps {
   onTabChange: (tab: SettingsTab) => void;
   onClose: () => void;
   onLogout: () => void;
+  /** GET /users/me 로 조회한 사용자 (로딩/에러 시 undefined) */
+  user?: import('@/infra/api/services/userService').UserProfile | null;
+  userLoading?: boolean;
 }
 
 /**
@@ -30,6 +33,10 @@ export interface SettingsSidebarProps {
  */
 export interface ProfileTabProps {
   onSave?: () => void;
+  /** GET /users/me 로 조회한 사용자 (로딩/에러 시 undefined) */
+  user?: import('@/infra/api/services/userService').UserProfile | null;
+  userLoading?: boolean;
+  userError?: boolean;
 }
 
 /**
