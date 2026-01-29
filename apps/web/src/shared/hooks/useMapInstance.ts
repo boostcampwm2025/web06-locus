@@ -13,7 +13,6 @@ export function useMapInstance(options: UseMapInstanceOptions = {}) {
     initialCoordinates,
     useGeolocation: shouldUseGeolocation = false,
     zoom = 13,
-    zoomControl = true,
     zoomControlOptions,
     defaultCenter,
     onMapReady,
@@ -136,7 +135,6 @@ export function useMapInstance(options: UseMapInstanceOptions = {}) {
         const mapOptions: naver.maps.MapOptions = {
           center,
           zoom,
-          zoomControl,
         };
 
         if (zoomControlOptions) {
