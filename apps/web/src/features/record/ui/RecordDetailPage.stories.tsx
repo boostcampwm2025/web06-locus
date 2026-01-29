@@ -1,5 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import RecordDetailPage from './RecordDetailPage';
+import { RecordDetailPageMobile } from './mobile/RecordDetailPage.mobile';
+import { RecordDetailPageDesktop } from './desktop/RecordDetailPage.desktop';
 
 const meta = {
   title: 'Features/Record/RecordDetailPage',
@@ -34,6 +36,13 @@ const meta = {
           styles: {
             width: '360px',
             height: '800px',
+          },
+        },
+        desktop: {
+          name: 'Desktop',
+          styles: {
+            width: '1920px',
+            height: '1080px',
           },
         },
       },
@@ -90,7 +99,7 @@ const defaultArgs = {
 export const WithImage: Story = {
   args: {
     ...defaultArgs,
-    imageUrl: 'https://placehold.co/400x300',
+    imageUrl: '/record-placehold.webp',
   },
   parameters: {
     docs: {
@@ -128,7 +137,7 @@ export const WithoutImage: Story = {
 export const WithFavorite: Story = {
   args: {
     ...defaultArgs,
-    imageUrl: 'https://placehold.co/400x300',
+    imageUrl: '/record-placehold.webp',
     isFavorite: true,
   },
   parameters: {
@@ -156,7 +165,7 @@ export const LongDescription: Story = {
 
 특히 수문장 교대식이 인상적이었고, 궁궐 내부의 정원도 잘 관리되어 있어 산책하기 좋았다. 다음에는 봄에 벚꽃이 필 때 다시 방문하고 싶다.`,
     connectionCount: 3,
-    imageUrl: 'https://placehold.co/400x300',
+    imageUrl: '/record-placehold.webp',
   },
   parameters: {
     docs: {
@@ -189,7 +198,7 @@ export const VeryLongDescription: Story = {
 
 다음에는 자전거를 타고 한강을 따라 더 멀리 가보고 싶다. 봄이 오면 벚꽃이 만개하는 벚꽃길도 놓치지 않고 가봐야겠다. 한강은 정말 서울에서 가장 소중한 공간 중 하나인 것 같다.`,
     connectionCount: 7,
-    imageUrl: 'https://placehold.co/400x600',
+    imageUrl: '/record-placehold.webp',
   },
   parameters: {
     docs: {
@@ -204,12 +213,72 @@ export const ManyTags: Story = {
   args: {
     ...defaultArgs,
     tags: ['쇼핑', '명소', '음식', '문화', '관광', '도시'],
-    imageUrl: 'https://placehold.co/400x300',
+    imageUrl: '/record-placehold.webp',
   },
   parameters: {
     docs: {
       description: {
         story: '태그가 많은 경우 (+N 표시)',
+      },
+    },
+  },
+};
+
+/**
+ * 모바일 버전
+ */
+export const Mobile: Story = {
+  render: (args) => <RecordDetailPageMobile {...args} />,
+  args: {
+    ...defaultArgs,
+    imageUrl: '/record-placehold.webp',
+  },
+  parameters: {
+    viewport: {
+      viewports: {
+        mobile2: {
+          name: 'iPhone 12/13',
+          styles: {
+            width: '390px',
+            height: '844px',
+          },
+        },
+      },
+      defaultViewport: 'mobile2',
+    },
+    docs: {
+      description: {
+        story: '모바일 버전 UI입니다.',
+      },
+    },
+  },
+};
+
+/**
+ * 데스크톱 버전
+ */
+export const Desktop: Story = {
+  render: (args) => <RecordDetailPageDesktop {...args} />,
+  args: {
+    ...defaultArgs,
+    imageUrl: '/record-placehold.webp',
+  },
+  parameters: {
+    viewport: {
+      viewports: {
+        desktop: {
+          name: 'Desktop',
+          styles: {
+            width: '1920px',
+            height: '1080px',
+          },
+        },
+      },
+      defaultViewport: 'desktop',
+    },
+    docs: {
+      description: {
+        story: '데스크톱 버전 UI입니다. 전체 화면 오버레이 형태로 표시됩니다.',
       },
     },
   },

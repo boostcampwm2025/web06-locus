@@ -16,7 +16,24 @@ export interface TextAreaFieldProps {
 
 export interface ImageUploadButtonProps {
   label: string;
-  onClick: () => void;
+  onFilesSelected: (files: File[]) => void | Promise<void>;
+  selectedImages?: File[];
+  previewUrls?: string[];
+  onRemoveImage?: (index: number) => void;
+  disabled?: boolean;
+  maxFiles?: number;
+  isCompressing?: boolean;
+  className?: string;
+  /** 모바일에서 "이미지 추가" 버튼 클릭 시 호출. */
+  onMobileAddClick?: () => void;
+}
+
+export interface ImageDropzoneProps {
+  onFilesSelected: (files: File[]) => void | Promise<void>;
+  disabled?: boolean;
+  maxFiles?: number;
+  currentCount?: number /** 현재 선택된 이미지 개수 (안내 메시지용) */;
+  isCompressing?: boolean /** 압축 중인지 여부 */;
   className?: string;
 }
 

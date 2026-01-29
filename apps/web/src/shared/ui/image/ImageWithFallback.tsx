@@ -1,9 +1,12 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+
+import { RECORD_PLACEHOLDER_IMAGE } from '@/shared/constants/record';
 
 interface ImageWithFallbackProps {
   src: string;
   alt: string;
   className?: string;
+  /** 이미지 로드 실패 시 사용할 URL. 미지정 시 기록 기본 이미지 사용 */
   fallbackSrc?: string;
 }
 
@@ -23,10 +26,16 @@ export function ImageWithFallback({
   src,
   alt,
   className = '',
-  fallbackSrc = 'https://placehold.co/400x300',
+  fallbackSrc = RECORD_PLACEHOLDER_IMAGE,
 }: ImageWithFallbackProps) {
   const [imgSrc, setImgSrc] = useState(src);
   const [hasError, setHasError] = useState(false);
+
+  // src가 바뀌면 내부 state를 동기화 (비동기로 나중에 전달되는 URL 대응)
+  useEffect(() => {
+    setImgSrc(src);
+    setHasError(false);
+  }, [src]);
 
   const handleError = () => {
     if (!hasError && imgSrc !== fallbackSrc) {

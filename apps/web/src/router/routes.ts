@@ -9,6 +9,7 @@ export const ROUTES = {
   CONNECTION: '/connection',
   CONNECTION_MANAGEMENT: '/records/:id/connections',
   ONBOARDING: '/onboarding',
+  SETTINGS: '/settings',
   AUTH_CALLBACK: '/auth/callback',
   EMAIL_LOGIN: '/auth/email',
   EMAIL_SIGNUP: '/auth/signup',

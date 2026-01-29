@@ -2,11 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '@/prisma/prisma.service';
 import { MapsService } from '../maps/maps.service';
 import { CreateRecordDto } from './dto/create-record.dto';
-import {
-  RecordResponseDto,
-  RecordTagDto,
-  RecordResponseSource,
-} from './dto/record-response.dto';
+import { RecordResponseDto, RecordTagDto } from './dto/record-response.dto';
 import { GetRecordsQueryDto } from './dto/get-records-query.dto';
 import { ImageModel, LocationInfo, RecordModel } from './records.types';
 import {
@@ -22,7 +18,11 @@ import { GRAPH_NEIGHBOR_RAWS_SQL, GRAPH_RAWS_SQL } from './sql/graph.raw.sql';
 import { GraphRowType } from './type/graph.type';
 import { GraphEdgeDto, GraphNodeDto } from './dto/graph.dto';
 import { GraphResponseDto } from './dto/graph.response.dto';
-import { createRecordSyncPayload } from './type/record-sync.types';
+import {
+  createRecordFavoriteSyncPayload,
+  createRecordConnectionsCountSyncPayload,
+  createRecordSyncPayload,
+} from './type/record-sync.types';
 import { Prisma, Record } from '@prisma/client';
 import { OutboxService } from '@/outbox/outbox.service';
 import {
@@ -37,6 +37,7 @@ import {
   SELECT_RECORDS_BY_LOCATION_SQL,
   COUNT_RECORDS_BY_LOCATION_SQL,
 } from './sql/record-raw.query';
+import { GetAllRecordsDto } from './dto/get-all-records.dto';
 import { GetRecordsByLocationDto } from './dto/get-records-by-location.dto';
 import { ImageProcessingService } from './services/image-processing.service';
 import { ObjectStorageService } from './services/object-storage.service';
@@ -47,10 +48,7 @@ import {
 } from './services/object-storage.types';
 import { nanoid } from 'nanoid';
 import { UsersService } from '@/users/users.service';
-import {
-  RecordListItemSource,
-  RecordListResponseDto,
-} from './dto/records-list-reponse.dto';
+import { RecordListResponseDto } from './dto/records-list-reponse.dto';
 import { RecordSearchService } from './records-search.service';
 import { SearchRecordsDto } from './dto/search-records.dto';
 import { SearchRecordListResponseDto } from './dto/search-record-list-response.dto';
@@ -60,6 +58,7 @@ import { RecordRowType } from './type/record.type';
 import { TagsService } from '@/tags/tags.services';
 import { GraphRecordDto } from './dto/graph-details.response.dto';
 import { ImagesService } from '@/images/images.service';
+import { UpdateFavoriteResponseDto } from './dto/update-favorite.response.dto';
 
 @Injectable()
 export class RecordsService {
@@ -101,7 +100,7 @@ export class RecordsService {
     publicId: string,
     dto: UpdateRecordDto,
   ): Promise<RecordResponseDto> {
-    const record = await this.prisma.$transaction(async (tx) => {
+    const { record, images } = await this.prisma.$transaction(async (tx) => {
       const existing = await tx.record.findFirst({ where: { publicId } });
 
       if (!existing) throw new RecordNotFoundException(publicId);
@@ -146,13 +145,88 @@ export class RecordsService {
         payload: createRecordSyncPayload(userId, updatedRecord),
       });
 
-      const [recordWithImages] = await this.attachImagesToRecords([
-        updatedRecord,
-      ]);
+      const imagesMap = await this.getImagesByRecordIds({
+        recordIds: [updatedRecord.id],
+        tx,
+      });
+      const images = imagesMap.get(updatedRecord.id) ?? [];
 
-      return recordWithImages;
+      return { record: updatedRecord, images };
     });
-    return RecordResponseDto.from(record);
+
+    const tags = await this.recordTagsService.getRecordTags(record.id);
+    return RecordResponseDto.of(record, tags, images);
+  }
+
+  async updateFavoriteInRecord(
+    userId: bigint,
+    publicId: string,
+    requestedIsFavorite: boolean,
+  ): Promise<UpdateFavoriteResponseDto> {
+    const record = await this.findOneByPublicId(publicId);
+
+    // Todo: 그룹 기능 추가시 수정 필요
+    if (record.userId !== userId) {
+      throw new RecordAccessDeniedException(publicId);
+    }
+
+    if (record.isFavorite === requestedIsFavorite) {
+      return { publicId, isFavorite: record.isFavorite };
+    }
+
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const updatedRecord = await tx.record.update({
+        where: {
+          id: record.id,
+        },
+        data: {
+          isFavorite: requestedIsFavorite,
+        },
+        select: {
+          id: true,
+          isFavorite: true,
+          publicId: true,
+        },
+      });
+
+      await this.outboxService.publish(tx, {
+        aggregateType: AGGREGATE_TYPE.RECORD,
+        aggregateId: updatedRecord.id.toString(),
+        eventType: OUTBOX_EVENT_TYPE.RECORD_FAVORITE_UPDATED,
+        payload: createRecordFavoriteSyncPayload(
+          updatedRecord.id,
+          updatedRecord.isFavorite,
+        ),
+      });
+
+      return updatedRecord;
+    });
+
+    return { publicId: updated.publicId, isFavorite: updated.isFavorite };
+  }
+
+  async incrementConnectionsCount(
+    tx: Prisma.TransactionClient,
+    recordId: bigint,
+    delta: number,
+  ) {
+    const updated = await tx.record.update({
+      where: { id: recordId },
+      data: { connectionsCount: { increment: delta } },
+      select: { id: true, connectionsCount: true },
+    });
+
+    await this.outboxService.publish(tx, {
+      aggregateType: AGGREGATE_TYPE.RECORD,
+      aggregateId: updated.id.toString(),
+      eventType: OUTBOX_EVENT_TYPE.RECORD_CONNECTIONS_COUNT_UPDATED,
+      payload: createRecordConnectionsCountSyncPayload(
+        updated.id,
+        updated.connectionsCount,
+      ),
+    });
+
+    return updated;
   }
 
   async searchRecords(
@@ -190,7 +264,6 @@ export class RecordsService {
   async findOneByPublicId(publicId: string) {
     const record = await this.prisma.record.findUnique({
       where: { publicId },
-      select: { id: true, userId: true, publicId: true },
     });
 
     if (!record) {
@@ -236,9 +309,18 @@ export class RecordsService {
       ),
     ]);
 
-    const recordsWithImages = await this.attachImagesToRecords(records);
+    const recordIds = records.map((r) => r.id);
+    const [tagsMap, imagesMap] = await Promise.all([
+      this.recordTagsService.getTagsByRecordIds(recordIds),
+      this.getImagesByRecordIds({ recordIds }),
+    ]);
 
-    return RecordListResponseDto.of(recordsWithImages, countResult[0].count);
+    return RecordListResponseDto.of(
+      records,
+      tagsMap,
+      imagesMap,
+      countResult[0].count,
+    );
   }
 
   async getRecordsByLocation(
@@ -269,9 +351,107 @@ export class RecordsService {
       ),
     ]);
 
-    const recordsWithImages = await this.attachImagesToRecords(records);
+    const recordIds = records.map((r) => r.id);
+    const [tagsMap, imagesMap] = await Promise.all([
+      this.recordTagsService.getTagsByRecordIds(recordIds),
+      this.getImagesByRecordIds({ recordIds }),
+    ]);
 
-    return RecordListResponseDto.of(recordsWithImages, countResult[0].count);
+    return RecordListResponseDto.of(
+      records,
+      tagsMap,
+      imagesMap,
+      countResult[0].count,
+    );
+  }
+
+  async getAllRecords(
+    userId: bigint,
+    dto: GetAllRecordsDto,
+  ): Promise<RecordListResponseDto> {
+    const offset = (dto.page - 1) * dto.limit;
+
+    const startDate = dto.startDate ? new Date(dto.startDate) : undefined;
+    const endDate = dto.endDate ? this.getEndOfDay(dto.endDate) : undefined;
+
+    const tagIds = await this.convertTagPublicIdsToIds(
+      userId,
+      dto.tagPublicIds,
+    );
+
+    const where: Prisma.RecordWhereInput = {
+      userId,
+      ...(startDate && { createdAt: { gte: startDate } }),
+      ...(endDate && {
+        createdAt: { ...(startDate && { gte: startDate }), lt: endDate },
+      }),
+      ...(tagIds?.length && {
+        tags: { some: { tagId: { in: tagIds } } },
+      }),
+    };
+
+    const [records, totalCount] = await Promise.all([
+      this.prisma.record.findMany({
+        where,
+        select: {
+          id: true,
+          publicId: true,
+          title: true,
+          content: true,
+          locationName: true,
+          locationAddress: true,
+          isFavorite: true,
+          createdAt: true,
+          updatedAt: true,
+          connectionsCount: true,
+        },
+        orderBy: { createdAt: dto.sortOrder },
+        skip: offset,
+        take: dto.limit,
+      }),
+      this.prisma.record.count({ where }),
+    ]);
+
+    const recordIds = records.map((r) => r.id);
+    const [tagsMap, imagesMap] = await Promise.all([
+      this.recordTagsService.getTagsByRecordIds(recordIds),
+      this.getImagesByRecordIds({ recordIds, onlyFirst: true }),
+    ]);
+
+    return RecordListResponseDto.of(records, tagsMap, imagesMap, totalCount);
+  }
+
+  private getEndOfDay(dateString: string): Date {
+    const date = new Date(dateString);
+    date.setDate(date.getDate() + 1);
+    return date;
+  }
+
+  private async convertTagPublicIdsToIds(
+    userId: bigint,
+    tagPublicIds?: string[],
+  ): Promise<bigint[] | undefined> {
+    if (!tagPublicIds || tagPublicIds.length === 0) {
+      return undefined;
+    }
+
+    const tags = await this.prisma.tag.findMany({
+      where: {
+        userId,
+        publicId: { in: tagPublicIds },
+      },
+      select: { id: true, publicId: true },
+    });
+
+    if (tags.length !== tagPublicIds.length) {
+      const foundPublicIds = new Set(tags.map((tag) => tag.publicId));
+      const notFoundIds = tagPublicIds.filter((id) => !foundPublicIds.has(id));
+      this.logger.warn(
+        `Tag not found for filtering: userId=${userId}, notFoundTagPublicIds=[${notFoundIds.join(', ')}]`,
+      );
+    }
+
+    return tags.map((tag) => tag.id);
   }
 
   async getRecordDetail(
@@ -294,12 +474,13 @@ export class RecordsService {
       record,
     );
 
-    const [recordWithImages] = await this.attachImagesToRecords([
-      recordWithLocation,
+    const [tags, imagesMap] = await Promise.all([
+      this.recordTagsService.getRecordTags(record.id),
+      this.getImagesByRecordIds({ recordIds: [record.id] }),
     ]);
-    const tags = await this.recordTagsService.getRecordTags(record.id);
+    const images = imagesMap.get(record.id) ?? [];
 
-    return RecordResponseDto.of(recordWithImages, tags);
+    return RecordResponseDto.of(recordWithLocation, tags, images);
   }
 
   async getGraph(
@@ -504,7 +685,7 @@ export class RecordsService {
       await this.processAndUploadImages(userPublicId, recordPublicId, images);
 
     try {
-      const { record, tags } = await this.executeRecordTransaction(
+      const { record, tags, images } = await this.executeRecordTransaction(
         userId,
         dto,
         locationInfo,
@@ -512,7 +693,7 @@ export class RecordsService {
         processedImages,
         uploadedImages,
       );
-      return RecordResponseDto.of(record, tags);
+      return RecordResponseDto.of(record, tags, images);
     } catch (error) {
       await this.objectStorageService.deleteImages(uploadedKeys);
       throw error;
@@ -528,13 +709,13 @@ export class RecordsService {
       dto.location.longitude,
     );
 
-    const { record, tags } = await this.executeRecordTransaction(
+    const { record, tags, images } = await this.executeRecordTransaction(
       userId,
       dto,
       locationInfo,
     );
 
-    return RecordResponseDto.of(record, tags);
+    return RecordResponseDto.of(record, tags, images);
   }
 
   /**
@@ -550,7 +731,11 @@ export class RecordsService {
     recordPublicId?: string,
     processedImages?: ProcessedImage[],
     uploadedImages?: UploadedImage[],
-  ): Promise<{ record: RecordResponseSource; tags: RecordTagDto[] }> {
+  ): Promise<{
+    record: RecordModel;
+    tags: RecordTagDto[];
+    images: ImageModel[];
+  }> {
     try {
       const result = await this.prisma.$transaction(async (tx) => {
         const created = await this.saveRecord(
@@ -592,9 +777,13 @@ export class RecordsService {
           payload: createRecordSyncPayload(userId, updated),
         });
 
-        const [recordWithImages] = await this.attachImagesToRecords([updated]);
+        const imagesMap = await this.getImagesByRecordIds({
+          recordIds: [updated.id],
+          tx,
+        });
+        const images = imagesMap.get(updated.id) ?? [];
 
-        return { record: recordWithImages, tags };
+        return { record: updated, tags, images };
       });
 
       this.logger.log(
@@ -755,29 +944,54 @@ export class RecordsService {
     ]);
   }
 
-  private async attachImagesToRecords(
-    records: RecordModel[],
-  ): Promise<RecordListItemSource[]> {
-    if (records.length === 0) {
-      return [];
+  private async getImagesByRecordIds({
+    recordIds,
+    tx,
+    onlyFirst = false,
+  }: {
+    recordIds: bigint[];
+    tx?: Prisma.TransactionClient;
+    onlyFirst?: boolean;
+  }): Promise<Map<bigint, ImageModel[]>> {
+    if (recordIds.length === 0) {
+      return new Map();
     }
 
-    const recordIds = records.map((r) => r.id);
+    const prismaClient = tx ?? this.prisma;
 
-    const images = await this.imagesService.findManyByRecordIds(recordIds);
+    const images = await prismaClient.image.findMany({
+      where: {
+        recordId: { in: recordIds },
+        ...(onlyFirst && { order: 0 }),
+      },
+      orderBy: { order: 'asc' },
+      select: {
+        recordId: true,
+        publicId: true,
+        order: true,
+        thumbnailUrl: true,
+        thumbnailWidth: true,
+        thumbnailHeight: true,
+        thumbnailSize: true,
+        mediumUrl: true,
+        mediumWidth: true,
+        mediumHeight: true,
+        mediumSize: true,
+        originalUrl: true,
+        originalWidth: true,
+        originalHeight: true,
+        originalSize: true,
+      },
+    });
 
-    const imagesByRecordId = new Map<bigint, ImageModel[]>();
+    const map = new Map<bigint, ImageModel[]>();
     for (const img of images) {
       const { recordId, ...imageData } = img;
-      if (!imagesByRecordId.has(recordId)) {
-        imagesByRecordId.set(recordId, []);
-      }
-      imagesByRecordId.get(recordId)!.push(imageData);
+      const arr = map.get(recordId);
+      if (arr) arr.push(imageData);
+      else map.set(recordId, [imageData]);
     }
 
-    return records.map((record) => ({
-      ...record,
-      images: imagesByRecordId.get(record.id) ?? [],
-    }));
+    return map;
   }
 }

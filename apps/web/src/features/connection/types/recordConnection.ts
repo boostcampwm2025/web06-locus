@@ -10,6 +10,7 @@ export interface RecordConnectionItem {
   date: Date;
   tags: string[];
   imageUrl?: string;
+  thumbnailImageUrl?: string; // 연결 확인 다이얼로그용 썸네일 이미지
   isRelated?: boolean; // 검색 결과에서 관련 기록인지 여부
   isConnected?: boolean; // 이미 연결된 기록인지 여부
 }

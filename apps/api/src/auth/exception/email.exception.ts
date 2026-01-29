@@ -62,3 +62,13 @@ export class EmailVerificationFailedException extends BusinessException {
     );
   }
 }
+
+export class EmailDeliveryFailedException extends BusinessException {
+  constructor() {
+    super(
+      HttpStatus.INTERNAL_SERVER_ERROR,
+      AuthErrorCode.EMAIL_DELIVERY_FAILED,
+      '이메일 발송에 문제가 발생했습니다.',
+    );
+  }
+}

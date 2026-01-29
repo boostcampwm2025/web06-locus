@@ -21,7 +21,7 @@ export default function AppHeaderSearchMode({
 
   return (
     <header
-      className={`flex items-center gap-3 px-4 py-3 bg-white min-h-[72px] ${className}`}
+      className={`fixed top-0 left-0 right-0 z-50 flex items-center gap-3 px-4 py-3 bg-white min-h-[72px] ${className}`}
     >
       <div className="flex-1 flex items-center gap-3 bg-transparent rounded-lg px-3 h-12">
         <SearchIcon className="w-5 h-5 text-gray-500 shrink-0" />

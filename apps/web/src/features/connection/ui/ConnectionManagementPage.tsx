@@ -3,9 +3,11 @@ import BackHeader from '@/shared/ui/header/BackHeader';
 import BaseRecordSection from './BaseRecordSection';
 import ConnectionSearchInput from './ConnectionSearchInput';
 import ConnectionMapVisualization from './ConnectionMapVisualization';
+import ConnectionNetworkView from './ConnectionNetworkView';
 import ConnectedRecordList from './ConnectedRecordList';
 import type { ConnectionManagementPageProps } from '../types/connectionManagement';
 import { useDebounce } from '@/shared/hooks/useDebounce';
+import { extractTagNames } from '@/shared/utils/tagUtils';
 
 /**
  * 연결 관리 페이지 메인 컴포넌트
@@ -13,6 +15,9 @@ import { useDebounce } from '@/shared/hooks/useDebounce';
 export default function ConnectionManagementPage({
   baseRecord,
   connectedRecords,
+  graphNodes,
+  graphEdges,
+  baseRecordPublicId,
   onBack,
   onSearchChange,
   onRecordRemove,
@@ -38,7 +43,9 @@ export default function ConnectionManagementPage({
       (record) =>
         record.title.toLowerCase().includes(query) ||
         record.location?.name.toLowerCase().includes(query) ||
-        record.tags.some((tag) => tag.toLowerCase().includes(query)),
+        extractTagNames(record.tags).some((tag) =>
+          tag.toLowerCase().includes(query),
+        ),
     );
   }, [connectedRecords, debouncedSearchValue]);
 
@@ -55,9 +62,20 @@ export default function ConnectionManagementPage({
           value={searchValue}
           onChange={handleSearchChange}
         />
-        <ConnectionMapVisualization
-          connectionCount={baseRecord.connectionCount}
-        />
+        {graphNodes && graphNodes.length > 0 && graphEdges ? (
+          <ConnectionNetworkView
+            nodes={graphNodes}
+            edges={graphEdges}
+            baseRecordPublicId={baseRecordPublicId}
+            height={280}
+            className="w-full min-w-0"
+            onNodeClick={onRecordClick}
+          />
+        ) : (
+          <ConnectionMapVisualization
+            connectionCount={baseRecord.connectionCount}
+          />
+        )}
         <ConnectedRecordList
           records={filteredRecords}
           onRecordRemove={onRecordRemove}

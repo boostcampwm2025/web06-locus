@@ -54,16 +54,17 @@ async function bootstrap() {
   const documentFactory = () => SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('docs', app, documentFactory);
 
-  app.connectMicroservice<MicroserviceOptions>({
-    transport: Transport.RMQ,
-    options: {
-      urls: [process.env.RABBITMQ_URL ?? 'amqp://localhost:5672'],
-      queue: RABBITMQ_CONSTANTS.QUEUES.RECORD_SYNC,
-      queueOptions: { durable: true },
-      noAck: false,
-      prefetchCount: 10,
-      globalQos: true,
-    },
+  Object.values(RABBITMQ_CONSTANTS.QUEUES).forEach((queueName) => {
+    app.connectMicroservice<MicroserviceOptions>({
+      transport: Transport.RMQ,
+      options: {
+        urls: [process.env.RABBITMQ_URL ?? 'amqp://localhost:5672'],
+        queue: queueName,
+        queueOptions: { durable: true },
+        noAck: false,
+        prefetchCount: 10,
+      },
+    });
   });
 
   await app.startAllMicroservices();

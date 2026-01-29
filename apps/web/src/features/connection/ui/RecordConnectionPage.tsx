@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { ArrowLeftIcon } from '@/shared/ui/icons/ArrowLeftIcon';
+import { ChevronLeftIcon } from '@/shared/ui/icons/ChevronLeftIcon';
 import type {
   RecordConnectionPageProps,
   RecordConnectionItem,
@@ -14,6 +14,8 @@ import RecordSearchInput from './RecordSearchInput';
 import RecommendedRecordsSection from './RecommendedRecordsSection';
 import ConnectActionButton from './ConnectActionButton';
 import RecordSelectionContextSheet from './RecordSelectionContextSheet';
+import { RECORD_PLACEHOLDER_IMAGE } from '@/shared/constants/record';
+import { extractTagNames } from '@/shared/utils/tagUtils';
 
 // 한국 전체를 커버하는 넓은 bounds (전체 기록 조회용)
 const KOREA_WIDE_BOUNDS = {
@@ -114,7 +116,7 @@ export default function RecordConnectionPage({
             record.location.name?.toLowerCase().includes(query) ?? false;
           const isAddressMatch =
             record.location.address?.toLowerCase().includes(query) ?? false;
-          const isTagMatch = record.tags.some((tag) =>
+          const isTagMatch = extractTagNames(record.tags).some((tag) =>
             tag.toLowerCase().includes(query),
           );
 
@@ -136,7 +138,7 @@ export default function RecordConnectionPage({
       const thumbnailUrl =
         recordWithImages.images && recordWithImages.images.length > 0
           ? recordWithImages.images[0].thumbnail.url
-          : undefined;
+          : RECORD_PLACEHOLDER_IMAGE;
 
       return {
         id: record.publicId,
@@ -146,7 +148,7 @@ export default function RecordConnectionPage({
           address: record.location.address ?? '',
         },
         date: new Date(record.createdAt),
-        tags: record.tags,
+        tags: extractTagNames(record.tags),
         isRelated: Boolean(trimmedQuery), // 검색어가 있으면 관련 기록으로 표시
         isConnected: connectedRecordIds.has(record.publicId), // 이미 연결된 기록인지 여부
         imageUrl: thumbnailUrl,
@@ -215,7 +217,7 @@ export default function RecordConnectionPage({
           className="p-2 -ml-2 hover:bg-gray-100 rounded-lg transition-colors"
           aria-label="뒤로 가기"
         >
-          <ArrowLeftIcon className="w-6 h-6 text-gray-700" />
+          <ChevronLeftIcon className="w-6 h-6 text-gray-700" />
         </button>
         <h1 className="text-lg font-semibold text-gray-900">
           연결할 기록 선택

@@ -9,8 +9,6 @@ import { MapIcon } from '../ui/icons/MapIcon';
 import { SearchIcon } from '../ui/icons/SearchIcon';
 import { BookmarkIcon } from '../ui/icons/BookmarkIcon';
 import { FavoriteIcon } from '../ui/icons/FavoriteIcon';
-import { ArrowLeftIcon } from '../ui/icons/ArrowLeftIcon';
-import { ArrowRightIcon } from '../ui/icons/ArrowRightIcon';
 import { LocationIcon } from '../ui/icons/LocationIcon';
 import { LinkIcon } from '../ui/icons/LinkIcon';
 import { ImageIcon } from '../ui/icons/ImageIcon';
@@ -32,6 +30,27 @@ import { FileTextIcon } from '../ui/icons/FileTextIcon';
 import { ChevronLeftIcon } from '../ui/icons/ChevronLeftIcon';
 import { ChevronRightIcon } from '../ui/icons/ChevronRightIcon';
 import { LogoutIcon } from '../ui/icons/LogoutIcon';
+import { ShareIcon } from '../ui/icons/ShareIcon';
+import { GitBranchIcon } from '../ui/icons/GitBranchIcon';
+import { MaximizeIcon } from '../ui/icons/MaximizeIcon';
+import { UserIcon } from '../ui/icons/UserIcon';
+import { BellIcon } from '../ui/icons/BellIcon';
+import { SettingsIcon } from '../ui/icons/SettingsIcon';
+import { ShieldIcon } from '../ui/icons/ShieldIcon';
+import { UsersIcon } from '../ui/icons/UsersIcon';
+import { ClockIcon } from '../ui/icons/ClockIcon';
+import { BackArrowIcon } from '../ui/icons/BackArrowIcon';
+import { ChevronRightIconMobile } from '../ui/icons/ChevronRightIconMobile';
+import { BellIconMobile } from '../ui/icons/BellIconMobile';
+import { ClockIconMobile } from '../ui/icons/ClockIconMobile';
+import { PlusIconMobile } from '../ui/icons/PlusIconMobile';
+import { XMarkIcon } from '../ui/icons/XMarkIcon';
+import { WarningCircleIcon } from '../ui/icons/WarningCircleIcon';
+import { ChevronDownIcon } from '../ui/icons/ChevronDownIcon';
+import { CheckIconMobile } from '../ui/icons/CheckIconMobile';
+import { DownloadIcon } from '../ui/icons/DownloadIcon';
+import { LocusPinIcon } from '../ui/icons/LocusPinIcon';
+import { NavigationIcon } from '../ui/icons/NavigationIcon';
 
 const meta = {
   title: 'Shared/Icons',
@@ -117,16 +136,6 @@ export const IconCatalog: Story = {
             name="FavoriteIcon"
             icon={<FavoriteIcon className="w-8 h-8 text-yellow-500" />}
             description="즐겨찾기 아이콘"
-          />
-          <IconCard
-            name="ArrowLeftIcon"
-            icon={<ArrowLeftIcon className="w-8 h-8 text-gray-700" />}
-            description="뒤로가기 아이콘"
-          />
-          <IconCard
-            name="ArrowRightIcon"
-            icon={<ArrowRightIcon className="w-8 h-8 text-gray-700" />}
-            description="오른쪽 화살표 아이콘"
           />
           <IconCard
             name="LocationIcon"
@@ -216,17 +225,67 @@ export const IconCatalog: Story = {
           <IconCard
             name="ChevronLeftIcon"
             icon={<ChevronLeftIcon className="w-8 h-8 text-gray-700" />}
-            description="왼쪽 화살표 아이콘"
+            description="왼쪽 chevron 아이콘"
           />
           <IconCard
             name="ChevronRightIcon"
             icon={<ChevronRightIcon className="w-8 h-8 text-gray-700" />}
-            description="오른쪽 화살표 아이콘"
+            description="오른쪽 chevron 아이콘"
           />
           <IconCard
             name="LogoutIcon"
             icon={<LogoutIcon className="w-8 h-8 text-gray-700" />}
             description="로그아웃 아이콘"
+          />
+          <IconCard
+            name="ShareIcon"
+            icon={<ShareIcon className="w-8 h-8 text-gray-600" />}
+            description="공유 아이콘"
+          />
+          <IconCard
+            name="GitBranchIcon"
+            icon={<GitBranchIcon className="w-8 h-8 text-gray-600" />}
+            description="브랜치/연결 그래프 아이콘"
+          />
+          <IconCard
+            name="MaximizeIcon"
+            icon={<MaximizeIcon className="w-8 h-8 text-gray-600" />}
+            description="최대화 아이콘"
+          />
+          <IconCard
+            name="UserIcon"
+            icon={<UserIcon className="w-8 h-8 text-gray-600" />}
+            description="사용자/프로필 아이콘"
+          />
+          <IconCard
+            name="BellIcon"
+            icon={<BellIcon className="w-8 h-8 text-gray-600" />}
+            description="알림 아이콘"
+          />
+          <IconCard
+            name="SettingsIcon"
+            icon={<SettingsIcon className="w-8 h-8 text-gray-600" />}
+            description="설정 아이콘"
+          />
+          <IconCard
+            name="ShieldIcon"
+            icon={<ShieldIcon className="w-8 h-8 text-gray-600" />}
+            description="보안/보호 아이콘"
+          />
+          <IconCard
+            name="UsersIcon"
+            icon={<UsersIcon className="w-8 h-8 text-gray-600" />}
+            description="그룹/사용자들 아이콘"
+          />
+          <IconCard
+            name="DownloadIcon"
+            icon={<DownloadIcon className="w-8 h-8 text-gray-600" />}
+            description="다운로드/설치 아이콘"
+          />
+          <IconCard
+            name="NavigationIcon"
+            icon={<NavigationIcon className="w-8 h-8 text-gray-600" />}
+            description="방향/내비게이션(위치 라벨용)"
           />
         </div>
       </div>
@@ -287,14 +346,6 @@ export const AllIcons: Story = {
         icon={<FavoriteIcon className="w-8 h-8" />}
       />
       <IconCard
-        name="ArrowLeftIcon"
-        icon={<ArrowLeftIcon className="w-8 h-8" />}
-      />
-      <IconCard
-        name="ArrowRightIcon"
-        icon={<ArrowRightIcon className="w-8 h-8" />}
-      />
-      <IconCard
         name="LocationIcon"
         icon={<LocationIcon className="w-8 h-8" />}
       />
@@ -318,6 +369,10 @@ export const AllIcons: Story = {
         icon={<MoreVerticalIcon className="w-8 h-8" />}
       />
       <IconCard name="MapPinIcon" icon={<MapPinIcon className="w-8 h-8" />} />
+      <IconCard
+        name="NavigationIcon"
+        icon={<NavigationIcon className="w-8 h-8" />}
+      />
       <IconCard name="Link2Icon" icon={<Link2Icon className="w-8 h-8" />} />
       <IconCard
         name="FileTextIcon"
@@ -332,10 +387,69 @@ export const AllIcons: Story = {
         icon={<ChevronRightIcon className="w-8 h-8" />}
       />
       <IconCard name="LogoutIcon" icon={<LogoutIcon className="w-8 h-8" />} />
+      <IconCard name="ShareIcon" icon={<ShareIcon className="w-8 h-8" />} />
+      <IconCard
+        name="GitBranchIcon"
+        icon={<GitBranchIcon className="w-8 h-8" />}
+      />
+      <IconCard
+        name="MaximizeIcon"
+        icon={<MaximizeIcon className="w-8 h-8" />}
+      />
+      <IconCard name="UserIcon" icon={<UserIcon className="w-8 h-8" />} />
+      <IconCard name="BellIcon" icon={<BellIcon className="w-8 h-8" />} />
+      <IconCard
+        name="SettingsIcon"
+        icon={<SettingsIcon className="w-8 h-8" />}
+      />
+      <IconCard name="ShieldIcon" icon={<ShieldIcon className="w-8 h-8" />} />
+      <IconCard name="UsersIcon" icon={<UsersIcon className="w-8 h-8" />} />
+      <IconCard name="ClockIcon" icon={<ClockIcon className="w-8 h-8" />} />
+      <IconCard
+        name="DownloadIcon"
+        icon={<DownloadIcon className="w-8 h-8" />}
+      />
       <IconCard name="GoogleIcon" icon={<GoogleIcon className="w-8 h-8" />} />
       <IconCard name="NaverIcon" icon={<NaverIcon className="w-8 h-8" />} />
       <IconCard name="KakaoIcon" icon={<KakaoIcon className="w-8 h-8" />} />
       <IconCard name="Logo" icon={<Logo className="w-16 h-16" />} />
+      <IconCard
+        name="LocusPinIcon"
+        icon={<LocusPinIcon className="w-8 h-8" />}
+      />
+      <IconCard
+        name="BackArrowIcon"
+        icon={<BackArrowIcon className="w-8 h-8" />}
+      />
+      <IconCard
+        name="ChevronRightIconMobile"
+        icon={<ChevronRightIconMobile className="w-8 h-8" />}
+      />
+      <IconCard
+        name="BellIconMobile"
+        icon={<BellIconMobile className="w-8 h-8" />}
+      />
+      <IconCard
+        name="ClockIconMobile"
+        icon={<ClockIconMobile className="w-8 h-8" />}
+      />
+      <IconCard
+        name="PlusIconMobile"
+        icon={<PlusIconMobile className="w-8 h-8" />}
+      />
+      <IconCard name="XMarkIcon" icon={<XMarkIcon className="w-8 h-8" />} />
+      <IconCard
+        name="WarningCircleIcon"
+        icon={<WarningCircleIcon className="w-8 h-8" />}
+      />
+      <IconCard
+        name="ChevronDownIcon"
+        icon={<ChevronDownIcon className="w-8 h-8" />}
+      />
+      <IconCard
+        name="CheckIconMobile"
+        icon={<CheckIconMobile className="w-8 h-8" />}
+      />
     </div>
   ),
 };

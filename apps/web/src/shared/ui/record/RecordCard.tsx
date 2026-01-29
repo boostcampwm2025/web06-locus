@@ -1,6 +1,8 @@
 import { LinkIcon } from '@/shared/ui/icons/LinkIcon';
 import { LocationIcon } from '@/shared/ui/icons/LocationIcon';
-import { ArrowRightIcon } from '@/shared/ui/icons/ArrowRightIcon';
+import { ChevronRightIcon } from '@/shared/ui/icons/ChevronRightIcon';
+import { RECORD_PLACEHOLDER_IMAGE } from '@/shared/constants/record';
+import { ImageWithFallback } from '@/shared/ui/image';
 import type { RecordCardProps } from './RecordCard.types';
 import { formatDateShort } from '@/shared/utils/dateUtils';
 import { getDisplayTags } from '@/shared/utils/tagUtils';
@@ -27,16 +29,14 @@ export default function RecordCard({
       onClick={onClick}
       className={`flex items-start gap-3 p-4 bg-white border-b border-gray-100 hover:bg-gray-50 transition-colors text-left w-full ${className}`}
     >
-      {/* 이미지 영역 - 이미지가 있을 때만 렌더링 */}
-      {imageUrl && (
-        <div className="shrink-0 w-20 h-20 rounded-lg overflow-hidden">
-          <img
-            src={imageUrl}
-            alt={title}
-            className="w-full h-full object-cover"
-          />
-        </div>
-      )}
+      {/* 이미지 영역 - 없으면 기본 이미지 사용 */}
+      <div className="shrink-0 w-20 h-20 rounded-lg overflow-hidden">
+        <ImageWithFallback
+          src={imageUrl ?? RECORD_PLACEHOLDER_IMAGE}
+          alt={title}
+          className="w-full h-full object-cover"
+        />
+      </div>
 
       {/* 콘텐츠 영역 */}
       <div className="flex-1 min-w-0 flex flex-col gap-2">
@@ -79,7 +79,7 @@ export default function RecordCard({
       </div>
 
       {/* 오른쪽 화살표 */}
-      <ArrowRightIcon className="w-5 h-5 text-gray-400 shrink-0 mt-1" />
+      <ChevronRightIcon className="w-5 h-5 text-gray-400 shrink-0 mt-1" />
     </button>
   );
 }

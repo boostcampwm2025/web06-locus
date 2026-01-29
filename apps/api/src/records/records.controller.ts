@@ -21,6 +21,7 @@ import { RecordsService } from './records.service';
 import { CreateRecordDto } from './dto/create-record.dto';
 import { GetRecordsQueryDto } from './dto/get-records-query.dto';
 import { GetRecordsByLocationDto } from './dto/get-records-by-location.dto';
+import { GetAllRecordsDto } from './dto/get-all-records.dto';
 import { RecordResponseDto } from './dto/record-response.dto';
 import { RecordListResponseDto } from './dto/records-list-reponse.dto';
 import { JwtAuthGuard } from '@/jwt/guard/jwt.auth.guard';
@@ -34,12 +35,15 @@ import {
   GetRecordDetailSwagger,
   GetRecordsSwagger,
   GetRecordsByLocationSwagger,
+  GetAllRecordsSwagger,
   SearchRecordsSwagger,
 } from './swagger/records.swagger';
 import { JsonBody } from '@/common/decorators/json-body.decorator';
 import { GraphNeighborRecordsDto } from './dto/graph-details.response.dto';
 import { SearchRecordsDto } from './dto/search-records.dto';
 import { SearchRecordListResponseDto } from './dto/search-record-list-response.dto';
+import { UpdateFavoriteDto } from './dto/update-favorite.request.dto';
+import { UpdateFavoriteResponseDto } from './dto/update-favorite.response.dto';
 
 @ApiTags('records')
 @Controller('records')
@@ -64,6 +68,16 @@ export class RecordsController {
     @Query() query: GetRecordsByLocationDto,
   ): Promise<RecordListResponseDto> {
     return await this.recordsService.getRecordsByLocation(userId, query);
+  }
+
+  @Get('all')
+  @UseGuards(JwtAuthGuard)
+  @GetAllRecordsSwagger()
+  async getAllRecords(
+    @CurrentUser('sub') userId: bigint,
+    @Query() query: GetAllRecordsDto,
+  ): Promise<RecordListResponseDto> {
+    return await this.recordsService.getAllRecords(userId, query);
   }
 
   @Get('search')
@@ -149,5 +163,21 @@ export class RecordsController {
     @Param('publicId') publicId: string,
   ): Promise<void> {
     await this.recordsService.deleteRecord(userId, publicId);
+  }
+
+  @Patch(':publicId/favorite')
+  @UseGuards(JwtAuthGuard)
+  async updateFavorite(
+    @CurrentUser('sub') userId: bigint,
+    @Param('publicId') publicId: string,
+    @Body() request: UpdateFavoriteDto,
+  ): Promise<UpdateFavoriteResponseDto> {
+    const updated = await this.recordsService.updateFavoriteInRecord(
+      userId,
+      publicId,
+      request.isFavorite,
+    );
+
+    return updated;
   }
 }

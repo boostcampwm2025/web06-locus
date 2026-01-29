@@ -4,18 +4,23 @@ import {
   CreateRecordRequestSchema,
   CreateRecordResponseSchema,
   GetRecordsByBoundsRequestSchema,
+  GetAllRecordsRequestSchema,
+  GetAllRecordsResponseSchema,
   RecordsByBoundsResponseSchema,
   RecordDetailResponseSchema,
+  SuccessResponseSchema,
   validateApiResponse,
 } from '@locus/shared';
 import type {
   CreateRecordRequest,
   RecordWithImages,
   GetRecordsByBoundsRequest,
+  GetAllRecordsRequest,
   Record,
+  RecordWithoutCoords,
   RecordDetail,
 } from '@locus/shared';
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
+
 import { z } from 'zod';
 import { logger } from '@/shared/utils/logger';
 
@@ -61,12 +66,43 @@ export async function getRecordsByBounds(
   // 1. Request 검증
   const validatedRequest = GetRecordsByBoundsRequestSchema.parse(request);
 
-  // 2. Query 파라미터 구성
+  // 2. Bounds 유효성 검사
+  // 반올림으로 인해 같은 값이 될 수 있으므로 최소 차이(0.0001)를 보장
+  // 지도가 처음 로드될 때 높이가 0이면 같은 값이 들어올 수 있으므로
+  // 에러를 던지지 않고 빈 결과를 반환하여 컴포넌트 크래시 방지
+  const MIN_BOUNDS_DIFF = 0.0001;
+
+  if (validatedRequest.neLat - validatedRequest.swLat < MIN_BOUNDS_DIFF) {
+    logger.warn(
+      'Invalid bounds: neLat and swLat가 너무 가까워서 기록 조회 불가',
+      {
+        neLat: validatedRequest.neLat,
+        swLat: validatedRequest.swLat,
+        diff: validatedRequest.neLat - validatedRequest.swLat,
+        sendToSentry: false, // 빈번한 경고이므로 Sentry 전송 비활성화
+      },
+    );
+    return { records: [], totalCount: 0 };
+  }
+  if (validatedRequest.neLng - validatedRequest.swLng < MIN_BOUNDS_DIFF) {
+    logger.warn(
+      'Invalid bounds: neLng and swLng가 너무 가까워서 기록 조회 불가',
+      {
+        neLng: validatedRequest.neLng,
+        swLng: validatedRequest.swLng,
+        diff: validatedRequest.neLng - validatedRequest.swLng,
+        sendToSentry: false, // 빈번한 경고이므로 Sentry 전송 비활성화
+      },
+    );
+    return { records: [], totalCount: 0 };
+  }
+
+  // 3. Query 파라미터 구성 (소수점 4자리로 고정)
   const queryParams = new URLSearchParams({
-    neLat: validatedRequest.neLat.toString(),
-    neLng: validatedRequest.neLng.toString(),
-    swLat: validatedRequest.swLat.toString(),
-    swLng: validatedRequest.swLng.toString(),
+    neLat: Number(validatedRequest.neLat).toFixed(4),
+    neLng: Number(validatedRequest.neLng).toFixed(4),
+    swLat: Number(validatedRequest.swLat).toFixed(4),
+    swLng: Number(validatedRequest.swLng).toFixed(4),
     page: (validatedRequest.page ?? 1).toString(),
     limit: (validatedRequest.limit ?? 10).toString(),
     sortOrder: validatedRequest.sortOrder ?? 'desc',
@@ -81,11 +117,89 @@ export async function getRecordsByBounds(
   );
 
   // 4. Response 검증 + data 추출
-  const validated = validateApiResponse(
-    RecordsByBoundsResponseSchema,
-    response,
-  );
-  return validated.data;
+  try {
+    const validated = validateApiResponse(
+      RecordsByBoundsResponseSchema,
+      response,
+    );
+    return validated.data;
+  } catch (error) {
+    // 스키마 검증 실패 시 상세 로깅
+    logger.error(
+      error instanceof Error ? error : new Error('Schema validation failed'),
+      {
+        schema: 'RecordsByBoundsResponseSchema',
+        request: validatedRequest,
+        responseData: response,
+        errorMessage: error instanceof Error ? error.message : String(error),
+        errorStack: error instanceof Error ? error.stack : undefined,
+      },
+    );
+
+    // 개발 환경에서는 에러를 던져서 문제를 빠르게 발견
+    // 프로덕션에서는 빈 결과를 반환하여 앱 크래시 방지
+    if (import.meta.env.DEV) {
+      throw error;
+    }
+
+    return { records: [], totalCount: 0 };
+  }
+}
+
+/**
+ * 전체 기록 조회 API 호출
+ * - GET /records/all?page=&limit=&sortOrder=&startDate=&endDate=&tagPublicIds=
+ */
+export async function getAllRecords(
+  request: GetAllRecordsRequest,
+): Promise<{ records: RecordWithoutCoords[]; totalCount: number }> {
+  try {
+    // 1. Request 검증
+    const validatedRequest = GetAllRecordsRequestSchema.parse(request);
+
+    // 2. Query 파라미터 구성
+    const queryParams = new URLSearchParams({
+      page: (validatedRequest.page ?? 1).toString(),
+      limit: (validatedRequest.limit ?? 10).toString(),
+      sortOrder: validatedRequest.sortOrder ?? 'desc',
+    });
+
+    if (validatedRequest.startDate)
+      queryParams.append('startDate', validatedRequest.startDate);
+    if (validatedRequest.endDate)
+      queryParams.append('endDate', validatedRequest.endDate);
+
+    if (validatedRequest.tagPublicIds?.length) {
+      queryParams.append(
+        'tagPublicIds',
+        validatedRequest.tagPublicIds.join(','),
+      );
+    }
+
+    // 3. API 호출
+    const response = await apiClient<unknown>(
+      `${API_ENDPOINTS.RECORDS_ALL}?${queryParams.toString()}`,
+      { method: 'GET' },
+    );
+
+    // 4. Response 검증
+
+    const validated = validateApiResponse(
+      GetAllRecordsResponseSchema,
+      response,
+    );
+
+    return validated.data;
+  } catch (error) {
+    logger.error(
+      error instanceof Error ? error : new Error('전체 기록 조회 실패'),
+      {
+        request,
+        error: String(error),
+      },
+    );
+    throw error;
+  }
 }
 
 /**
@@ -124,6 +238,61 @@ export async function getRecordDetail(publicId: string): Promise<RecordDetail> {
 }
 
 /**
+ * 기록 즐겨찾기 변경 API 호출
+ * - PATCH /records/{publicId}/favorite
+ */
+export async function updateRecordFavorite(
+  publicId: string,
+  isFavorite: boolean,
+): Promise<{ publicId: string; isFavorite: boolean }> {
+  try {
+    logger.info('기록 즐겨찾기 변경 시작', { publicId, isFavorite });
+
+    // 1. API 호출
+    const response = await apiClient<unknown>(
+      API_ENDPOINTS.RECORDS_FAVORITE(publicId),
+      {
+        method: 'PATCH',
+        body: JSON.stringify({ isFavorite }),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      },
+    );
+
+    // 2. Response 검증
+    const FavoriteResponseSchema = SuccessResponseSchema.extend({
+      data: z.object({
+        publicId: z.string(),
+        isFavorite: z.boolean(),
+      }),
+    });
+
+    const validated = validateApiResponse(
+      FavoriteResponseSchema,
+      response,
+    ) as z.infer<typeof FavoriteResponseSchema>;
+
+    logger.info('기록 즐겨찾기 변경 성공', {
+      publicId,
+      isFavorite: validated.data.isFavorite,
+    });
+
+    return validated.data;
+  } catch (error) {
+    logger.error(
+      error instanceof Error ? error : new Error('기록 즐겨찾기 변경 실패'),
+      {
+        publicId,
+        isFavorite,
+        error: String(error),
+      },
+    );
+    throw error;
+  }
+}
+
+/**
  * API로 전송할 CreateRecord payload 생성
  * (전송 필드만 명시적으로 구성)
  */
@@ -153,6 +322,15 @@ async function postCreateRecordAsFormData(
   formData.append('data', JSON.stringify(payload));
 
   if (images && images.length > 0) {
+    // 이미지 크기 로깅 (압축 확인용)
+    const totalSize = images.reduce((sum, img) => sum + img.size, 0);
+    const avgSize = totalSize / images.length;
+    logger.info('이미지 업로드 시작', {
+      imageCount: images.length,
+      totalSizeMB: (totalSize / (1024 * 1024)).toFixed(2),
+      avgSizeMB: (avgSize / (1024 * 1024)).toFixed(2),
+    });
+
     images.forEach((image) => {
       formData.append('images', image);
     });
