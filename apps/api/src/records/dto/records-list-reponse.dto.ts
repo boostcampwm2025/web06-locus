@@ -1,9 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
-import {
-  ImageModel,
-  RecordModel,
-  RecordModelWithoutCoords,
-} from '../records.types';
+import { RecordModel, RecordModelWithoutCoords } from '../records.types';
+import { ImageModel } from '@/images/images.types';
 import { ImageResponseDto, RecordTagDto } from './record-response.dto';
 
 export class RecordLocationDto {
