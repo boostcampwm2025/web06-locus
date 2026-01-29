@@ -45,6 +45,15 @@ export interface DesktopSidebarProps {
   onRecordSelect?: (recordId: string | null) => void;
   onOpenFullDetail?: (recordId: string) => void;
   onStartConnection?: (recordId: string) => void;
+  /** 지도 핀 클릭 시 해당 위치 기록 ID 목록 (데스크톱: 바텀시트 대신 사이드바에 목록 표시) */
+  pinSelectedRecordIds?: string[] | null;
+  /** 핀 선택 시 표시할 기록 목록 (API 반영 전 생성 기록 등, 없으면 allRecords에서 pinSelectedRecordIds로 필터) */
+  pinSelectedRecordsOverride?:
+    | (UIRecord & {
+        connectionCount?: number;
+      })[]
+    | null;
+  onClearPinSelection?: () => void;
   // 연결 모드 데이터 (RecordConnectionDrawer에서 전달)
   connectionModeData?: {
     records: {

@@ -6,12 +6,20 @@ import {
   MutationCache,
 } from '@tanstack/react-query';
 import { useToast } from '../../shared/ui/toast';
-import { isAuthError, isClientError, isServerError } from '../../shared/errors';
+import {
+  isAuthError,
+  isClientError,
+  isServerError,
+  isNetworkError,
+} from '../../shared/errors';
+
+const NETWORK_ERROR_MESSAGE = '네트워크가 불안정합니다.';
 
 /**
- * 에러 객체에서 안전하게 메시지를 추출하는 헬퍼 함수
+ * 토스트용 에러 메시지 (네트워크 오류는 사용자 친화 문구로 대체)
  */
-const getErrorMessage = (error: unknown, fallback: string) => {
+const getErrorMessageForToast = (error: unknown, fallback: string) => {
+  if (isNetworkError(error)) return NETWORK_ERROR_MESSAGE;
   if (error instanceof Error) return error.message;
   return fallback;
 };
@@ -41,9 +49,10 @@ export function QueryClientWithToast({
             return;
           }
           // ClientError 또는 기타 에러는 토스트로 표시
-          const message = isClientError(error)
-            ? getErrorMessage(error, '알 수 없는 오류가 발생했습니다.')
-            : getErrorMessage(error, '알 수 없는 오류가 발생했습니다.');
+          const message = getErrorMessageForToast(
+            error,
+            '알 수 없는 오류가 발생했습니다.',
+          );
           showToast(message, 'error');
         },
       }),
@@ -64,7 +73,10 @@ export function QueryClientWithToast({
             // 인증 에러는 자동 로그아웃 처리되므로 토스트 표시하지 않음
             return;
           }
-          showToast(getErrorMessage(error, '처리에 실패했습니다.'), 'error');
+          showToast(
+            getErrorMessageForToast(error, '처리에 실패했습니다.'),
+            'error',
+          );
         },
       }),
 

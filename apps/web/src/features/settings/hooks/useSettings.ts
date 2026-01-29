@@ -2,6 +2,10 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/features/auth/domain/authStore';
 import { ROUTES } from '@/router/routes';
+import { useGetTags } from '@/features/record/hooks/useGetTags';
+import { useCreateTag } from '@/features/record/hooks/useCreateTag';
+import { useDeleteTag } from '@/features/record/hooks/useDeleteTag';
+import type { TagResponse } from '@/infra/api/services/tagService';
 import type { SettingsTab, SettingsPageProps } from '../types';
 
 export function useSettings({ onClose, onLogout }: SettingsPageProps) {
@@ -10,9 +14,12 @@ export function useSettings({ onClose, onLogout }: SettingsPageProps) {
   const [isNotificationEnabled, setIsNotificationEnabled] = useState(true);
   const [isPushEnabled, setIsPushEnabled] = useState(false);
   const [notificationTime, setNotificationTime] = useState('19:03');
-  const [tags, setTags] = useState(['여행', '맛집', '데이트', '산책', '일상']);
-  const [tagToDelete, setTagToDelete] = useState<string | null>(null);
+  const [tagToDelete, setTagToDelete] = useState<TagResponse | null>(null);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+
+  const { data: tags = [] } = useGetTags();
+  const createTagMutation = useCreateTag();
+  const deleteTagMutation = useDeleteTag();
 
   const handleClose = () => {
     if (onClose) {
@@ -32,15 +39,17 @@ export function useSettings({ onClose, onLogout }: SettingsPageProps) {
     setShowLogoutConfirm(false);
   };
 
-  const handleAddTag = (tag: string) => {
-    if (tag.trim() && !tags.includes(tag.trim())) {
-      setTags([...tags, tag.trim()]);
-    }
+  const handleAddTag = (name: string) => {
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    if (tags.some((t) => t.name === trimmed)) return;
+    createTagMutation.mutate({ name: trimmed });
   };
 
-  const handleRemoveTag = (tag: string) => {
-    setTags(tags.filter((t) => t !== tag));
-    setTagToDelete(null);
+  const handleRemoveTag = (tag: TagResponse) => {
+    deleteTagMutation.mutate(tag.publicId, {
+      onSettled: () => setTagToDelete(null),
+    });
   };
 
   return {

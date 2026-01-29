@@ -2,6 +2,7 @@ import { useState, useEffect, Suspense } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { DesktopSidebar } from '@/shared/ui/desktop';
+import { LocationConfirmation } from '@/shared/ui/location';
 import MapLoadingSkeleton from '@/shared/ui/loading/MapLoadingSkeleton';
 import ToastErrorMessage from '@/shared/ui/alert/ToastErrorMessage';
 import RecordSummaryBottomSheet from '@/features/record/ui/RecordSummaryBottomSheet';
@@ -38,6 +39,21 @@ export function MainMapPageDesktop() {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [selectedRecordId, setSelectedRecordId] = useState<string | null>(null);
+  const [pinSelectedRecordIds, setPinSelectedRecordIds] = useState<
+    string[] | null
+  >(null);
+  const [pinSelectedRecordsOverride, setPinSelectedRecordsOverride] = useState<
+    | {
+        id: string;
+        title: string;
+        location: Location;
+        date: Date;
+        tags: string[];
+        imageUrl?: string;
+        connectionCount?: number;
+      }[]
+    | null
+  >(null);
   const [isRecordWriteOpen, setIsRecordWriteOpen] = useState(false);
   const [recordWriteLocation, setRecordWriteLocation] =
     useState<Location | null>(null);
@@ -249,6 +265,31 @@ export function MainMapPageDesktop() {
     setEndDate('');
   };
 
+  const handleRecordPinClick = (recordId: string) => {
+    setPinSelectedRecordIds([recordId]);
+    const pin = createdRecordPins.find((p) => p.record.id === recordId);
+    setPinSelectedRecordsOverride(
+      pin
+        ? [
+            {
+              id: pin.record.id,
+              title: pin.record.text,
+              location: pin.record.location,
+              date: pin.record.createdAt,
+              tags: pin.record.tags,
+              imageUrl: undefined,
+              connectionCount: 0,
+            },
+          ]
+        : null,
+    );
+  };
+
+  const handleClearPinSelection = () => {
+    setPinSelectedRecordIds(null);
+    setPinSelectedRecordsOverride(null);
+  };
+
   return (
     <div className="flex h-screen w-full overflow-hidden bg-[#FDFCFB]">
       {/* 사이드바 */}
@@ -271,6 +312,9 @@ export function MainMapPageDesktop() {
         onRecordSelect={handleRecordSelect}
         onOpenFullDetail={handleOpenFullDetail}
         onStartConnection={handleStartConnection}
+        pinSelectedRecordIds={pinSelectedRecordIds}
+        pinSelectedRecordsOverride={pinSelectedRecordsOverride}
+        onClearPinSelection={handleClearPinSelection}
       />
 
       {/* 메인 지도 영역 */}
@@ -302,6 +346,7 @@ export function MainMapPageDesktop() {
               connectedRecords={connectedRecords}
               targetLocation={targetLocation}
               onTargetLocationChange={setTargetLocation}
+              onRecordPinClick={handleRecordPinClick}
               onCreateRecord={(
                 location: Location,
                 coordinates?: Coordinates,
@@ -310,6 +355,17 @@ export function MainMapPageDesktop() {
                 setRecordWriteCoordinates(coordinates);
                 setIsRecordWriteOpen(true);
               }}
+              renderLocationConfirmation={({
+                location: loc,
+                onConfirm,
+                onCancel,
+              }) => (
+                <LocationConfirmation
+                  location={{ name: loc.name, address: loc.address }}
+                  onConfirm={onConfirm}
+                  onCancel={onCancel}
+                />
+              )}
             />
           </Suspense>
         </div>

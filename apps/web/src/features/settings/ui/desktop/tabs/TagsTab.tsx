@@ -8,10 +8,10 @@ export function TagsTab({ tags, onAddTag, onRemoveTag }: TagsTabProps) {
   const [newTag, setNewTag] = useState('');
 
   const handleAddTag = () => {
-    if (newTag.trim() && !tags.includes(newTag.trim())) {
-      onAddTag(newTag.trim());
-      setNewTag('');
-    }
+    const trimmed = newTag.trim();
+    if (!trimmed || tags.some((t) => t.name === trimmed)) return;
+    onAddTag(trimmed);
+    setNewTag('');
   };
 
   return (
@@ -35,10 +35,16 @@ export function TagsTab({ tags, onAddTag, onRemoveTag }: TagsTabProps) {
             placeholder="새로운 태그를 입력하고 엔터를 누르세요"
             value={newTag}
             onChange={(e) => setNewTag(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleAddTag()}
+            onKeyDown={(e) => {
+              if (e.key !== 'Enter') return;
+              e.preventDefault();
+              if (e.nativeEvent.isComposing) return;
+              handleAddTag();
+            }}
             className="w-full bg-gray-50 border-2 border-transparent focus:border-orange-100 focus:bg-white rounded-[24px] p-6 text-lg font-bold placeholder:text-gray-300 outline-none transition-all pr-32"
           />
           <button
+            type="button"
             onClick={handleAddTag}
             className="absolute right-4 top-1/2 -translate-y-1/2 bg-gray-900 text-white px-6 py-3 rounded-2xl font-black text-sm hover:bg-black transition-all"
           >
@@ -55,13 +61,13 @@ export function TagsTab({ tags, onAddTag, onRemoveTag }: TagsTabProps) {
               {tags.map((tag) => (
                 <motion.div
                   layout
-                  key={tag}
+                  key={tag.publicId}
                   initial={{ scale: 0.8, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
                   exit={{ scale: 0.8, opacity: 0 }}
                   className="group flex items-center gap-2 px-6 py-4 bg-white border-2 border-gray-100 rounded-[20px] hover:border-orange-400 hover:shadow-lg hover:shadow-orange-50 transition-all cursor-default"
                 >
-                  <span className="font-black text-gray-700"># {tag}</span>
+                  <span className="font-black text-gray-700"># {tag.name}</span>
                   <button
                     onClick={() => onRemoveTag(tag)}
                     className="w-6 h-6 rounded-full flex items-center justify-center text-gray-300 hover:bg-red-50 hover:text-red-500 transition-colors"
