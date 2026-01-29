@@ -73,6 +73,5 @@ export class CreateRecordDto {
   @IsArray()
   @IsOptional()
   @IsString({ each: true })
-  @MaxLength(20, { each: true })
   tags?: string[];
 }

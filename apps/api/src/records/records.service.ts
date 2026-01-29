@@ -100,61 +100,82 @@ export class RecordsService {
     publicId: string,
     dto: UpdateRecordDto,
   ): Promise<RecordResponseDto> {
-    const { record, images } = await this.prisma.$transaction(async (tx) => {
-      const existing = await tx.record.findFirst({ where: { publicId } });
+    const { record, tags, images } = await this.prisma.$transaction(
+      async (tx) => {
+        const existing = await tx.record.findFirst({ where: { publicId } });
 
-      if (!existing) throw new RecordNotFoundException(publicId);
-      if (existing.userId !== userId)
-        throw new RecordAccessDeniedException(publicId);
+        if (!existing) throw new RecordNotFoundException(publicId);
+        if (existing.userId !== userId)
+          throw new RecordAccessDeniedException(publicId);
 
-      let locationName = existing.locationName;
-      let locationAddress = existing.locationAddress;
+        let locationName = existing.locationName;
+        let locationAddress = existing.locationAddress;
 
-      if (dto.location) {
-        const { name, address } = await this.getLocationInfo(
-          dto.location.latitude,
-          dto.location.longitude,
-        );
-        locationName = name;
-        locationAddress = address;
-      }
-
-      const updated = await tx.record.update({
-        where: { id: existing.id },
-        data: {
-          ...(dto.title !== undefined && { title: dto.title }),
-          ...(dto.content !== undefined && { content: dto.content }),
-          //...(dto.tags !== undefined && { tags: dto.tags }),
-          ...(dto.location && { locationName, locationAddress }),
-        },
-      });
-
-      const updatedRecord = dto.location
-        ? await this.updateLocation(
-            tx,
-            updated.id,
+        if (dto.location) {
+          const { name, address } = await this.getLocationInfo(
             dto.location.latitude,
             dto.location.longitude,
-          )
-        : await this.getRecordWithLocation(tx, existing.id, updated);
+          );
+          locationName = name;
+          locationAddress = address;
+        }
 
-      await this.outboxService.publish(tx, {
-        aggregateType: AGGREGATE_TYPE.RECORD,
-        aggregateId: updatedRecord.id.toString(),
-        eventType: OUTBOX_EVENT_TYPE.RECORD_UPDATED,
-        payload: createRecordSyncPayload(userId, updatedRecord),
-      });
+        const updated = await tx.record.update({
+          where: { id: existing.id },
+          data: {
+            ...(dto.title !== undefined && { title: dto.title }),
+            ...(dto.content !== undefined && { content: dto.content }),
+            ...(dto.location && { locationName, locationAddress }),
+          },
+        });
 
-      const imagesMap = await this.getImagesByRecordIds({
-        recordIds: [updatedRecord.id],
-        tx,
-      });
-      const images = imagesMap.get(updatedRecord.id) ?? [];
+        const updatedRecord = dto.location
+          ? await this.updateLocation(
+              tx,
+              updated.id,
+              dto.location.latitude,
+              dto.location.longitude,
+            )
+          : await this.getRecordWithLocation(tx, existing.id, updated);
 
-      return { record: updatedRecord, images };
-    });
+        let tags: RecordTagDto[];
 
-    const tags = await this.recordTagsService.getRecordTags(record.id);
+        if (dto.tags !== undefined) {
+          tags = await this.recordTagsService.updateRecordTags(
+            tx,
+            userId,
+            updatedRecord.id,
+            dto.tags,
+          );
+        } else {
+          tags = await this.recordTagsService.getRecordTags(updatedRecord.id);
+        }
+        const tagNames = tags.map((t) => t.name);
+
+        const imagesMap = await this.getImagesByRecordIds({
+          recordIds: [updatedRecord.id],
+          tx,
+        });
+
+        const images = imagesMap.get(updatedRecord.id) ?? [];
+        const thumbnailUrl = images[0]?.thumbnailUrl;
+
+        await this.outboxService.publish(tx, {
+          aggregateType: AGGREGATE_TYPE.RECORD,
+          aggregateId: updatedRecord.id.toString(),
+          eventType: OUTBOX_EVENT_TYPE.RECORD_UPDATED,
+          payload: createRecordSyncPayload(
+            userId,
+            updatedRecord,
+            tagNames,
+            thumbnailUrl,
+          ),
+        });
+
+        return { record: updatedRecord, tags, images };
+      },
+    );
+
     return RecordResponseDto.of(record, tags, images);
   }
 
@@ -769,12 +790,17 @@ export class RecordsService {
             uploadedImages,
           );
         }
-
+        const tagNames = tags.map((t) => t.name);
         await this.outboxService.publish(tx, {
           aggregateType: AGGREGATE_TYPE.RECORD,
           aggregateId: updated.id.toString(),
           eventType: OUTBOX_EVENT_TYPE.RECORD_CREATED,
-          payload: createRecordSyncPayload(userId, updated),
+          payload: createRecordSyncPayload(
+            userId,
+            updated,
+            tagNames,
+            uploadedImages?.[0]?.urls?.thumbnail,
+          ),
         });
 
         const imagesMap = await this.getImagesByRecordIds({

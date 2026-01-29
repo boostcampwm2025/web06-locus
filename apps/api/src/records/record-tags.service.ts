@@ -88,4 +88,17 @@ export class RecordTagsService {
 
     return map;
   }
+
+  async updateRecordTags(
+    tx: Prisma.TransactionClient,
+    userId: bigint,
+    recordId: bigint,
+    tagPublicIds?: string[],
+  ): Promise<RecordTagDto[]> {
+    await tx.recordTag.deleteMany({ where: { recordId } });
+
+    if (!tagPublicIds?.length) return [];
+
+    return await this.createRecordTags(tx, userId, recordId, tagPublicIds);
+  }
 }
