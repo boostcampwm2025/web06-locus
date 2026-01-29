@@ -18,6 +18,7 @@ import { useUpdateRecordFavorite } from '@/features/record/hooks/useUpdateRecord
 import { useRecordGraph } from '@/features/connection/hooks/useRecordGraph';
 import { logger } from '@/shared/utils/logger';
 import { useToast } from '@/shared/ui/toast';
+import { RECORD_PLACEHOLDER_IMAGE } from '@/shared/constants/record';
 import type { RecordDetail } from '@locus/shared';
 
 // 라우트별 지연 로딩
@@ -128,11 +129,11 @@ function RecordDetailPageRoute() {
       : 0;
 
   // API 응답을 RecordDetailPageProps로 변환
-  // 이미지가 있는 경우 첫 번째 이미지의 썸네일 URL 사용
+  // 이미지가 있는 경우 첫 번째 이미지의 썸네일 URL 사용, 없으면 기본 이미지
   const thumbnailImageUrl =
     detail.images && detail.images.length > 0
       ? detail.images[0]?.medium.url
-      : undefined;
+      : RECORD_PLACEHOLDER_IMAGE;
 
   // 태그를 문자열 배열로 변환 (기존 타입 호환)
   const tags = (detail.tags ?? []).map((tag) => tag.name);
@@ -225,6 +226,9 @@ function RecordDetailPageRoute() {
       <RecordDetailPage
         {...recordProps}
         connectedRecords={connectedRecords}
+        graphNodes={graphData?.data?.nodes}
+        graphEdges={graphData?.data?.edges}
+        baseRecordPublicId={id}
         onBack={() => void navigate(ROUTES.RECORD_LIST)}
         onFavoriteToggle={handleFavoriteToggle}
         // onMenuClick을 전달하지 않으면 내부에서 ActionSheet를 열도록 함
@@ -374,6 +378,9 @@ function ConnectionManagementPageRoute() {
       <ConnectionManagementPage
         baseRecord={baseRecord}
         connectedRecords={connectedRecords}
+        graphNodes={graphData?.data?.nodes}
+        graphEdges={graphData?.data?.edges}
+        baseRecordPublicId={id}
         onBack={() => {
           if (id) {
             void navigate(generatePath(ROUTES.RECORD_DETAIL, { id }));

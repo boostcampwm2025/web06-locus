@@ -1,4 +1,6 @@
 import type { Location } from '@/features/record/types';
+import type { GraphNode } from '@locus/shared';
+import type { GraphEdgeResponse } from '@/infra/types/connection';
 
 /**
  * 기준 기록 데이터
@@ -30,6 +32,12 @@ export interface ConnectedRecord {
 export interface ConnectionManagementPageProps {
   baseRecord: BaseRecord;
   connectedRecords: ConnectedRecord[];
+  /** GET /records/{publicId}/graph 응답의 nodes (D3 네트워크 뷰용) */
+  graphNodes?: GraphNode[];
+  /** GET /records/{publicId}/graph 응답의 edges (D3 네트워크 뷰용) */
+  graphEdges?: GraphEdgeResponse[];
+  /** 기준 기록 publicId (D3 네트워크 뷰 강조용) */
+  baseRecordPublicId?: string;
   onBack?: () => void;
   onSearchChange?: (value: string) => void;
   onRecordRemove?: (recordId: string) => void;

@@ -99,7 +99,7 @@ const defaultArgs = {
 export const WithImage: Story = {
   args: {
     ...defaultArgs,
-    imageUrl: 'https://placehold.co/400x300',
+    imageUrl: '/record-placehold.webp',
   },
   parameters: {
     docs: {
@@ -137,7 +137,7 @@ export const WithoutImage: Story = {
 export const WithFavorite: Story = {
   args: {
     ...defaultArgs,
-    imageUrl: 'https://placehold.co/400x300',
+    imageUrl: '/record-placehold.webp',
     isFavorite: true,
   },
   parameters: {
@@ -165,7 +165,7 @@ export const LongDescription: Story = {
 
 특히 수문장 교대식이 인상적이었고, 궁궐 내부의 정원도 잘 관리되어 있어 산책하기 좋았다. 다음에는 봄에 벚꽃이 필 때 다시 방문하고 싶다.`,
     connectionCount: 3,
-    imageUrl: 'https://placehold.co/400x300',
+    imageUrl: '/record-placehold.webp',
   },
   parameters: {
     docs: {
@@ -198,7 +198,7 @@ export const VeryLongDescription: Story = {
 
 다음에는 자전거를 타고 한강을 따라 더 멀리 가보고 싶다. 봄이 오면 벚꽃이 만개하는 벚꽃길도 놓치지 않고 가봐야겠다. 한강은 정말 서울에서 가장 소중한 공간 중 하나인 것 같다.`,
     connectionCount: 7,
-    imageUrl: 'https://placehold.co/400x600',
+    imageUrl: '/record-placehold.webp',
   },
   parameters: {
     docs: {
@@ -213,7 +213,7 @@ export const ManyTags: Story = {
   args: {
     ...defaultArgs,
     tags: ['쇼핑', '명소', '음식', '문화', '관광', '도시'],
-    imageUrl: 'https://placehold.co/400x300',
+    imageUrl: '/record-placehold.webp',
   },
   parameters: {
     docs: {
@@ -231,7 +231,7 @@ export const Mobile: Story = {
   render: (args) => <RecordDetailPageMobile {...args} />,
   args: {
     ...defaultArgs,
-    imageUrl: 'https://placehold.co/400x300',
+    imageUrl: '/record-placehold.webp',
   },
   parameters: {
     viewport: {
@@ -261,7 +261,7 @@ export const Desktop: Story = {
   render: (args) => <RecordDetailPageDesktop {...args} />,
   args: {
     ...defaultArgs,
-    imageUrl: 'https://placehold.co/1200x500',
+    imageUrl: '/record-placehold.webp',
   },
   parameters: {
     viewport: {

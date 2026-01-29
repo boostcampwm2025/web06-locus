@@ -5,6 +5,7 @@ import { useRecordGraph } from '../hooks/useRecordGraph';
 import { useGetRecordDetail } from '@/features/record/hooks/useGetRecordDetail';
 import type { Record as ApiRecord } from '@locus/shared';
 import type { RecordConnectionItem } from '../types/recordConnection';
+import { RECORD_PLACEHOLDER_IMAGE } from '@/shared/constants/record';
 import { extractTagNames } from '@/shared/utils/tagUtils';
 
 // 한국 전체를 커버하는 넓은 bounds
@@ -54,7 +55,7 @@ export function useConnectionModeData() {
         imageUrl:
           fromRecordDetail.images && fromRecordDetail.images.length > 0
             ? fromRecordDetail.images[0].medium.url
-            : undefined,
+            : RECORD_PLACEHOLDER_IMAGE,
       });
     }
   }, [fromRecordDetail, departure, selectDeparture, connectionFromRecordId]);
@@ -143,7 +144,7 @@ export function useConnectionModeData() {
         const thumbnailUrl =
           recordWithImages.images && recordWithImages.images.length > 0
             ? recordWithImages.images[0].thumbnail.url
-            : undefined;
+            : RECORD_PLACEHOLDER_IMAGE;
 
         return {
           id: record.publicId,

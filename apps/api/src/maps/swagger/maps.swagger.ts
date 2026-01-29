@@ -1,5 +1,10 @@
 import { applyDecorators, HttpStatus } from '@nestjs/common';
-import { ApiOperation, ApiBearerAuth, ApiExtraModels } from '@nestjs/swagger';
+import {
+  ApiOperation,
+  ApiBearerAuth,
+  ApiExtraModels,
+  ApiQuery,
+} from '@nestjs/swagger';
 import {
   ApiSuccessResponse,
   ApiFailResponse,
@@ -11,6 +16,8 @@ import {
   AddressDataDto,
 } from '../dto/geocode.response.dto';
 import { ReverseGeocodeResponseDto } from '../dto/reverse-geocode.response.dto';
+import { SearchAddressResponseDto } from '../dto/search-address.response.dto';
+import { AddressSearchRequestDto } from '../dto/address-search.request.dto';
 import { MapsErrorCode } from '../constants/error-codes';
 
 export const GeocodeSwagger = () =>
@@ -54,6 +61,29 @@ export const ReverseGeocodeSwagger = () =>
       {
         code: MapsErrorCode.INVALID_LONGITUDE,
         message: '경도 값이 유효하지 않습니다. (-180 ~ 180)',
+      },
+    ]),
+    ApiFailResponse(HttpStatus.UNAUTHORIZED, {
+      code: 'AUTH_TOKEN_MISSING',
+      message: '인증 토큰이 없거나 유효하지 않습니다.',
+    }),
+    ApiErrorResponse(),
+  );
+
+export const SearchAddressSwagger = () =>
+  applyDecorators(
+    ApiExtraModels(SearchAddressResponseDto),
+    ApiBearerAuth(),
+    ApiOperation({
+      summary: '주소 검색',
+      description: '주소 문자열로 장소/주소를 검색합니다.',
+    }),
+    ApiQuery({ type: AddressSearchRequestDto }),
+    ApiSuccessResponse(SearchAddressResponseDto, HttpStatus.OK),
+    ApiFailResponse(HttpStatus.BAD_REQUEST, [
+      {
+        code: MapsErrorCode.ADDRESS_MISSING,
+        message: '주소가 누락되었습니다.',
       },
     ]),
     ApiFailResponse(HttpStatus.UNAUTHORIZED, {
