@@ -1,8 +1,7 @@
 // 개발/프로덕션 모두 /api prefix 사용
 // 로컬 개발: Vite 프록시(/api) 사용
 // 배포: nginx 프록시(/api) 사용
-export const API_BASE_URL =
-  (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? '/api';
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '/api';
 
 /**
  * API 엔드포인트 상수
