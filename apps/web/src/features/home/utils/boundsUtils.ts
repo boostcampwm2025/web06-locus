@@ -148,3 +148,43 @@ export function isSameGridCenter(
     getGridIndex(lng1) === getGridIndex(lng2)
   );
 }
+
+// --- 클러스터링용 줌 기반 그리드 ---
+
+/**
+ * 줌 레벨에 따른 그리드 크기(도 단위)
+ * 줌 아웃 → 큰 셀(적은 클러스터), 줌 인 → 작은 셀(촘촘한 핀)
+ */
+export function getGridSizeForZoom(zoom: number): number {
+  if (zoom >= 16) return 0.002; // ~200m
+  if (zoom >= 14) return 0.004; // ~400m
+  if (zoom >= 12) return 0.008; // ~800m
+  if (zoom >= 10) return 0.015; // ~1.5km
+  if (zoom >= 8) return 0.03; // ~3km
+  return 0.06; // ~6km
+}
+
+/**
+ * 좌표가 속한 그리드 셀의 고유 키 (줌 기반)
+ */
+export function getGridCellKey(lat: number, lng: number, zoom: number): string {
+  const size = getGridSizeForZoom(zoom);
+  const latIndex = Math.floor(lat / size);
+  const lngIndex = Math.floor(lng / size);
+  return `${latIndex}_${lngIndex}`;
+}
+
+/**
+ * 그리드 셀 키로부터 셀 중심 좌표 반환 (클러스터 핀 위치용)
+ */
+export function getGridCellCenter(
+  cellKey: string,
+  zoom: number,
+): { lat: number; lng: number } {
+  const size = getGridSizeForZoom(zoom);
+  const [latIndex, lngIndex] = cellKey.split('_').map(Number);
+  return {
+    lat: (latIndex + 0.5) * size,
+    lng: (lngIndex + 0.5) * size,
+  };
+}

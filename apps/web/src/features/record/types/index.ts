@@ -6,6 +6,7 @@ export type {
   RecordWritePageProps,
   ImageSelectBottomSheetProps,
   RecordSummaryBottomSheetProps,
+  ClusterRecordBottomSheetProps,
   RecordSummaryHeaderProps,
   RecordLocationCardProps,
   RecordTagsSectionProps,
