@@ -50,6 +50,7 @@ import { ChevronDownIcon } from '../ui/icons/ChevronDownIcon';
 import { CheckIconMobile } from '../ui/icons/CheckIconMobile';
 import { DownloadIcon } from '../ui/icons/DownloadIcon';
 import { LocusPinIcon } from '../ui/icons/LocusPinIcon';
+import { NavigationIcon } from '../ui/icons/NavigationIcon';
 
 const meta = {
   title: 'Shared/Icons',
@@ -281,6 +282,11 @@ export const IconCatalog: Story = {
             icon={<DownloadIcon className="w-8 h-8 text-gray-600" />}
             description="다운로드/설치 아이콘"
           />
+          <IconCard
+            name="NavigationIcon"
+            icon={<NavigationIcon className="w-8 h-8 text-gray-600" />}
+            description="방향/내비게이션(위치 라벨용)"
+          />
         </div>
       </div>
 
@@ -363,6 +369,10 @@ export const AllIcons: Story = {
         icon={<MoreVerticalIcon className="w-8 h-8" />}
       />
       <IconCard name="MapPinIcon" icon={<MapPinIcon className="w-8 h-8" />} />
+      <IconCard
+        name="NavigationIcon"
+        icon={<NavigationIcon className="w-8 h-8" />}
+      />
       <IconCard name="Link2Icon" icon={<Link2Icon className="w-8 h-8" />} />
       <IconCard
         name="FileTextIcon"

@@ -2,6 +2,7 @@ import { useState, useEffect, Suspense } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { DesktopSidebar } from '@/shared/ui/desktop';
+import { LocationConfirmation } from '@/shared/ui/location';
 import MapLoadingSkeleton from '@/shared/ui/loading/MapLoadingSkeleton';
 import ToastErrorMessage from '@/shared/ui/alert/ToastErrorMessage';
 import RecordSummaryBottomSheet from '@/features/record/ui/RecordSummaryBottomSheet';
@@ -354,6 +355,17 @@ export function MainMapPageDesktop() {
                 setRecordWriteCoordinates(coordinates);
                 setIsRecordWriteOpen(true);
               }}
+              renderLocationConfirmation={({
+                location: loc,
+                onConfirm,
+                onCancel,
+              }) => (
+                <LocationConfirmation
+                  location={{ name: loc.name, address: loc.address }}
+                  onConfirm={onConfirm}
+                  onCancel={onCancel}
+                />
+              )}
             />
           </Suspense>
         </div>

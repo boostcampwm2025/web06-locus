@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { AnimatePresence } from 'motion/react';
 import type { MapViewportProps } from '@features/home/types/mapViewport';
 import type { PinMarkerData } from '@/shared/types/marker';
 import { PinOverlay } from '@/infra/map/marker';
@@ -37,6 +38,7 @@ export default function MapViewport({
   onTargetLocationChange,
   onCreateRecord,
   onRecordPinClick,
+  renderLocationConfirmation,
 }: MapViewportProps) {
   const navigate = useNavigate();
   const [isBottomSheetOpen, setIsBottomSheetOpen] = useState(false);
@@ -399,9 +401,8 @@ export default function MapViewport({
         });
         polylinesRef.current = [];
       } else {
-        // 빈 공간 클릭 시 기록 생성 바텀시트 열기
+        // 빈 공간 클릭 시 기록 생성 바텀시트/모달 열기 (데스크톱은 하단 중앙 고정 모달)
         const latlng = e.coord as naver.maps.LatLng;
-        // 역지오코딩은 나중에 구현하고, 일단 기본값 사용
         setSelectedLocation({
           name: '선택한 위치',
           address: '',
@@ -433,7 +434,7 @@ export default function MapViewport({
     };
     // ref는 변경되어도 재렌더링을 트리거하지 않으므로 dependency에서 제외
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isMapLoaded, selectedRecordPublicId]);
+  }, [isMapLoaded, selectedRecordPublicId, renderLocationConfirmation]);
 
   // 좌표를 소수점 4째 자리로 반올림하는 헬퍼 함수
   const roundTo4Decimals = (value: number): number => {
@@ -977,17 +978,30 @@ export default function MapViewport({
           </button>
         )}
       </div>
-      {/* 기록 작성용 Bottom Sheet (현재는 사용 안 함) */}
-      {selectedLocation && (
-        <RecordCreateBottomSheet
-          isOpen={isBottomSheetOpen}
-          onClose={handleCloseBottomSheet}
-          locationName={selectedLocation.name}
-          address={selectedLocation.address}
-          coordinates={selectedLocation.coordinates}
-          onConfirm={handleConfirmRecord}
-        />
-      )}
+      {/* 기록 작성용: 데스크톱은 LocationConfirmation, 모바일은 RecordCreateBottomSheet */}
+      {selectedLocation &&
+        (renderLocationConfirmation ? (
+          <AnimatePresence>
+            {renderLocationConfirmation({
+              location: {
+                name: selectedLocation.name,
+                address: selectedLocation.address,
+                coordinates: selectedLocation.coordinates,
+              },
+              onConfirm: handleConfirmRecord,
+              onCancel: handleCloseBottomSheet,
+            })}
+          </AnimatePresence>
+        ) : (
+          <RecordCreateBottomSheet
+            isOpen={isBottomSheetOpen}
+            onClose={handleCloseBottomSheet}
+            locationName={selectedLocation.name}
+            address={selectedLocation.address}
+            coordinates={selectedLocation.coordinates}
+            onConfirm={handleConfirmRecord}
+          />
+        ))}
 
       {/* 기록 Summary Bottom Sheet (onRecordPinClick 제공 시 미표시) */}
       {selectedRecord && !onRecordPinClick && (
