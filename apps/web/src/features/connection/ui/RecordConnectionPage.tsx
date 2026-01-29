@@ -14,6 +14,7 @@ import RecordSearchInput from './RecordSearchInput';
 import RecommendedRecordsSection from './RecommendedRecordsSection';
 import ConnectActionButton from './ConnectActionButton';
 import RecordSelectionContextSheet from './RecordSelectionContextSheet';
+import { RECORD_PLACEHOLDER_IMAGE } from '@/shared/constants/record';
 import { extractTagNames } from '@/shared/utils/tagUtils';
 
 // 한국 전체를 커버하는 넓은 bounds (전체 기록 조회용)
@@ -137,7 +138,7 @@ export default function RecordConnectionPage({
       const thumbnailUrl =
         recordWithImages.images && recordWithImages.images.length > 0
           ? recordWithImages.images[0].thumbnail.url
-          : undefined;
+          : RECORD_PLACEHOLDER_IMAGE;
 
       return {
         id: record.publicId,

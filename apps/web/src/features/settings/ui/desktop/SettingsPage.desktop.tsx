@@ -15,12 +15,16 @@ export default function SettingsPageDesktop(props: SettingsPageProps) {
   const {
     activeTab,
     setActiveTab,
+    user,
+    userLoading,
+    userError,
     isNotificationEnabled,
     setIsNotificationEnabled,
     isPushEnabled,
     setIsPushEnabled,
     notificationTime,
     setNotificationTime,
+    notificationLoading,
     tags,
     tagToDelete,
     setTagToDelete,
@@ -57,12 +61,21 @@ export default function SettingsPageDesktop(props: SettingsPageProps) {
         onTabChange={setActiveTab}
         onClose={handleClose}
         onLogout={() => setShowLogoutConfirm(true)}
+        user={user}
+        userLoading={userLoading}
       />
 
       <main className="flex-1 overflow-y-auto bg-white flex justify-center">
         <div className="w-full max-w-3xl p-20 pt-24">
           <AnimatePresence mode="wait">
-            {activeTab === 'profile' && <ProfileTab key="profile" />}
+            {activeTab === 'profile' && (
+              <ProfileTab
+                key="profile"
+                user={user}
+                userLoading={userLoading}
+                userError={userError}
+              />
+            )}
             {activeTab === 'notifications' && (
               <NotificationsTab
                 key="notifications"
@@ -72,6 +85,8 @@ export default function SettingsPageDesktop(props: SettingsPageProps) {
                 onPushToggle={setIsPushEnabled}
                 notificationTime={notificationTime}
                 onNotificationTimeChange={setNotificationTime}
+                readOnly
+                notificationLoading={notificationLoading}
               />
             )}
             {activeTab === 'tags' && (

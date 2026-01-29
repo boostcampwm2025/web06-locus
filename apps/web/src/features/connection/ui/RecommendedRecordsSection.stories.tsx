@@ -21,7 +21,7 @@ const mockRecords: RecordConnectionItem[] = [
     location: { name: '남산', address: '서울특별시 용산구' },
     date: new Date('2025-12-15'),
     tags: ['명소', '자연'],
-    imageUrl: 'https://placehold.co/80',
+    imageUrl: '/record-placehold.webp',
     isRelated: true,
   },
   {
@@ -30,7 +30,7 @@ const mockRecords: RecordConnectionItem[] = [
     location: { name: '강남역', address: '서울특별시 강남구' },
     date: new Date('2025-12-14'),
     tags: ['쇼핑', '음식'],
-    imageUrl: 'https://placehold.co/80',
+    imageUrl: '/record-placehold.webp',
   },
 ];
 
@@ -63,7 +63,7 @@ export const CustomTitle: Story = {
         location: { name: '경복궁', address: '서울특별시 종로구' },
         date: new Date('2025-12-15'),
         tags: ['역사', '명소'],
-        imageUrl: 'https://placehold.co/80',
+        imageUrl: '/record-placehold.webp',
         isRelated: true,
       },
     ],
@@ -117,7 +117,7 @@ const manyRecords: RecordConnectionItem[] = Array.from(
       ['음식', '문화'],
       ['문화', '예술'],
     ][i % 5],
-    imageUrl: 'https://placehold.co/80',
+    imageUrl: '/record-placehold.webp',
     isRelated: i % 3 === 0,
   }),
 );

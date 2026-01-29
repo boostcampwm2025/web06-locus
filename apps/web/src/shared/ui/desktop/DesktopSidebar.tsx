@@ -10,6 +10,7 @@ import { LocationIcon } from '@/shared/ui/icons/LocationIcon';
 import { CalendarIcon } from '@/shared/ui/icons/CalendarIcon';
 import { ChevronRightIcon } from '@/shared/ui/icons/ChevronRightIcon';
 import { LinkIcon } from '@/shared/ui/icons/LinkIcon';
+import { RECORD_PLACEHOLDER_IMAGE } from '@/shared/constants/record';
 import { ImageSkeleton } from '@/shared/ui/skeleton';
 import { useScrollPosition } from '@/shared/hooks/useScrollPosition';
 import { useIntersectionObserver } from '@/shared/hooks/useIntersectionObserver';
@@ -529,13 +530,13 @@ function RecordCard({
       }`}
     >
       <div className="flex gap-5 items-center">
-        {/* 이미지 썸네일 */}
+        {/* 이미지 썸네일 - 없으면 기본 이미지 */}
         <div className="w-24 h-24 rounded-[20px] overflow-hidden shrink-0 relative">
-          {record.imageUrl && !imageError ? (
+          {!imageError ? (
             <>
               {imageLoading && <ImageSkeleton className="absolute inset-0" />}
               <img
-                src={record.imageUrl}
+                src={record.imageUrl ?? RECORD_PLACEHOLDER_IMAGE}
                 alt={record.title}
                 className={`w-full h-full object-cover transition-opacity duration-300 ${
                   imageLoading ? 'opacity-0' : 'opacity-100'
@@ -633,7 +634,7 @@ function RecordSummaryPanel({
   const imageUrl =
     recordDetail.images && recordDetail.images.length > 0
       ? recordDetail.images[0].medium.url
-      : undefined;
+      : RECORD_PLACEHOLDER_IMAGE;
 
   return (
     <motion.div
@@ -666,36 +667,32 @@ function RecordSummaryPanel({
 
       {/* 스크롤 영역 */}
       <div className="flex-1 overflow-y-auto no-scrollbar">
-        {/* 이미지 */}
+        {/* 이미지 - 없으면 기본 이미지 */}
         <div className="w-full aspect-video relative group overflow-hidden">
-          {imageUrl ? (
-            <>
-              <ImageSkeleton className="absolute inset-0 z-0" />
-              <img
-                src={imageUrl}
-                alt={recordDetail.title}
-                className="w-full h-full object-cover group-hover:scale-105 transition-all duration-700 relative z-10"
-                onLoad={(e) => {
-                  // 이미지 로드 완료 시 스켈레톤 숨김
-                  const img = e.currentTarget;
-                  const skeleton = img.previousElementSibling as HTMLElement;
-                  if (skeleton) {
-                    skeleton.style.opacity = '0';
-                    setTimeout(() => {
-                      skeleton.remove();
-                    }, 300);
-                  }
-                }}
-                onError={(e) => {
-                  // 이미지 로드 실패 시 스켈레톤 유지
-                  const img = e.currentTarget;
-                  img.style.opacity = '0';
-                }}
-              />
-            </>
-          ) : (
-            <ImageSkeleton className="w-full h-full" />
-          )}
+          <>
+            <ImageSkeleton className="absolute inset-0 z-0" />
+            <img
+              src={imageUrl}
+              alt={recordDetail.title}
+              className="w-full h-full object-cover group-hover:scale-105 transition-all duration-700 relative z-10"
+              onLoad={(e) => {
+                // 이미지 로드 완료 시 스켈레톤 숨김
+                const img = e.currentTarget;
+                const skeleton = img.previousElementSibling as HTMLElement;
+                if (skeleton) {
+                  skeleton.style.opacity = '0';
+                  setTimeout(() => {
+                    skeleton.remove();
+                  }, 300);
+                }
+              }}
+              onError={(e) => {
+                // 이미지 로드 실패 시 스켈레톤 유지
+                const img = e.currentTarget;
+                img.style.opacity = '0';
+              }}
+            />
+          </>
         </div>
 
         {/* 콘텐츠 */}

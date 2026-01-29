@@ -80,10 +80,20 @@ const PROFILE_IMAGE_OPTIONS = [
   { bgGradient: 'from-teal-50 to-teal-100', iconColor: 'text-teal-500' },
 ];
 
-export function ProfileTab({ onSave }: ProfileTabProps) {
+export function ProfileTab({
+  onSave,
+  user,
+  userLoading,
+  userError,
+}: ProfileTabProps) {
+  // PWA 접속 여부 확인
   const { isPWA } = useDeviceType();
+  
+  // 닉네임을 시드로 사용하여 일관된 프로필 이미지 유지
+  const displayName = user?.nickname ?? user?.email ?? '—';
+  
   const [profileImageIndex, setProfileImageIndex] = useState(() =>
-    getRandomProfileIndex('Lucus'),
+    getRandomProfileIndex(displayName),
   );
   const currentProfile = PROFILE_IMAGE_OPTIONS[profileImageIndex];
 
@@ -109,9 +119,15 @@ export function ProfileTab({ onSave }: ProfileTabProps) {
         </p>
       </header>
 
-      <div className="space-y-6">
-        {/* 사용자 프로필 + 저장하기 버튼 라인 */}
-        <section className="grid grid-cols-3 gap-8 items-center border-b border-gray-50 pb-8">
+      <div className="space-y-10">
+        {userError && (
+          <p className="text-red-500 text-sm" role="alert">
+            사용자 정보를 불러오지 못했습니다.
+          </p>
+        )}
+        
+        {/* 사용자 프로필 섹션 */}
+        <section className="grid grid-cols-3 gap-8 items-start border-b border-gray-50 pb-10">
           <div>
             <h3 className="font-bold text-gray-900 mb-1">사용자 프로필</h3>
             <p className="text-sm text-gray-400 leading-relaxed">
@@ -121,7 +137,8 @@ export function ProfileTab({ onSave }: ProfileTabProps) {
           <div className="col-span-2 flex items-center justify-between">
             <button
               onClick={handleRandomizeProfile}
-              className="w-24 h-24 rounded-[36px] overflow-hidden relative group cursor-pointer shadow-lg hover:shadow-xl transition-all active:scale-95"
+              disabled={userLoading}
+              className="w-24 h-24 rounded-[36px] overflow-hidden relative group cursor-pointer shadow-lg hover:shadow-xl transition-all active:scale-95 disabled:opacity-70"
             >
               <div
                 className={`w-full h-full bg-linear-to-br ${currentProfile.bgGradient} flex items-center justify-center`}
@@ -135,7 +152,6 @@ export function ProfileTab({ onSave }: ProfileTabProps) {
               </div>
             </button>
 
-            {/* 세로로 정렬된 텍스트와 작은 저장 버튼 */}
             <div className="flex flex-col gap-3">
               <div className="bg-orange-50 px-3 py-1 rounded-full self-start">
                 <span className="text-[10px] font-bold text-[#FE8916]">
@@ -144,7 +160,8 @@ export function ProfileTab({ onSave }: ProfileTabProps) {
               </div>
               <button
                 onClick={onSave}
-                className="px-6 py-3 bg-[#FE8916] text-white rounded-2xl font-black text-sm shadow-md hover:shadow-lg transition-all"
+                disabled={userLoading}
+                className="px-6 py-3 bg-[#FE8916] text-white rounded-2xl font-black text-sm shadow-md hover:shadow-lg transition-all disabled:opacity-50"
               >
                 설정 저장하기
               </button>
@@ -152,28 +169,41 @@ export function ProfileTab({ onSave }: ProfileTabProps) {
           </div>
         </section>
 
+        {/* 닉네임 섹션 */}
         <section className="grid grid-cols-3 gap-8 items-center border-b border-gray-50 pb-4">
           <h3 className="font-bold text-gray-900">닉네임</h3>
           <div className="col-span-2">
             <input
               type="text"
-              defaultValue="Lucus"
+              value={user?.nickname ?? ''}
+              placeholder={userLoading ? '불러오는 중…' : '닉네임'}
+              readOnly
               className="w-full bg-gray-50 border-none rounded-2xl p-4 text-gray-900 font-bold focus:ring-2 focus:ring-orange-100 outline-none transition-all"
             />
           </div>
         </section>
 
+        {/* 이메일 섹션 */}
         <section className="grid grid-cols-3 gap-8 items-center">
           <h3 className="font-bold text-gray-900">이메일 주소</h3>
           <div className="col-span-2">
             <div className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl text-gray-500 font-medium">
-              <span>lucus@example.com</span>
-              <CheckIcon className="w-[18px] h-[18px] text-[#73C92E]" />
+              <span>
+                {userLoading
+                  ? '불러오는 중…'
+                  : userError
+                    ? '—'
+                    : (user?.email ?? '—')}
+              </span>
+              {!userLoading && !userError && user?.email && (
+                <CheckIcon className="w-[18px] h-[18px] text-[#73C92E]" />
+              )}
             </div>
           </div>
         </section>
       </div>
 
+      {/* PWA가 아닐 때만 설치 안내 표시 */}
       {!isPWA && (
         <div className="mt-4">
           <PWAInstallGuide />

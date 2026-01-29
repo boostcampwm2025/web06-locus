@@ -208,10 +208,7 @@ export const WithImages: Story = {
     baseRecord: sampleBaseRecord,
     connectedRecords: sampleConnectedRecords.map((record, index) => ({
       ...record,
-      imageUrl:
-        index % 2 === 0
-          ? 'https://via.placeholder.com/80x80?text=Image'
-          : undefined,
+      imageUrl: index % 2 === 0 ? '/record-placehold.webp' : undefined,
     })),
     onBack: fn(),
     onSearchChange: fn(),
@@ -328,10 +325,7 @@ const generateManyRecords = (count: number) => {
       location: locations[locationIndex],
       date: new Date(2025, 11, 15 - dateOffset), // 날짜를 다르게 설정
       tags: tagSets[tagIndex],
-      imageUrl:
-        index % 3 === 0
-          ? 'https://via.placeholder.com/80x80?text=Img'
-          : undefined,
+      imageUrl: index % 3 === 0 ? '/record-placehold.webp' : undefined,
     };
   });
 };

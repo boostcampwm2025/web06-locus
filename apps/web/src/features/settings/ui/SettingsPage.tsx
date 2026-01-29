@@ -19,7 +19,7 @@ export default function SettingsPage(props: SettingsPageProps) {
   return (
     <Suspense fallback={<LoadingPage version={getRandomLoadingVersion()} />}>
       {isMobile ? (
-        <SettingsPageMobile {...props} />
+        <SettingsPageMobile {...props} notificationEditable />
       ) : (
         <SettingsPageDesktop {...props} />
       )}
