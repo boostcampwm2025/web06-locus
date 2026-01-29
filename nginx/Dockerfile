@@ -20,7 +20,7 @@ ARG VITE_FCM_VAPID_KEY
 RUN echo "VITE_NAVER_CLIENT_ID=$VITE_NAVER_CLIENT_ID" > apps/web/.env.production && \
     echo "VITE_API_BASE_URL=$VITE_API_BASE_URL" >> apps/web/.env.production && \
     echo "VITE_SENTRY_DSN=$VITE_SENTRY_DSN" >> apps/web/.env.production && \
-    echo "VITE_FCM_VAPID_KEY=$VITE_FCM_VAPID_KEY" >> apps/web/.env.production
+    echo "VITE_FCM_VAPID_KEY=$VITE_FCM_VAPID_KEY" >> apps/web/.env.production && \
     echo "VITE_FIREBASE_API_KEY=$VITE_FIREBASE_API_KEY" >> apps/web/.env.production && \
     echo "VITE_FIREBASE_AUTH_DOMAIN=$VITE_FIREBASE_AUTH_DOMAIN" >> apps/web/.env.production && \
     echo "VITE_FIREBASE_PROJECT_ID=$VITE_FIREBASE_PROJECT_ID" >> apps/web/.env.production && \
