@@ -68,7 +68,7 @@ export class NotificationScheduleService {
     const pipeline = this.redisService.getClient().multi();
 
     for (const setting of settings) {
-      const time = setting.notifyTime.substring(0, 5);
+      const time = setting.notifyTime;
       const key = this.getBucketKey(time);
       pipeline.hSet(key, setting.userId.toString(), setting.fcmToken!);
     }

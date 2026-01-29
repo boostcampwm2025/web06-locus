@@ -1,4 +1,4 @@
-import { useMemo, useState, useRef, useEffect } from 'react';
+import { useMemo, useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'motion/react';
 import { Logo } from '@/shared/ui/icons/Logo';
@@ -12,9 +12,11 @@ import { ChevronRightIcon } from '@/shared/ui/icons/ChevronRightIcon';
 import { LinkIcon } from '@/shared/ui/icons/LinkIcon';
 import { ImageSkeleton } from '@/shared/ui/skeleton';
 import { useScrollPosition } from '@/shared/hooks/useScrollPosition';
+import { useIntersectionObserver } from '@/shared/hooks/useIntersectionObserver';
 import { ROUTES } from '@/router/routes';
 import { useGetTags } from '@/features/record/hooks/useGetTags';
-import { useGetRecordsByBounds } from '@/features/record/hooks/useGetRecordsByBounds';
+import { useSidebarRecords } from '@/features/record/hooks/useSidebarRecords';
+import { useSearchRecords } from '@/features/record/hooks/useSearchRecords';
 import { useGetRecordDetail } from '@/features/record/hooks/useGetRecordDetail';
 import { useConnectionStore } from '@/features/connection/domain/connectionStore';
 import { useConnectionModeData } from '@/features/connection/hooks/useConnectionModeData';
@@ -26,18 +28,6 @@ import type {
   RecordSummaryPanelProps,
 } from '@/shared/types';
 import { formatDateShort } from '@/shared/utils/dateUtils';
-import { transformRecordApiToUI } from '@/shared/utils/recordTransform';
-
-// 한국 전체를 커버하는 넓은 bounds
-const KOREA_WIDE_BOUNDS = {
-  neLat: 38.6,
-  neLng: 131.9,
-  swLat: 33.1,
-  swLng: 124.6,
-  page: 1,
-  limit: 100,
-  sortOrder: 'desc' as const,
-};
 
 export function DesktopSidebar({
   searchValue = '',
@@ -106,12 +96,45 @@ export function DesktopSidebar({
   // 연결 모드일 때는 useConnectionModeData 사용
   const connectionModeData = useConnectionModeData();
 
-  // 일반 모드일 때는 기존 로직 사용
-  const { data: recordsByBoundsData, isLoading: isRecordsLoading } =
-    useGetRecordsByBounds(KOREA_WIDE_BOUNDS);
+  // 카테고리 목록 (전체 + 태그들)
+  const categories = useMemo(
+    () => [
+      { id: 'all', label: '전체' },
+      ...allTags.map((tag) => ({ id: tag.publicId, label: tag.name })),
+    ],
+    [allTags],
+  );
 
-  // 기록 목록 변환
-  const records = useMemo(() => {
+  // 무한 스크롤: 표시할 아이템 수 관리
+  const [displayCount, setDisplayCount] = useState(20); // 초기 표시 개수
+  const ITEMS_PER_LOAD = 20; // 한 번에 추가로 표시할 개수
+
+  // 필터 변경 시 표시 개수 리셋
+  useEffect(() => {
+    setDisplayCount(20);
+  }, [sortOrder, startDate, endDate, selectedCategory, searchValue]);
+
+  // 검색어가 있을 때는 검색 API 사용, 없을 때는 일반 목록 사용
+  const hasSearchKeyword = searchValue.trim().length > 0;
+  const { data: searchData, isLoading: isSearchLoading } = useSearchRecords(
+    searchValue,
+    {
+      enabled: !connectionFromRecordId && hasSearchKeyword,
+    },
+  );
+
+  // 일반 모드일 때는 useSidebarRecords 사용 (검색어가 없을 때만)
+  const { records: allSidebarRecords, isLoading: isRecordsLoading } =
+    useSidebarRecords({
+      sortOrder,
+      startDate,
+      endDate,
+      selectedCategory,
+      categories,
+    });
+
+  // 기록 목록 변환 (연결 모드 vs 검색 모드 vs 일반 모드)
+  const allRecords = useMemo(() => {
     if (connectionFromRecordId) {
       // 연결 모드: connectionModeData의 records 사용
       return connectionModeData.records.map((record) => ({
@@ -124,10 +147,65 @@ export function DesktopSidebar({
         connectionCount: 0, // TODO: 실제 연결 개수 계산
       }));
     }
-    // 일반 모드: 기존 로직
-    if (!recordsByBoundsData?.records) return [];
-    return recordsByBoundsData.records.map(transformRecordApiToUI);
-  }, [connectionFromRecordId, connectionModeData.records, recordsByBoundsData]);
+    if (hasSearchKeyword && searchData) {
+      // 검색 모드: 검색 API 결과 사용
+      return searchData.records.map((record) => ({
+        id: String(record.recordId), // 명시적으로 string으로 변환
+        title: record.title,
+        location: {
+          name: record.locationName ?? '',
+          address: '',
+        },
+        date: new Date(record.createdAt),
+        tags: record.tags,
+        imageUrl: record.thumbnailImage ?? undefined,
+        connectionCount: record.connectionCount,
+      }));
+    }
+    // 일반 모드: useSidebarRecords에서 필터링/정렬된 records 사용
+    return allSidebarRecords;
+  }, [
+    connectionFromRecordId,
+    connectionModeData.records,
+    allSidebarRecords,
+    hasSearchKeyword,
+    searchData,
+  ]);
+
+  // 로딩 상태 통합
+  const isRecordsLoadingCombined = connectionFromRecordId
+    ? false
+    : hasSearchKeyword
+      ? isSearchLoading
+      : isRecordsLoading;
+
+  // 무한 스크롤: 표시할 레코드만 선택
+  const records = useMemo(() => {
+    return allRecords.slice(0, displayCount);
+  }, [allRecords, displayCount]);
+
+  // 무한 스크롤: 더 많은 아이템이 있는지 확인
+  const hasMore = displayCount < allRecords.length;
+
+  // 무한 스크롤: 더 많은 아이템 로드
+  const loadMore = useCallback(() => {
+    if (!isRecordsLoadingCombined && hasMore) {
+      setDisplayCount((prev) => prev + ITEMS_PER_LOAD);
+    }
+  }, [isRecordsLoadingCombined, hasMore]);
+
+  // Intersection Observer로 무한 스크롤 구현
+  // 검색 모드일 때는 검색 API의 pagination을 사용해야 하므로 무한 스크롤 비활성화
+  const { targetRef: infiniteScrollRef } = useIntersectionObserver({
+    onIntersect: loadMore,
+    rootMargin: '200px',
+    threshold: 0.1,
+    enabled:
+      hasMore &&
+      !isRecordsLoadingCombined &&
+      !connectionFromRecordId &&
+      !hasSearchKeyword,
+  });
 
   // 연결 모드일 때 검색어는 connectionModeData의 searchQuery 사용
   const effectiveSearchValue = connectionFromRecordId
@@ -167,12 +245,6 @@ export function DesktopSidebar({
     onCreateRecordClick?.();
     // MainMapPage에서 상태로 관리됨
   };
-
-  // 카테고리 목록 (전체 + 태그들)
-  const categories = [
-    { id: 'all', label: '전체' },
-    ...allTags.map((tag) => ({ id: tag.publicId, label: tag.name })),
-  ];
 
   return (
     <aside className="flex flex-col w-[420px] h-full bg-white border-r border-gray-100 shadow-2xl relative z-20">
@@ -292,9 +364,9 @@ export function DesktopSidebar({
               >
                 {/* 스크롤 힌트 그라데이션 */}
                 <div className="sticky top-0 h-4 bg-linear-to-b from-white to-transparent pointer-events-none z-10" />
-                {isRecordsLoading ? (
+                {isRecordsLoadingCombined ? (
                   <div className="flex items-center justify-center h-full text-gray-400 text-sm">
-                    기록을 불러오는 중...
+                    {hasSearchKeyword ? '검색 중...' : '기록을 불러오는 중...'}
                   </div>
                 ) : records.length === 0 ? (
                   <div className="flex items-center justify-center h-full text-gray-400 text-sm">
@@ -317,6 +389,17 @@ export function DesktopSidebar({
                         }
                       />
                     ))}
+                    {/* 무한 스크롤 트리거 */}
+                    {hasMore && !connectionFromRecordId && (
+                      <div
+                        ref={infiniteScrollRef}
+                        className="h-4 flex items-center justify-center py-4"
+                      >
+                        <div className="text-xs text-gray-400">
+                          더 불러오는 중...
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

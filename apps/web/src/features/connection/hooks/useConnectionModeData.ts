@@ -5,6 +5,7 @@ import { useRecordGraph } from '../hooks/useRecordGraph';
 import { useGetRecordDetail } from '@/features/record/hooks/useGetRecordDetail';
 import type { Record as ApiRecord } from '@locus/shared';
 import type { RecordConnectionItem } from '../types/recordConnection';
+import { extractTagNames } from '@/shared/utils/tagUtils';
 
 // 한국 전체를 커버하는 넓은 bounds
 const KOREA_WIDE_BOUNDS = {
@@ -119,7 +120,7 @@ export function useConnectionModeData() {
             record.location.name?.toLowerCase().includes(query) ?? false;
           const isAddressMatch =
             record.location.address?.toLowerCase().includes(query) ?? false;
-          const isTagMatch = record.tags.some((tag) =>
+          const isTagMatch = extractTagNames(record.tags).some((tag) =>
             tag.toLowerCase().includes(query),
           );
 
@@ -152,7 +153,7 @@ export function useConnectionModeData() {
             address: record.location.address ?? '',
           },
           date: new Date(record.createdAt),
-          tags: record.tags,
+          tags: extractTagNames(record.tags),
           isRelated: Boolean(trimmedQuery),
           isConnected: connectedRecordIds.has(record.publicId),
           imageUrl: thumbnailUrl,

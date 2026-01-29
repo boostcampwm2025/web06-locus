@@ -7,7 +7,7 @@ import {
   ClientProxy,
 } from '@nestjs/microservices';
 import { Channel, Message } from 'amqplib';
-import { NotificationService } from './notification.service';
+import { FcmService } from './fcm/fcm.service';
 import { RABBITMQ_CONSTANTS } from '@/common/constants/rabbitmq.constants';
 import {
   NotificationBatchMessage,
@@ -20,7 +20,7 @@ export class NotificationConsumer {
   private readonly MAX_RETRY_ATTEMPTS = 3;
 
   constructor(
-    private readonly notificationService: NotificationService,
+    private readonly fcmService: FcmService,
     @Inject(RABBITMQ_CONSTANTS.CLIENTS.NOTIFICATION_BATCH_PRODUCER)
     private readonly notificationClient: ClientProxy,
   ) {}
@@ -37,7 +37,7 @@ export class NotificationConsumer {
 
     try {
       const retryNotifyDatas =
-        await this.notificationService.sendDailyReminderBatch(notifyDatas);
+        await this.fcmService.sendDailyReminderBatch(notifyDatas);
 
       if (retryNotifyDatas.length > 0) {
         if (attempt < this.MAX_RETRY_ATTEMPTS) {

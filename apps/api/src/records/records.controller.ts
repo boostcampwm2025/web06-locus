@@ -43,6 +43,8 @@ import { JsonBody } from '@/common/decorators/json-body.decorator';
 import { GraphNeighborRecordsDto } from './dto/graph-details.response.dto';
 import { SearchRecordsDto } from './dto/search-records.dto';
 import { SearchRecordListResponseDto } from './dto/search-record-list-response.dto';
+import { UpdateFavoriteDto } from './dto/update-favorite.request.dto';
+import { UpdateFavoriteResponseDto } from './dto/update-favorite.response.dto';
 
 @ApiTags('records')
 @Controller('records')
@@ -165,5 +167,21 @@ export class RecordsController {
     @Param('publicId') publicId: string,
   ): Promise<void> {
     await this.recordsService.deleteRecord(userId, publicId);
+  }
+
+  @Patch(':publicId/favorite')
+  @UseGuards(JwtAuthGuard)
+  async updateFavorite(
+    @CurrentUser('sub') userId: bigint,
+    @Param('publicId') publicId: string,
+    @Body() request: UpdateFavoriteDto,
+  ): Promise<UpdateFavoriteResponseDto> {
+    const updated = await this.recordsService.updateFavoriteInRecord(
+      userId,
+      publicId,
+      request.isFavorite,
+    );
+
+    return updated;
   }
 }

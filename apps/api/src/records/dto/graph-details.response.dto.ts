@@ -36,6 +36,9 @@ export class GraphRecordDto {
   @ApiProperty({ example: '카페에서 작업', description: '기록 제목' })
   title: string;
 
+  @ApiProperty({ example: '5', description: '인접한 연결 기록 수' })
+  connectionsCount: number;
+
   @ApiProperty({ type: GraphRecordLocationDto })
   location: GraphRecordLocationDto;
 
@@ -64,6 +67,7 @@ export class GraphRecordDto {
     return {
       publicId: record.publicId,
       title: record.title,
+      connectionsCount: record.connectionsCount,
       location: {
         latitude: record.latitude!,
         longitude: record.longitude!,

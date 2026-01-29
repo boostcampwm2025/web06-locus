@@ -6,6 +6,7 @@ import ConnectionMapVisualization from './ConnectionMapVisualization';
 import ConnectedRecordList from './ConnectedRecordList';
 import type { ConnectionManagementPageProps } from '../types/connectionManagement';
 import { useDebounce } from '@/shared/hooks/useDebounce';
+import { extractTagNames } from '@/shared/utils/tagUtils';
 
 /**
  * 연결 관리 페이지 메인 컴포넌트
@@ -38,7 +39,9 @@ export default function ConnectionManagementPage({
       (record) =>
         record.title.toLowerCase().includes(query) ||
         record.location?.name.toLowerCase().includes(query) ||
-        record.tags.some((tag) => tag.toLowerCase().includes(query)),
+        extractTagNames(record.tags).some((tag) =>
+          tag.toLowerCase().includes(query),
+        ),
     );
   }, [connectedRecords, debouncedSearchValue]);
 
