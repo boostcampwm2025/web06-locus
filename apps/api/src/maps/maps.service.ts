@@ -26,23 +26,23 @@ interface NaverLocalSearchResponse {
 @Injectable()
 export class MapsService {
   private readonly logger = new Logger(MapsService.name);
-  private readonly clientId: string;
-  private readonly clientSecret: string;
-  private readonly clientIdForOpenAPI: string;
-  private readonly clientSecretForOpenAPI: string;
+  private readonly NAVER_MAP_CLIENT_ID: string;
+  private readonly NAVER_MAP_CLIENT_SECRET: string;
+  private readonly NAVER_SEARCH_CLIENT_ID: string;
+  private readonly NAVER_SEARCH_CLIENT_SECRTE: string;
 
   constructor(private configService: ConfigService) {
-    this.clientId = this.configService.getOrThrow<string>(
+    this.NAVER_MAP_CLIENT_ID = this.configService.getOrThrow<string>(
       'NAVER_MAP_CLIENT_ID',
     );
-    this.clientSecret = this.configService.getOrThrow<string>(
+    this.NAVER_MAP_CLIENT_SECRET = this.configService.getOrThrow<string>(
       'NAVER_MAP_CLIENT_SECRET',
     );
 
-    this.clientIdForOpenAPI =
+    this.NAVER_SEARCH_CLIENT_ID =
       this.configService.getOrThrow<string>('NAVER_CLIENT_ID');
 
-    this.clientSecretForOpenAPI = this.configService.getOrThrow<string>(
+    this.NAVER_SEARCH_CLIENT_SECRTE = this.configService.getOrThrow<string>(
       'NAVER_CLIENT_SECRET',
     );
   }
@@ -114,8 +114,8 @@ export class MapsService {
   private async callNaverMapApi(url: string) {
     const response = await fetch(url, {
       headers: {
-        'X-NCP-APIGW-API-KEY-ID': this.clientId,
-        'X-NCP-APIGW-API-KEY': this.clientSecret,
+        'X-NCP-APIGW-API-KEY-ID': this.NAVER_MAP_CLIENT_ID,
+        'X-NCP-APIGW-API-KEY': this.NAVER_MAP_CLIENT_SECRET,
         'Accept': 'application/json',
       },
     });
@@ -136,8 +136,8 @@ export class MapsService {
   private async callNaverOpenApi(url: string) {
     const response = await fetch(url, {
       headers: {
-        'X-Naver-Client-Id': this.clientIdForOpenAPI,
-        'X-Naver-Client-Secret': this.clientSecretForOpenAPI,
+        'X-Naver-Client-Id': this.NAVER_SEARCH_CLIENT_ID,
+        'X-Naver-Client-Secret': this.NAVER_SEARCH_CLIENT_SECRTE,
         'Accept': 'application/json',
       },
     });
