@@ -6,7 +6,7 @@ import { OutboxService } from '@/outbox/outbox.service';
 import { ImageProcessingService } from '@/records/services/image-processing.service';
 import { ObjectStorageService } from '@/records/services/object-storage.service';
 import { UsersService } from '@/users/users.service';
-import { RecordSearchService } from '@/records/records-search.service';
+import { RecordSearchService } from '@/records/record-search.service';
 import { RecordTagsService } from '@/records/record-tags.service';
 import { TagsService } from '@/tags/tags.services';
 import { ImagesService } from '@/images/images.service';

@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { RecordsService } from '@/records/records.service';
-import { RecordSearchService } from '@/records/records-search.service';
+import { RecordSearchService } from '@/records/record-search.service';
 import { PrismaService } from '@/prisma/prisma.service';
 import { MapsService } from '@/maps/maps.service';
 import { OutboxService } from '@/outbox/outbox.service';

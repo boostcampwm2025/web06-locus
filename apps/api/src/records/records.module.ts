@@ -4,7 +4,7 @@ import { RecordsService } from './records.service';
 import { MapsService } from '../maps/maps.service';
 import { PrismaModule } from '@/prisma/prisma.module';
 import { JwtModule } from '@/jwt/jwt.module';
-import { RecordSearchService } from './records-search.service';
+import { RecordSearchService } from './record-search.service';
 import { ElasticsearchConfigModule } from '@/elasticsearch/elasticsearch.module';
 import { RecordSyncConsumer } from './consumer/record-sync.consumer';
 import { OutboxModule } from '@/outbox/outbox.module';
