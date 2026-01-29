@@ -1,5 +1,5 @@
 import type { Record } from '@/features/record/types';
-import type { Coordinates } from '@/features/record/types';
+import type { Coordinates, Location } from '@/features/record/types';
 
 export interface MapViewportProps {
   className?: string;
@@ -13,4 +13,5 @@ export interface MapViewportProps {
   } | null;
   targetLocation?: Coordinates | null;
   onTargetLocationChange?: (coordinates: Coordinates) => void;
+  onCreateRecord?: (location: Location, coordinates?: Coordinates) => void;
 }

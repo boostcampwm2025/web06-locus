@@ -12,6 +12,14 @@ export interface Toast {
   variant: ToastVariant;
 }
 
+export interface ToastOptions {
+  message: string;
+  variant?: ToastVariant;
+}
+
 export interface ToastContextType {
-  showToast: (message: string, variant?: ToastVariant) => void;
+  showToast: (
+    messageOrOptions: string | ToastOptions,
+    variant?: ToastVariant,
+  ) => void;
 }

@@ -18,7 +18,8 @@ import {
   expandBounds,
   isWithinBounds,
   isNearBoundary,
-  isSameGrid,
+  isSameGrid as isSameGridBounds,
+  isSameGridCenter,
   type Bounds,
 } from '@/features/home/utils/boundsUtils';
 import {
@@ -26,6 +27,7 @@ import {
   saveMapState,
   type MapState,
 } from '@/infra/storage/mapStateStorage';
+import { extractTagNames } from '@/shared/utils/tagUtils';
 
 export default function MapViewport({
   className = '',
@@ -33,6 +35,7 @@ export default function MapViewport({
   connectedRecords,
   targetLocation,
   onTargetLocationChange,
+  onCreateRecord,
 }: MapViewportProps) {
   const navigate = useNavigate();
   const [isBottomSheetOpen, setIsBottomSheetOpen] = useState(false);
@@ -61,6 +64,8 @@ export default function MapViewport({
   // ref로 최신 bounds 값 추적 (무한 루프 방지)
   const fetchBoundsRef = useRef<Bounds | null>(null);
   const expandedBoundsRef = useRef<Bounds | null>(null);
+  // 이전 중심점 저장 (리사이즈로 인한 불필요한 API 호출 방지)
+  const previousCenterRef = useRef<{ lat: number; lng: number } | null>(null);
 
   // 연결선 오버레이 관리
   const polylinesRef = useRef<naver.maps.Polyline[]>([]);
@@ -100,6 +105,7 @@ export default function MapViewport({
   const [fetchBounds, setFetchBounds] = useState<Bounds | null>(null);
 
   // 확장된 bounds로 기록 조회 (GET /records - 확장 bounds 기반)
+  // 지도 뷰 + 클러스터링용: 좌표 포함 데이터 필요
   const { data: recordsByBoundsData } = useGetRecordsByBounds(
     fetchBounds
       ? {
@@ -108,7 +114,7 @@ export default function MapViewport({
           swLat: fetchBounds.swLat,
           swLng: fetchBounds.swLng,
           page: 1,
-          limit: 100, // 충분히 큰 값으로 설정
+          limit: 100, //  클러스터링용 100개 제한
           sortOrder: 'desc',
         }
       : null,
@@ -230,7 +236,7 @@ export default function MapViewport({
       records[record.publicId] = {
         id: record.publicId,
         text: record.title,
-        tags: record.tags,
+        tags: extractTagNames(record.tags),
         location: {
           name: record.location.name ?? '',
           address: record.location.address ?? '',
@@ -436,11 +442,19 @@ export default function MapViewport({
   // 지도 bounds 업데이트 함수 (useCallback으로 메모이제이션하여 stale closure 방지)
   // ref를 사용하여 무한 루프 방지
   const updateMapBounds = useCallback(() => {
-    if (!isMapLoaded || !mapInstanceRef.current) {
+    if (!isMapLoaded || !mapInstanceRef.current || !mapContainerRef.current) {
       return;
     }
 
     const map = mapInstanceRef.current;
+    const container = mapContainerRef.current;
+
+    // 컨테이너 0x0이면 스킵. useMapInstance(waitForContainerSize)가 초기 공간을 보장하고,
+    // 이후엔 ResizeObserver/지도 이벤트로 updateMapBounds가 다시 호출됨.
+    if (container.offsetWidth === 0 || container.offsetHeight === 0) {
+      return;
+    }
+
     const bounds = map.getBounds();
     const zoom = map.getZoom();
 
@@ -457,12 +471,107 @@ export default function MapViewport({
       const ne = (bounds as naver.maps.LatLngBounds).getNE(); // 북동쪽 모서리
       const sw = (bounds as naver.maps.LatLngBounds).getSW(); // 남서쪽 모서리
 
+      // 원본 bounds 값
+      let rawNeLat = ne.lat();
+      let rawSwLat = sw.lat();
+      let rawNeLng = ne.lng();
+      let rawSwLng = sw.lng();
+
+      // ③ neLat === swLat일 때 강제로 범위 확장 (가짜 영역 생성)
+      // 지도가 0x0 상태에서 중심점만 반환되는 경우 방지
+      const MIN_BOUNDS_DIFF = 0.0001;
+      if (rawNeLat === rawSwLat) {
+        rawNeLat += MIN_BOUNDS_DIFF;
+        rawSwLat -= MIN_BOUNDS_DIFF;
+      }
+      if (rawNeLng === rawSwLng) {
+        rawNeLng += MIN_BOUNDS_DIFF;
+        rawSwLng -= MIN_BOUNDS_DIFF;
+      }
+
+      // 위도/경도 차이 재계산
+      const rawLatDiff = rawNeLat - rawSwLat;
+      const rawLngDiff = rawNeLng - rawSwLng;
+
+      // 현재 중심점 가져오기 (fallback bounds 생성에 필요)
+      const center = map.getCenter();
+      const naverMaps = window.naver?.maps;
+      const currentCenter =
+        center && naverMaps && center instanceof naverMaps.LatLng
+          ? { lat: center.lat(), lng: center.lng() }
+          : null;
+
+      // 여전히 유효하지 않으면 (매우 드문 경우) 스킵하되 fetchBounds는 유지
+      if (rawLatDiff < MIN_BOUNDS_DIFF || rawLngDiff < MIN_BOUNDS_DIFF) {
+        // 이전에 유효한 bounds가 있으면 유지, 없으면 강제로 최소 범위 생성
+        if (!fetchBoundsRef.current) {
+          const fallbackBounds: Bounds = {
+            neLat: roundTo4Decimals(rawNeLat + MIN_BOUNDS_DIFF),
+            neLng: roundTo4Decimals(rawNeLng + MIN_BOUNDS_DIFF),
+            swLat: roundTo4Decimals(rawSwLat - MIN_BOUNDS_DIFF),
+            swLng: roundTo4Decimals(rawSwLng - MIN_BOUNDS_DIFF),
+          };
+          const expanded = expandBounds(fallbackBounds, zoom);
+          fetchBoundsRef.current = expanded;
+          expandedBoundsRef.current = expanded;
+          setFetchBounds(expanded);
+        }
+        return;
+      }
+
+      // 현재 bounds 계산
       const currentBounds: Bounds = {
-        neLat: roundTo4Decimals(ne.lat()),
-        neLng: roundTo4Decimals(ne.lng()),
-        swLat: roundTo4Decimals(sw.lat()),
-        swLng: roundTo4Decimals(sw.lng()),
+        neLat: roundTo4Decimals(rawNeLat),
+        neLng: roundTo4Decimals(rawNeLng),
+        swLat: roundTo4Decimals(rawSwLat),
+        swLng: roundTo4Decimals(rawSwLng),
       };
+
+      // 중심점 기반 가드: 리사이즈로 인한 BBox 변화인지 확인
+      // 중심점이 같은 격자 내에 있으면서 bounds도 같은 그리드에 있으면 리사이즈로 인한 변화로 간주하고 무시
+      const centerInSameGrid =
+        currentCenter &&
+        previousCenterRef.current &&
+        isSameGridCenter(
+          currentCenter.lat,
+          currentCenter.lng,
+          previousCenterRef.current.lat,
+          previousCenterRef.current.lng,
+        );
+
+      // 이전 bounds와 현재 bounds를 그리드 단위로 비교
+      const boundsInSameGrid =
+        currentViewBounds && isSameGridBounds(currentBounds, currentViewBounds);
+
+      // 중심점과 bounds 모두 같은 그리드에 있으면 리사이즈로 인한 변화로 간주 (API 호출 스킵)
+      if (centerInSameGrid && boundsInSameGrid) {
+        // 화면 bounds만 업데이트 (API 호출은 하지 않음)
+        setCurrentViewBounds((prev) => {
+          if (
+            !prev ||
+            prev.neLat !== currentBounds.neLat ||
+            prev.neLng !== currentBounds.neLng ||
+            prev.swLat !== currentBounds.swLat ||
+            prev.swLng !== currentBounds.swLng
+          ) {
+            return currentBounds;
+          }
+          return prev;
+        });
+
+        // 중심점 업데이트
+        if (currentCenter) {
+          previousCenterRef.current = currentCenter;
+        }
+
+        return; // API 호출 없이 종료
+      }
+
+      // 중심점이 이동했거나 bounds가 달라졌거나 첫 호출인 경우 정상 처리
+      // 중심점 저장
+      if (currentCenter) {
+        previousCenterRef.current = currentCenter;
+      }
 
       // 현재 화면 bounds 업데이트 (값이 실제로 변경되었을 때만)
       setCurrentViewBounds((prev) => {
@@ -486,11 +595,14 @@ export default function MapViewport({
       const currentExpandedBounds = expandedBoundsRef.current;
 
       // fetchBounds가 없거나, 현재 bounds가 확장된 bounds의 경계선에 접근했을 때만 업데이트
+      const isSameGrid = currentFetchBounds
+        ? isSameGridBounds(expanded, currentFetchBounds)
+        : false;
+      const isNear = currentExpandedBounds
+        ? isNearBoundary(currentBounds, currentExpandedBounds)
+        : false;
       const shouldUpdate =
-        !currentFetchBounds ||
-        !currentExpandedBounds ||
-        isNearBoundary(currentBounds, currentExpandedBounds) ||
-        !isSameGrid(expanded, currentFetchBounds);
+        !currentFetchBounds || !currentExpandedBounds || isNear || !isSameGrid;
 
       if (shouldUpdate) {
         fetchBoundsRef.current = expanded;
@@ -499,20 +611,19 @@ export default function MapViewport({
       }
 
       // 지도 상태 저장 (중심 좌표와 줌 레벨)
-      const center = map.getCenter();
-      const naverMaps = window.naver?.maps;
-      if (center && naverMaps && center instanceof naverMaps.LatLng) {
+      // currentCenter는 이미 위에서 계산됨
+      if (currentCenter) {
         const mapState: MapState = {
           zoom,
           center: {
-            lat: roundTo4Decimals(center.lat()),
-            lng: roundTo4Decimals(center.lng()),
+            lat: roundTo4Decimals(currentCenter.lat),
+            lng: roundTo4Decimals(currentCenter.lng),
           },
         };
         saveMapState(mapState);
       }
     }
-  }, [isMapLoaded, mapInstanceRef]);
+  }, [isMapLoaded, mapInstanceRef, mapContainerRef]);
 
   // 저장된 지도 상태 복원 (초기 로드 시에만)
   useEffect(() => {
@@ -541,7 +652,9 @@ export default function MapViewport({
   }, [isMapLoaded, savedMapState]);
 
   // 지도 이동/줌 변경 시 bounds 업데이트
-  // idle 이벤트 사용: 사용자가 지도를 움직이다가 멈췄을 때만 한 번 호출 (debounce 불필요)
+  // idle 이벤트와 tilesloaded 이벤트 사용
+  // tilesloaded: 지도 타일이 모두 로드된 후 호출 (초기 로드 시 중요)
+  // idle: 지도 이동/줌/리사이즈가 모두 완료된 후 호출
   useEffect(() => {
     if (!isMapLoaded || !mapInstanceRef.current) {
       return;
@@ -552,23 +665,25 @@ export default function MapViewport({
     // 초기 bounds 설정
     updateMapBounds();
 
-    // idle 이벤트: 지도 이동/줌이 완료된 후 한 번만 호출
-    const idleListener = naver.maps.Event.addListener(map, 'idle', () => {
-      updateMapBounds();
-    });
-
-    // size_changed 이벤트: 지도 크기 변경 시 즉시 업데이트
-    const sizeChangedListener = naver.maps.Event.addListener(
+    // ① tilesloaded 이벤트: 지도 타일이 모두 그려졌을 때 호출
+    // 지도가 완전히 로드되기 전에 bounds를 가져오는 문제 방지
+    const tilesLoadedListener = naver.maps.Event.addListener(
       map,
-      'size_changed',
+      'tilesloaded',
       () => {
         updateMapBounds();
       },
     );
 
+    // idle 이벤트: 지도 이동/줌/리사이즈가 모두 완료된 후 한 번만 호출
+    // 리사이징 중에는 호출되지 않고, 완료 후 자동으로 트리거됨
+    const idleListener = naver.maps.Event.addListener(map, 'idle', () => {
+      updateMapBounds();
+    });
+
     return () => {
+      naver.maps.Event.removeListener(tilesLoadedListener);
       naver.maps.Event.removeListener(idleListener);
-      naver.maps.Event.removeListener(sizeChangedListener);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isMapLoaded, updateMapBounds]);
@@ -679,15 +794,26 @@ export default function MapViewport({
   // 파란 핀(현재 위치) 클릭 핸들러 - 기록 작성 페이지로 이동
   const handleCurrentLocationClick = () => {
     if (latitude !== null && longitude !== null) {
-      void navigate(ROUTES.RECORD, {
-        state: {
-          location: {
+      if (onCreateRecord) {
+        onCreateRecord(
+          {
             name: '현재 위치',
             address: '현재 위치',
-            coordinates: { lat: latitude, lng: longitude },
           },
-        },
-      });
+          { lat: latitude, lng: longitude },
+        );
+      } else {
+        // 하위 호환성: onCreateRecord가 없으면 기존 방식 사용
+        void navigate(ROUTES.RECORD, {
+          state: {
+            location: {
+              name: '현재 위치',
+              address: '현재 위치',
+              coordinates: { lat: latitude, lng: longitude },
+            },
+          },
+        });
+      }
     }
   };
 
@@ -702,33 +828,46 @@ export default function MapViewport({
 
     setIsBottomSheetOpen(false);
 
-    // locationId가 있으면 쿼리에 넣고, state로도 전달 (북마크/새로고침 대비)
-    // locationId가 없으면 state만 사용 (즉시 사용 가능, 새로고침 대비)
-    if (selectedPinId) {
-      // locationId를 쿼리로 전달
-      void navigate(`${ROUTES.RECORD}?locationId=${selectedPinId}`, {
-        state: {
-          location: selectedLocation,
+    if (onCreateRecord) {
+      // MainMapPage의 상태 관리 사용
+      onCreateRecord(
+        {
+          name: selectedLocation.name,
+          address: selectedLocation.address,
         },
-      });
+        selectedLocation.coordinates,
+      );
     } else {
-      // locationId가 없으면 state만 사용
-      void navigate(ROUTES.RECORD, {
-        state: {
-          location: selectedLocation,
-        },
-      });
+      // 하위 호환성: onCreateRecord가 없으면 기존 방식 사용
+      if (selectedPinId) {
+        void navigate(`${ROUTES.RECORD}?locationId=${selectedPinId}`, {
+          state: {
+            location: selectedLocation,
+          },
+        });
+      } else {
+        void navigate(ROUTES.RECORD, {
+          state: {
+            location: selectedLocation,
+          },
+        });
+      }
     }
   };
 
   return (
     <>
       <div
-        className={`relative flex-1 bg-gray-100 ${className || ''}`}
+        className={`relative flex-1 bg-gray-100 min-h-0 h-full w-full ${className || ''}`}
+        style={{ minHeight: '500px' }}
         aria-label="지도 영역"
       >
         {/* 지도 컨테이너 - 항상 렌더링 (ref를 위해 필요) */}
-        <div ref={mapContainerRef} className="absolute inset-0 w-full h-full" />
+        <div
+          ref={mapContainerRef}
+          className="absolute inset-0 w-full h-full"
+          style={{ minHeight: 'inherit' }}
+        />
 
         {/* 로딩/에러 오버레이 */}
         {mapLoadError ? (
@@ -772,15 +911,26 @@ export default function MapViewport({
             isSelected={false}
             onClick={() => {
               // 검색 결과 위치 클릭 시 기록 작성 페이지로 이동
-              void navigate(ROUTES.RECORD, {
-                state: {
-                  location: {
+              if (onCreateRecord) {
+                onCreateRecord(
+                  {
                     name: '검색한 위치',
                     address: '',
-                    coordinates: targetLocation,
                   },
-                },
-              });
+                  targetLocation,
+                );
+              } else {
+                // 하위 호환성
+                void navigate(ROUTES.RECORD, {
+                  state: {
+                    location: {
+                      name: '검색한 위치',
+                      address: '',
+                      coordinates: targetLocation,
+                    },
+                  },
+                });
+              }
             }}
             onDragEnd={(newPosition: Coordinates) => {
               // 드래그 종료 시 위치 업데이트

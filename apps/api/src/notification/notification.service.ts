@@ -1,155 +1,130 @@
-import { Injectable, Inject, Logger } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import * as admin from 'firebase-admin';
-import { BaseMessage } from 'firebase-admin/messaging';
-import { FIREBASE_PROVIDER } from '@/notification/firebase.config';
 import {
-  isFirebaseError,
-  isRetryableError,
-  isTokenExpiredError,
-} from './exception/firebase-error.guard';
+  UpdateNotificationSettingRequestDto,
+  UpdateNotifyTimeDto,
+} from './dto/update-notification-setting.dto';
 import {
-  DAILY_REMINDER_TEMPLATE,
-  NotificationType,
-} from './constants/notification.constants';
-import { NotificationData } from './type/notification.types';
+  FcmTokenRequiredException,
+  InactiveNotificationException,
+  NotificationNotFoundException,
+} from './exception/notification.exception';
+import { NotificationScheduleService } from './notification-schedule.service';
+import { UserNotificationSetting } from '@prisma/client';
+import { NotificationSettingResponseDto } from './dto/notification-setting-response.dto';
 
 @Injectable()
 export class NotificationService {
   private readonly logger = new Logger(NotificationService.name);
 
   constructor(
-    private prisma: PrismaService,
-    @Inject(FIREBASE_PROVIDER) private firebaseAdmin: admin.app.App,
+    private readonly prisma: PrismaService,
+    private readonly notificationScheduleService: NotificationScheduleService,
   ) {}
 
-  // 특정 사용자에게 데일리 알림 전송
-  async sendDailyReminder(userId: bigint): Promise<boolean> {
-    try {
-      const setting = await this.prisma.userNotificationSetting.findUnique({
-        where: { userId },
-      });
+  async getSetting(userId: bigint): Promise<NotificationSettingResponseDto> {
+    const setting = await this.prisma.userNotificationSetting.findUnique({
+      where: { userId },
+    });
 
-      if (!setting || !setting.isActive || !setting.fcmToken) return false;
-      const dailyReminderMessage = this.buildDailyReminderContent();
-      await this.sendPushNotification(setting.fcmToken, dailyReminderMessage);
-      return false;
-    } catch (error) {
-      return this.handleNotificationError(error, userId);
+    if (!setting) throw new NotificationNotFoundException();
+    return NotificationSettingResponseDto.from(setting);
+  }
+
+  async updateSetting(
+    userId: bigint,
+    dto: UpdateNotificationSettingRequestDto,
+  ): Promise<NotificationSettingResponseDto> {
+    const { isActive, fcmToken } = dto;
+
+    if (isActive && !fcmToken) throw new FcmTokenRequiredException();
+
+    // 기존 설정 조회
+    const oldSetting = await this.prisma.userNotificationSetting.findUnique({
+      where: { userId },
+    });
+
+    // DB 업데이트 (upsert)
+    const newSetting = await this.prisma.userNotificationSetting.upsert({
+      where: { userId },
+      update: {
+        isActive,
+        fcmToken: isActive ? fcmToken : null,
+      },
+      create: {
+        userId,
+        isActive,
+        fcmToken: isActive ? fcmToken : null,
+      },
+    });
+
+    // Redis 업데이트
+    await this.syncRedis(oldSetting, newSetting, userId);
+
+    return NotificationSettingResponseDto.from(newSetting);
+  }
+
+  async updateNotifyTime(
+    userId: bigint,
+    dto: UpdateNotifyTimeDto,
+  ): Promise<NotificationSettingResponseDto> {
+    const { notifyTime } = dto;
+    const setting = await this.prisma.userNotificationSetting.findUnique({
+      where: { userId },
+    });
+
+    if (!setting) throw new NotificationNotFoundException();
+    if (!setting.isActive) throw new InactiveNotificationException();
+
+    const oldTime = setting.notifyTime;
+
+    const updatedSetting = await this.prisma.userNotificationSetting.update({
+      where: { userId },
+      data: { notifyTime: notifyTime },
+    });
+
+    // Redis 업데이트 (시간 변경)
+    if (oldTime !== notifyTime && setting.fcmToken) {
+      await this.notificationScheduleService.removeUserFromBucket(
+        oldTime,
+        userId,
+      );
+      await this.notificationScheduleService.addUserToBucket(
+        notifyTime,
+        userId,
+        setting.fcmToken,
+      );
     }
+    return NotificationSettingResponseDto.from(updatedSetting);
   }
 
-  // 여러 사용자에게 배치 데일리 알림 전송
-  async sendDailyReminderBatch(
-    notifyDatas: NotificationData[],
-  ): Promise<NotificationData[]> {
-    // FCM 배치 전송
-    const tokens = notifyDatas.map((n) => n.token);
-    const dailyReminderMessage = this.buildDailyReminderContent();
-    const batchResponse = await this.sendMulticastPushNotification(
-      tokens,
-      dailyReminderMessage,
-    );
-
-    return batchResponse.responses.reduce((acc, response, index) => {
-      if (!response.success) {
-        if (isTokenExpiredError(response.error)) {
-          this.deactivateInvalidToken(BigInt(notifyDatas[index].userId)).catch(
-            () => {
-              this.logger.error(`Failed to deactivate token`);
-            },
-          );
-        } else acc.push(notifyDatas[index]);
-      }
-      return acc;
-    }, [] as NotificationData[]);
-  }
-
-  /**
-   * FCM 푸시 전송
-   * @see https://firebase.google.com/docs/cloud-messaging/send/admin-sdk?hl=ko#send-messages-to-specific-devices
-   * @see https://firebase.google.com/docs/reference/fcm/rest/v1/projects.messages
-   */
-  private async sendPushNotification(
-    token: string,
-    messagePayload: BaseMessage,
-  ) {
-    const message: admin.messaging.Message = {
-      token,
-      ...messagePayload,
-    };
-    return this.firebaseAdmin.messaging().send(message);
-  }
-
-  /**
-   * FCM 멀티캐스트 전송 (최대 500개)
-   * @see https://firebase.google.com/docs/cloud-messaging/send-message#send-a-batch-of-messages
-   */
-  private async sendMulticastPushNotification(
-    tokens: string[],
-    messagePayload: BaseMessage,
-  ): Promise<admin.messaging.BatchResponse> {
-    const message: admin.messaging.MulticastMessage = {
-      tokens,
-      ...messagePayload,
-    };
-    return await this.firebaseAdmin.messaging().sendEachForMulticast(message);
-  }
-
-  /**
-   * 만료된 토큰 처리
-   * @see https://firebase.google.com/docs/cloud-messaging/manage-tokens?hl=ko#stale-and-expired-tokens
-   */
-  private async deactivateInvalidToken(userId: bigint) {
+  async deactivate(userId: bigint) {
     await this.prisma.userNotificationSetting.update({
       where: { userId },
       data: { isActive: false, fcmToken: null },
     });
   }
 
-  private async handleNotificationError(
-    error: unknown,
+  private async syncRedis(
+    oldSetting: UserNotificationSetting | null,
+    newSetting: UserNotificationSetting,
     userId: bigint,
-  ): Promise<boolean> {
-    // Firebase 에러 체크
-    if (isFirebaseError(error)) {
-      this.logger.error(
-        `Firebase error for user ${userId}: ${error.code} - ${error.message}`,
+  ): Promise<void> {
+    // 활성화 상태였다면 이전 시간대에서 제거
+    if (oldSetting?.isActive && oldSetting.notifyTime) {
+      await this.notificationScheduleService.removeUserFromBucket(
+        oldSetting.notifyTime,
+        userId,
       );
-
-      // 토큰 만료/무효 에러인 경우
-      if (isTokenExpiredError(error)) {
-        await this.deactivateInvalidToken(userId);
-        return false;
-      }
-
-      if (isRetryableError(error)) return true;
-      return false;
     }
-    this.logger.error(
-      `Unexpected notification error - user ${userId}: ${error instanceof Error ? error.message : 'Unknown'}`,
-    );
-    return true;
-  }
 
-  private buildDailyReminderContent(): BaseMessage {
-    return {
-      notification: {
-        title: DAILY_REMINDER_TEMPLATE.title,
-        body: DAILY_REMINDER_TEMPLATE.body,
-      },
-      data: { type: NotificationType.DAILY_REMINDER },
-      webpush: {
-        notification: {
-          title: DAILY_REMINDER_TEMPLATE.title,
-          body: DAILY_REMINDER_TEMPLATE.body,
-          icon: DAILY_REMINDER_TEMPLATE.icon,
-          badge: DAILY_REMINDER_TEMPLATE.badge,
-          tag: DAILY_REMINDER_TEMPLATE.tag,
-          requireInteraction: false,
-        },
-        fcmOptions: { link: DAILY_REMINDER_TEMPLATE.link },
-      },
-    };
+    // 알림 설정시 새 시간대에 추가
+    if (newSetting.isActive && newSetting.fcmToken) {
+      await this.notificationScheduleService.addUserToBucket(
+        newSetting.notifyTime,
+        userId,
+        newSetting.fcmToken,
+      );
+    }
   }
 }

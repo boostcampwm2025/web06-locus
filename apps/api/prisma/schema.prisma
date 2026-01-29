@@ -36,13 +36,12 @@ model UserNotificationSetting {
   id         BigInt   @id @default(autoincrement())
   userId     BigInt   @unique @map("user_id")
   isActive   Boolean  @default(false) @map("is_active")
-  notifyTime String   @default("19:00:00") @map("notify_time")
+  notifyTime String   @default("19:00") @map("notify_time")
   fcmToken   String?  @map("fcm_token")
   updatedAt  DateTime @updatedAt @map("updated_at")
 
   user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@index([userId, isActive])
   @@map("user_notification_settings")
   @@schema("locus")
 }
@@ -82,6 +81,7 @@ model Record {
   isFavorite      Boolean  @default(false) @map("is_favorite")
   createdAt       DateTime @default(now()) @map("created_at")
   updatedAt       DateTime @updatedAt @map("updated_at")
+  connectionsCount Int     @default(0) @map("connections_count")
 
   user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   images Image[]
@@ -198,5 +198,7 @@ enum OutboxEventType {
   RECORD_CREATED
   RECORD_UPDATED
   RECORD_DELETED
+  RECORD_FAVORITE_UPDATED
+  RECORD_CONNECTIONS_COUNT_UPDATED
   @@schema("locus")
 }

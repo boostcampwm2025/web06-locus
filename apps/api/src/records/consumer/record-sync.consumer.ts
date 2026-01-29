@@ -2,7 +2,12 @@ import { Channel, Message } from 'amqplib';
 import { Controller, Logger } from '@nestjs/common';
 import { EventPattern, Payload, Ctx, RmqContext } from '@nestjs/microservices';
 import { RABBITMQ_CONSTANTS } from '@/common/constants/rabbitmq.constants';
-import { RecordSyncEvent } from '../type/record-sync.types';
+import {
+  RecordConnectionsCountSyncPayload,
+  RecordFavoriteSyncPayload,
+  RecordSyncEvent,
+  RecordSyncPayload,
+} from '../type/record-sync.types';
 import { RecordSearchService } from '../records-search.service';
 import { OUTBOX_EVENT_TYPE } from '@/common/constants/event-types.constants';
 
@@ -34,10 +39,24 @@ export class RecordSyncConsumer {
       // 이벤트 타입에 따라 처리
       switch (event.eventType) {
         case OUTBOX_EVENT_TYPE.RECORD_CREATED:
-          await this.recordSearchService.indexRecord(event.payload);
+          await this.recordSearchService.indexRecord(
+            event.payload as RecordSyncPayload,
+          );
           break;
         case OUTBOX_EVENT_TYPE.RECORD_UPDATED:
-          await this.recordSearchService.updateRecord(event.payload);
+          await this.recordSearchService.updateRecord(
+            event.payload as RecordSyncPayload,
+          );
+          break;
+        case OUTBOX_EVENT_TYPE.RECORD_FAVORITE_UPDATED:
+          await this.recordSearchService.updateFavoriteInRecord(
+            event.payload as RecordFavoriteSyncPayload,
+          );
+          break;
+        case OUTBOX_EVENT_TYPE.RECORD_CONNECTIONS_COUNT_UPDATED:
+          await this.recordSearchService.updateConnectionsCountInRecord(
+            event.payload as RecordConnectionsCountSyncPayload,
+          );
           break;
         case OUTBOX_EVENT_TYPE.RECORD_DELETED:
           await this.recordSearchService.deleteRecord(event.aggregateId);

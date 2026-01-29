@@ -66,7 +66,6 @@ export class InvalidLatitudeException extends BusinessException {
     );
   }
 }
-
 export class InvalidLongitudeException extends BusinessException {
   constructor(value: number) {
     super(

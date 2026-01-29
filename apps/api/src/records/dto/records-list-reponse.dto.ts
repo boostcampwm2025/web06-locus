@@ -93,6 +93,12 @@ export class RecordListItemDto {
     example: '2024-01-15T14:30:00Z',
   })
   updatedAt: string;
+
+  @ApiProperty({
+    description: '연결 수 (다른 기록에서 이 기록으로 연결된 수)',
+    example: 3,
+  })
+  connectionCount: number;
 }
 
 export class RecordListResponseDto {
@@ -158,6 +164,7 @@ export class RecordListResponseDto {
           })),
           createdAt: r.createdAt.toISOString(),
           updatedAt: r.updatedAt.toISOString(),
+          connectionCount: r.connectionsCount,
         };
       }),
       totalCount,

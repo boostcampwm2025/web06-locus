@@ -4,8 +4,8 @@ import { RABBITMQ_CONSTANTS } from '@/common/constants/rabbitmq.constants';
 import { ClientProxy } from '@nestjs/microservices';
 import { lastValueFrom } from 'rxjs';
 import { NotificationScheduleService } from './notification-schedule.service';
-import { formatDateToTime } from '@/common/utils/date-utils';
 import { NotificationData } from './type/notification.types';
+import { formatDateToTime } from '@/common/utils/date-utils';
 
 @Injectable()
 export class NotificationScheduler {
@@ -22,12 +22,11 @@ export class NotificationScheduler {
   @Cron('0 * 6-23 * * *')
   async scheduleNotificationsBatch() {
     const now = new Date();
-    const currentTime = formatDateToTime(now);
-
+    const time = formatDateToTime(now);
     try {
       // Redis에서 현재 시간의 (사용자, token) 조회
       const notificationDatas =
-        await this.notificationScheduleService.getUsersForTime(currentTime);
+        await this.notificationScheduleService.getUsersForTime(time);
       if (notificationDatas.length === 0) return;
 
       const batches: NotificationData[][] = [];
@@ -52,7 +51,7 @@ export class NotificationScheduler {
       const errorStack = error instanceof Error ? error.stack : undefined;
 
       this.logger.error(
-        `[MQ] Failed emit notification batches for ${currentTime}: ${errorMessage}`,
+        `[MQ] Failed emit notification batches for ${now.toTimeString()}: ${errorMessage}`,
         errorStack,
       );
     }

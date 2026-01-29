@@ -3,6 +3,8 @@ import { Logo } from '@/shared/ui/icons/Logo';
 import { SearchIcon } from '@/shared/ui/icons/SearchIcon';
 import { FilterIcon } from '@/shared/ui/icons/FilterIcon';
 import { MoreVerticalIcon } from '@/shared/ui/icons/MoreVerticalIcon';
+import { SettingsIcon } from '@/shared/ui/icons/SettingsIcon';
+import { useDeviceType } from '@/shared/hooks/useDeviceType';
 import type { AppHeaderNormalModeProps } from '@/shared/types/header';
 import AppHeaderTitle from './AppHeaderTitle';
 import { ROUTES } from '@/router/routes';
@@ -21,6 +23,7 @@ export default function AppHeaderNormalMode({
 }: AppHeaderNormalModeProps) {
   const navigate = useNavigate();
   const location = useLocation();
+  const { isMobile } = useDeviceType();
 
   const handleLogoClick = () => {
     if (onLogoClick) {
@@ -35,7 +38,7 @@ export default function AppHeaderNormalMode({
 
   return (
     <header
-      className={`flex items-center justify-between px-4 py-3 bg-white min-h-[72px] ${className}`}
+      className={`fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-4 py-3 bg-white min-h-[72px] ${className}`}
     >
       <button
         type="button"
@@ -76,7 +79,11 @@ export default function AppHeaderNormalMode({
             aria-label="설정"
             className="p-2 rounded-full hover:bg-gray-100 transition-colors"
           >
-            <MoreVerticalIcon className="w-6 h-6 text-gray-700" />
+            {isMobile ? (
+              <SettingsIcon className="w-6 h-6 text-gray-700" />
+            ) : (
+              <MoreVerticalIcon className="w-6 h-6 text-gray-700" />
+            )}
           </button>
         )}
       </div>

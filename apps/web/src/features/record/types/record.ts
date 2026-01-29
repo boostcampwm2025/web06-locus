@@ -1,3 +1,6 @@
+import type { ChangeEvent } from 'react';
+import type { Record as ApiRecord, SearchRecordItem } from '@locus/shared';
+
 /**
  * 위치 정보
  */
@@ -55,6 +58,8 @@ export interface ImageSelectBottomSheetProps {
   onClose: () => void;
   onTakePhoto: () => void;
   onSelectFromLibrary: () => void;
+  /** true일 때만 "사진 촬영" 옵션 노출 (모바일 + 카메라 있을 때) */
+  canTakePhoto?: boolean;
 }
 
 /**
@@ -118,8 +123,6 @@ export interface RecordWriteHeaderProps {
   onCancel: () => void;
 }
 
-import type { ChangeEvent } from 'react';
-
 /**
  * 기록 작성 폼 Props
  */
@@ -135,9 +138,12 @@ export interface RecordWriteFormProps {
   onConfirmAddTag: () => void;
   onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => void;
   onCancelAddTag: () => void;
-  onAddImage: () => void;
+  onFilesSelected: (files: File[]) => void | Promise<void>;
   selectedImages?: File[];
+  previewUrls?: string[];
   onRemoveImage?: (index: number) => void;
+  isCompressing?: boolean;
+  onMobileAddClick?: () => void;
   onSave: () => void;
   onCancel: () => void;
   canSave: boolean;
@@ -185,6 +191,18 @@ export interface FilterBottomSheetProps {
 }
 
 /**
+ * 연결된 기록 정보
+ */
+export interface ConnectedRecord {
+  id: string;
+  title: string;
+  location: Location;
+  date: Date;
+  tags: string[];
+  imageUrl?: string;
+}
+
+/**
  * 기록 상세 페이지 Props
  */
 export interface RecordDetailPageProps {
@@ -195,6 +213,7 @@ export interface RecordDetailPageProps {
   description: string;
   imageUrl?: string;
   connectionCount: number;
+  connectedRecords?: ConnectedRecord[];
   isFavorite?: boolean;
   onBack?: () => void;
   onFavoriteToggle?: () => void;
@@ -203,5 +222,91 @@ export interface RecordDetailPageProps {
   onDelete?: () => void;
   onConnectionManage?: () => void;
   onConnectionMode?: () => void;
+  onRecordClick?: (recordId: string) => void;
   className?: string;
+}
+
+/**
+ * 연결 기록 선택 Drawer Props
+ */
+export interface RecordConnectionDrawerProps {
+  isOpen: boolean;
+  onClose: () => void;
+  fromRecordId: string; // 출발 기록 ID (이미 선택됨)
+  onConnect: (fromRecordId: string, toRecordId: string) => void;
+}
+
+/**
+ * 연결 확인 다이얼로그 Props
+ */
+export interface ConnectionConfirmDialogProps {
+  isOpen: boolean;
+  onClose: () => void;
+  departure: {
+    id: string;
+    title: string;
+    location: Location;
+    imageUrl?: string;
+  };
+  arrival: {
+    id: string;
+    title: string;
+    location: Location;
+    imageUrl?: string;
+  };
+  onConfirm: () => void;
+  isConnecting?: boolean;
+}
+
+/**
+ * 연결 헤더 Props
+ */
+export interface RecordConnectionHeaderProps {
+  fromRecord: {
+    id: string;
+    title: string;
+    location: Location;
+  } | null;
+  onCancel: () => void;
+}
+
+/**
+ * 기록 즐겨찾기 변경 파라미터
+ */
+export interface UpdateRecordFavoriteParams {
+  publicId: string;
+  isFavorite: boolean;
+}
+
+/**
+ * 기록 목록 데이터 (캐시용)
+ */
+export interface RecordsData {
+  records: (ApiRecord | SearchRecordItem)[];
+  totalCount?: number;
+}
+
+/**
+ * 사이드바 기록 필터링 훅 Props
+ */
+export interface UseSidebarRecordsProps {
+  sortOrder: SortOrder;
+  startDate?: string;
+  endDate?: string;
+  favoritesOnly?: boolean; // 추가 가능성 대비
+  includeImages?: boolean; // 추가 가능성 대비
+  selectedCategory?: string;
+  categories?: { id: string; label: string }[]; // 서버 사이드 필터링으로 변경
+}
+
+/**
+ * 검색 결과 데이터
+ */
+export interface SearchRecordsData {
+  records: SearchRecordItem[];
+  pagination: {
+    hasMore: boolean;
+    nextCursor: string | null;
+    totalCount: number;
+  };
 }

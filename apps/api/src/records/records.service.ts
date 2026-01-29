@@ -18,7 +18,11 @@ import { GRAPH_NEIGHBOR_RAWS_SQL, GRAPH_RAWS_SQL } from './sql/graph.raw.sql';
 import { GraphRowType } from './type/graph.type';
 import { GraphEdgeDto, GraphNodeDto } from './dto/graph.dto';
 import { GraphResponseDto } from './dto/graph.response.dto';
-import { createRecordSyncPayload } from './type/record-sync.types';
+import {
+  createRecordFavoriteSyncPayload,
+  createRecordConnectionsCountSyncPayload,
+  createRecordSyncPayload,
+} from './type/record-sync.types';
 import { Prisma, Record } from '@prisma/client';
 import { OutboxService } from '@/outbox/outbox.service';
 import {
@@ -54,6 +58,7 @@ import { RecordRowType } from './type/record.type';
 import { TagsService } from '@/tags/tags.services';
 import { GraphRecordDto } from './dto/graph-details.response.dto';
 import { ImagesService } from '@/images/images.service';
+import { UpdateFavoriteResponseDto } from './dto/update-favorite.response.dto';
 
 @Injectable()
 export class RecordsService {
@@ -140,7 +145,7 @@ export class RecordsService {
         payload: createRecordSyncPayload(userId, updatedRecord),
       });
 
-      const imagesMap = await this.fetchImagesByRecordIds({
+      const imagesMap = await this.getImagesByRecordIds({
         recordIds: [updatedRecord.id],
         tx,
       });
@@ -151,6 +156,77 @@ export class RecordsService {
 
     const tags = await this.recordTagsService.getRecordTags(record.id);
     return RecordResponseDto.of(record, tags, images);
+  }
+
+  async updateFavoriteInRecord(
+    userId: bigint,
+    publicId: string,
+    requestedIsFavorite: boolean,
+  ): Promise<UpdateFavoriteResponseDto> {
+    const record = await this.findOneByPublicId(publicId);
+
+    // Todo: 그룹 기능 추가시 수정 필요
+    if (record.userId !== userId) {
+      throw new RecordAccessDeniedException(publicId);
+    }
+
+    if (record.isFavorite === requestedIsFavorite) {
+      return { publicId, isFavorite: record.isFavorite };
+    }
+
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const updatedRecord = await tx.record.update({
+        where: {
+          id: record.id,
+        },
+        data: {
+          isFavorite: requestedIsFavorite,
+        },
+        select: {
+          id: true,
+          isFavorite: true,
+          publicId: true,
+        },
+      });
+
+      await this.outboxService.publish(tx, {
+        aggregateType: AGGREGATE_TYPE.RECORD,
+        aggregateId: updatedRecord.id.toString(),
+        eventType: OUTBOX_EVENT_TYPE.RECORD_FAVORITE_UPDATED,
+        payload: createRecordFavoriteSyncPayload(
+          updatedRecord.id,
+          updatedRecord.isFavorite,
+        ),
+      });
+
+      return updatedRecord;
+    });
+
+    return { publicId: updated.publicId, isFavorite: updated.isFavorite };
+  }
+
+  async incrementConnectionsCount(
+    tx: Prisma.TransactionClient,
+    recordId: bigint,
+    delta: number,
+  ) {
+    const updated = await tx.record.update({
+      where: { id: recordId },
+      data: { connectionsCount: { increment: delta } },
+      select: { id: true, connectionsCount: true },
+    });
+
+    await this.outboxService.publish(tx, {
+      aggregateType: AGGREGATE_TYPE.RECORD,
+      aggregateId: updated.id.toString(),
+      eventType: OUTBOX_EVENT_TYPE.RECORD_CONNECTIONS_COUNT_UPDATED,
+      payload: createRecordConnectionsCountSyncPayload(
+        updated.id,
+        updated.connectionsCount,
+      ),
+    });
+
+    return updated;
   }
 
   async searchRecords(
@@ -188,7 +264,6 @@ export class RecordsService {
   async findOneByPublicId(publicId: string) {
     const record = await this.prisma.record.findUnique({
       where: { publicId },
-      select: { id: true, userId: true, publicId: true },
     });
 
     if (!record) {
@@ -236,8 +311,8 @@ export class RecordsService {
 
     const recordIds = records.map((r) => r.id);
     const [tagsMap, imagesMap] = await Promise.all([
-      this.recordTagsService.fetchTagsByRecordIds(recordIds),
-      this.fetchImagesByRecordIds({ recordIds }),
+      this.recordTagsService.getTagsByRecordIds(recordIds),
+      this.getImagesByRecordIds({ recordIds }),
     ]);
 
     return RecordListResponseDto.of(
@@ -278,8 +353,8 @@ export class RecordsService {
 
     const recordIds = records.map((r) => r.id);
     const [tagsMap, imagesMap] = await Promise.all([
-      this.recordTagsService.fetchTagsByRecordIds(recordIds),
-      this.fetchImagesByRecordIds({ recordIds }),
+      this.recordTagsService.getTagsByRecordIds(recordIds),
+      this.getImagesByRecordIds({ recordIds }),
     ]);
 
     return RecordListResponseDto.of(
@@ -328,6 +403,7 @@ export class RecordsService {
           isFavorite: true,
           createdAt: true,
           updatedAt: true,
+          connectionsCount: true,
         },
         orderBy: { createdAt: dto.sortOrder },
         skip: offset,
@@ -338,8 +414,8 @@ export class RecordsService {
 
     const recordIds = records.map((r) => r.id);
     const [tagsMap, imagesMap] = await Promise.all([
-      this.recordTagsService.fetchTagsByRecordIds(recordIds),
-      this.fetchImagesByRecordIds({ recordIds, onlyFirst: true }),
+      this.recordTagsService.getTagsByRecordIds(recordIds),
+      this.getImagesByRecordIds({ recordIds, onlyFirst: true }),
     ]);
 
     return RecordListResponseDto.of(records, tagsMap, imagesMap, totalCount);
@@ -400,7 +476,7 @@ export class RecordsService {
 
     const [tags, imagesMap] = await Promise.all([
       this.recordTagsService.getRecordTags(record.id),
-      this.fetchImagesByRecordIds({ recordIds: [record.id] }),
+      this.getImagesByRecordIds({ recordIds: [record.id] }),
     ]);
     const images = imagesMap.get(record.id) ?? [];
 
@@ -701,7 +777,7 @@ export class RecordsService {
           payload: createRecordSyncPayload(userId, updated),
         });
 
-        const imagesMap = await this.fetchImagesByRecordIds({
+        const imagesMap = await this.getImagesByRecordIds({
           recordIds: [updated.id],
           tx,
         });
@@ -868,7 +944,7 @@ export class RecordsService {
     ]);
   }
 
-  private async fetchImagesByRecordIds({
+  private async getImagesByRecordIds({
     recordIds,
     tx,
     onlyFirst = false,

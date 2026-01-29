@@ -4,6 +4,7 @@ import RecordWritePage from '@/features/record/ui/RecordWritePage';
 import type { Record, Location, Coordinates } from '@/features/record/types';
 import LoadingPage from '@/shared/ui/loading';
 import { getRandomLoadingVersion } from '@/shared/utils/loadingUtils';
+import { useDeviceType } from '@/shared/hooks/useDeviceType';
 import { ROUTES } from './routes';
 
 /**
@@ -29,8 +30,16 @@ export default function RecordWritePageRoute() {
   const navigate = useNavigate();
   const location = useLocation();
   const searchParams = new URLSearchParams(location.search);
+  const { isMobile } = useDeviceType();
 
   const loadingVersionRef = useRef(getRandomLoadingVersion());
+
+  // 데스크톱 환경에서는 MainMapPage에서 오버레이로 처리하므로 홈으로 리다이렉트
+  useEffect(() => {
+    if (!isMobile) {
+      void navigate(ROUTES.HOME, { replace: true });
+    }
+  }, [isMobile, navigate]);
 
   const locationId = searchParams.get('locationId');
 
@@ -48,6 +57,11 @@ export default function RecordWritePageRoute() {
       void navigate(ROUTES.HOME, { replace: true });
     }
   }, [navigate, shouldRedirect]);
+
+  // 데스크톱이면 로딩 중 표시 (리다이렉트 대기)
+  if (!isMobile) {
+    return <LoadingPage version={loadingVersionRef.current} />;
+  }
 
   // locationId로 위치 정보 가져오기 (현재는 미구현)
   // locationId가 있는데 state가 없으면 로딩 페이지 표시 (API 호출 대기)
