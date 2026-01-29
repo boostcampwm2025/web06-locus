@@ -41,7 +41,7 @@ export default function SettingsPageDesktop(props: SettingsPageProps) {
     >
       <DeleteTagConfirmModal
         isOpen={!!tagToDelete}
-        tagName={tagToDelete ?? ''}
+        tagName={tagToDelete?.name ?? ''}
         onConfirm={() => tagToDelete && handleRemoveTag(tagToDelete)}
         onCancel={() => setTagToDelete(null)}
       />
@@ -79,7 +79,7 @@ export default function SettingsPageDesktop(props: SettingsPageProps) {
                 key="tags"
                 tags={tags}
                 onAddTag={handleAddTag}
-                onRemoveTag={(tag) => setTagToDelete(tag)}
+                onRemoveTag={setTagToDelete}
               />
             )}
           </AnimatePresence>
