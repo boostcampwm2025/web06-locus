@@ -8,6 +8,7 @@ import type { Record as ApiRecord } from '@locus/shared';
 import type { RecordConnectionItem } from '../../types/recordConnection';
 import type { RecordConnectionDrawerProps } from '@/features/record/types/record';
 import RecordSearchInput from '../RecordSearchInput';
+import { RECORD_PLACEHOLDER_IMAGE } from '@/shared/constants/record';
 import { extractTagNames } from '@/shared/utils/tagUtils';
 import RecommendedRecordsSection from '../RecommendedRecordsSection';
 import RecordSelectionContextSheet from '../RecordSelectionContextSheet';
@@ -169,7 +170,7 @@ export default function RecordConnectionDrawer({
         const thumbnailUrl =
           recordWithImages.images && recordWithImages.images.length > 0
             ? recordWithImages.images[0].thumbnail.url
-            : undefined;
+            : RECORD_PLACEHOLDER_IMAGE;
 
         return {
           id: record.publicId,

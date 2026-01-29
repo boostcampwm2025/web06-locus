@@ -1,4 +1,5 @@
 import type { Record as ApiRecord } from '@locus/shared';
+import { RECORD_PLACEHOLDER_IMAGE } from '@/shared/constants/record';
 import { extractTagNames } from './tagUtils';
 
 /**
@@ -33,7 +34,7 @@ export function transformRecordApiToUI(record: ApiRecord): UIRecord {
   const thumbnailUrl =
     recordWithImages.images && recordWithImages.images.length > 0
       ? recordWithImages.images[0].thumbnail.url
-      : undefined;
+      : RECORD_PLACEHOLDER_IMAGE;
 
   return {
     id: record.publicId,
