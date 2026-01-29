@@ -1,5 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { ImageModel, RecordModel } from '../records.types';
+import { RecordModel } from '../records.types';
+import { ImageModel } from '@/images/images.types';
 
 export class ImageSizeDto {
   @ApiProperty({ description: 'URL', example: 'https://...' })

@@ -15,6 +15,7 @@ dist-ssr/
 dev-dist/
 **/dev-dist/
 dist-types/
+.cache
 # vite-plugin-pwa 개발 환경 빌드
 
 # =====================

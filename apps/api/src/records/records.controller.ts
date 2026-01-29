@@ -18,6 +18,7 @@ import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 
 import { FilesInterceptor } from '@nestjs/platform-express';
 import { RecordsService } from './records.service';
+import { RecordGraphService } from './record-graph.service';
 import { CreateRecordDto } from './dto/create-record.dto';
 import { GetRecordsQueryDto } from './dto/get-records-query.dto';
 import { GetRecordsByLocationDto } from './dto/get-records-by-location.dto';
@@ -48,7 +49,10 @@ import { UpdateFavoriteResponseDto } from './dto/update-favorite.response.dto';
 @ApiTags('records')
 @Controller('records')
 export class RecordsController {
-  constructor(private readonly recordsService: RecordsService) {}
+  constructor(
+    private readonly recordsService: RecordsService,
+    private readonly recordGraphService: RecordGraphService,
+  ) {}
 
   @Get()
   @UseGuards(JwtAuthGuard)
@@ -119,7 +123,7 @@ export class RecordsController {
     @CurrentUser('sub') userId: bigint,
     @Param('publicId') publicId: string,
   ): Promise<GraphResponseDto> {
-    const graphData = await this.recordsService.getGraph(publicId, userId);
+    const graphData = await this.recordGraphService.getGraph(publicId, userId);
     return graphData;
   }
 
@@ -130,7 +134,7 @@ export class RecordsController {
     @Param('publicId') publicId: string,
   ): Promise<GraphNeighborRecordsDto> {
     const graphNeighborRecords =
-      await this.recordsService.getGraphNeighborDetail(publicId, userId);
+      await this.recordGraphService.getGraphNeighborDetail(publicId, userId);
 
     return {
       start: publicId,

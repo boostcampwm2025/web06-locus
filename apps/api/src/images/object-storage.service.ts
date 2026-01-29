@@ -8,10 +8,11 @@ import {
 import {
   IMAGE_SIZES,
   ImageSize,
+  ImageUrls,
   ProcessedImage,
   UploadedImage,
 } from './object-storage.types';
-import { ImageDeletionFailedException } from '../exceptions/record.exceptions';
+import { ImageDeletionFailedException } from '@/records/exceptions/record.exceptions';
 
 @Injectable()
 export class ObjectStorageService {
@@ -162,5 +163,22 @@ export class ObjectStorageService {
     // fallback: pathname에서 추출 시도
     const urlObj = new URL(url);
     return urlObj.pathname.slice(1);
+  }
+
+  /**
+   * 이미지 URL 목록에서 모든 스토리지 키를 추출합니다.
+   *
+   * @param images - 추출할 이미지 URL 목록 (thumbnail, medium, original 포함)
+   * @returns 모든 이미지의 스토리지 키 배열
+   *
+   * @remarks
+   * 각 이미지당 3개의 키가 추출됩니다 (thumbnail, medium, original).
+   */
+  extractImageKeys(images: ImageUrls[]): string[] {
+    return images.flatMap((img) => [
+      this.extractKeyFromUrl(img.thumbnail),
+      this.extractKeyFromUrl(img.medium),
+      this.extractKeyFromUrl(img.original),
+    ]);
   }
 }

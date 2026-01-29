@@ -4,16 +4,15 @@ import { RecordsService } from './records.service';
 import { MapsService } from '../maps/maps.service';
 import { PrismaModule } from '@/prisma/prisma.module';
 import { JwtModule } from '@/jwt/jwt.module';
-import { RecordSearchService } from './records-search.service';
+import { RecordSearchService } from './record-search.service';
 import { ElasticsearchConfigModule } from '@/elasticsearch/elasticsearch.module';
 import { RecordSyncConsumer } from './consumer/record-sync.consumer';
 import { OutboxModule } from '@/outbox/outbox.module';
-import { ImageProcessingService } from './services/image-processing.service';
-import { ObjectStorageService } from './services/object-storage.service';
 import { UsersService } from '@/users/users.service';
 import { RecordTagsService } from './record-tags.service';
 import { TagsModule } from '@/tags/tags.module';
 import { ImagesModule } from '@/images/images.module';
+import { RecordGraphService } from './record-graph.service';
 
 @Module({
   imports: [
@@ -28,8 +27,7 @@ import { ImagesModule } from '@/images/images.module';
   providers: [
     RecordsService,
     RecordSearchService,
-    ImageProcessingService,
-    ObjectStorageService,
+    RecordGraphService,
     UsersService,
     MapsService,
     RecordTagsService,

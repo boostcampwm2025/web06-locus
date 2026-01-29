@@ -1,6 +1,7 @@
 {
   "extends": "./tsconfig.app.json",
   "compilerOptions": {
+    "tsBuildInfoFile": "../../.cache/tsbuildinfo/tsconfig.typecheck.tsbuildinfo",
     "composite": true,
     "declaration": true,
     "declarationMap": true,

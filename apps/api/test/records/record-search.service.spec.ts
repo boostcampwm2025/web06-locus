@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ElasticsearchService } from '@nestjs/elasticsearch';
 import { errors } from '@elastic/elasticsearch';
-import { RecordSearchService } from '../../src/records/records-search.service';
+import { RecordSearchService } from '../../src/records/record-search.service';
 import { RecordSyncPayload } from '../../src/records/type/record-sync.types';
 import {
   RECORD_INDEX_NAME,
