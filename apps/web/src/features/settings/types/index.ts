@@ -1,3 +1,5 @@
+import type { TagResponse } from '@/infra/api/services/tagService';
+
 /**
  * Settings Feature Types
  */
@@ -60,9 +62,9 @@ export interface NotificationsTabProps {
  * 태그 관리 탭 Props
  */
 export interface TagsTabProps {
-  tags: string[];
-  onAddTag: (tag: string) => void;
-  onRemoveTag: (tag: string) => void;
+  tags: TagResponse[];
+  onAddTag: (name: string) => void;
+  onRemoveTag: (tag: TagResponse) => void;
 }
 
 /**

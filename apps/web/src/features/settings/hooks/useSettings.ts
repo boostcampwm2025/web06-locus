@@ -4,6 +4,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '@/features/auth/domain/authStore';
 import { ROUTES } from '@/router/routes';
 import { useCurrentUser } from './useCurrentUser';
+
+// 알림 관련 서비스 및 유틸
 import {
   getNotificationSettings,
   postNotificationSettings,
@@ -11,6 +13,13 @@ import {
 } from '@/infra/api/services/notificationService';
 import { getFcmToken } from '@/infra/firebase/fcm';
 import { isClientError } from '@/shared/errors';
+
+// 태그 관리 관련 커스텀 훅
+import { useGetTags } from '@/features/record/hooks/useGetTags';
+import { useCreateTag } from '@/features/record/hooks/useCreateTag';
+import { useDeleteTag } from '@/features/record/hooks/useDeleteTag';
+import type { TagResponse } from '@/infra/api/services/tagService';
+
 import type { SettingsTab, SettingsPageProps } from '../types';
 
 const NOTIFICATION_SETTINGS_QUERY_KEY = ['notificationSettings'] as const;
@@ -32,8 +41,6 @@ export function useSettings({
   } = useCurrentUser();
 
   const [activeTab, setActiveTab] = useState<SettingsTab>('profile');
-  const [tags, setTags] = useState(['여행', '맛집', '데이트', '산책', '일상']);
-  const [tagToDelete, setTagToDelete] = useState<string | null>(null);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   // 알림 설정 조회 (GET)
@@ -75,8 +82,7 @@ export function useSettings({
 
   // UI에 표시할 데이터 가공 (파생 상태)
   const isNotificationEnabled = notificationSettings?.isActive ?? false;
-  const notificationTime =
-    notificationSettings?.notifyTime ?? DEFAULT_NOTIFY_TIME;
+  const notificationTime = notificationSettings?.notifyTime ?? DEFAULT_NOTIFY_TIME;
   const isPushEnabled = notificationSettings?.isActive ?? false;
 
   const setIsNotificationEnabled = (enabled: boolean) => {
@@ -84,8 +90,8 @@ export function useSettings({
 
     if (enabled) {
       /**
-       * 1. 브라우저/FCM으로부터 고유 토큰을 먼저 받아옴
-       * 2. 받아온 토큰과 함께 서버에 알림 활성화 요청
+       * 브라우저/FCM으로부터 고유 토큰을 먼저 받아옴
+       * 받아온 토큰과 함께 서버에 알림 활성화 요청
        */
       void getFcmToken().then((fcmToken) => {
         postMutation.mutate({
@@ -95,7 +101,7 @@ export function useSettings({
       });
     } else {
       /**
-       * 1. 토큰 필요 없이 비활성화 정보만 서버에 전송
+       * 토큰 필요 없이 비활성화 정보만 서버에 전송
        */
       postMutation.mutate({ isActive: false });
     }
@@ -106,16 +112,7 @@ export function useSettings({
    */
   const setIsPushEnabled = (enabled: boolean) => {
     if (!notificationEditable) return;
-    if (enabled) {
-      void getFcmToken().then((fcmToken) => {
-        postMutation.mutate({
-          isActive: true,
-          fcmToken: fcmToken ?? undefined,
-        });
-      });
-    } else {
-      postMutation.mutate({ isActive: false });
-    }
+    setIsNotificationEnabled(enabled);
   };
 
   /**
@@ -125,6 +122,12 @@ export function useSettings({
     if (!notificationEditable) return;
     patchTimeMutation.mutate(timeString);
   };
+
+  // 태그 관리 관련 로직 (develop 서버 연동 기반)
+  const { data: tags = [] } = useGetTags();
+  const createTagMutation = useCreateTag();
+  const deleteTagMutation = useDeleteTag();
+  const [tagToDelete, setTagToDelete] = useState<TagResponse | null>(null);
 
   // 기타 핸들러 (닫기, 로그아웃, 태그 추가/삭제)
   const handleClose = () => {
@@ -145,15 +148,17 @@ export function useSettings({
     setShowLogoutConfirm(false);
   };
 
-  const handleAddTag = (tag: string) => {
-    if (tag.trim() && !tags.includes(tag.trim())) {
-      setTags([...tags, tag.trim()]);
-    }
+  const handleAddTag = (name: string) => {
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    if (tags.some((t) => t.name === trimmed)) return;
+    createTagMutation.mutate({ name: trimmed });
   };
 
-  const handleRemoveTag = (tag: string) => {
-    setTags(tags.filter((t) => t !== tag));
-    setTagToDelete(null);
+  const handleRemoveTag = (tag: TagResponse) => {
+    deleteTagMutation.mutate(tag.publicId, {
+      onSettled: () => setTagToDelete(null),
+    });
   };
 
   // 컴포넌트에서 사용할 데이터/함수 반환

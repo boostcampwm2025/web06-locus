@@ -11,6 +11,8 @@ import {
   GraphEdgeResponseSchema,
   GraphMetaResponseSchema,
   ConnectedRecordDetailResponseSchema,
+  GraphRecordDetailResponseSchema,
+  GraphDetailsResponseSchema,
   GetRecordsByBoundsRequestSchema,
   SearchRecordsRequestSchema,
   GetAllRecordsRequestSchema,
@@ -28,7 +30,9 @@ export type Location = z.infer<typeof LocationSchema>;
 export type LocationWithoutCoords = z.infer<typeof LocationWithoutCoordsSchema>;
 export type Image = z.infer<typeof ImageResponseSchema>;
 export type Record = z.infer<typeof RecordResponseSchema>;
-export type RecordWithoutCoords = z.infer<typeof RecordWithoutCoordsResponseSchema>;
+export type RecordWithoutCoords = z.infer<
+  typeof RecordWithoutCoordsResponseSchema
+>;
 export type RecordWithImages = z.infer<typeof RecordWithImagesResponseSchema>;
 export type SearchRecordItem = z.infer<typeof SearchRecordItemResponseSchema>;
 export type GraphNode = z.infer<typeof GraphNodeResponseSchema>;
@@ -37,6 +41,8 @@ export type GraphMeta = z.infer<typeof GraphMetaResponseSchema>;
 export type ConnectedRecordDetail = z.infer<
   typeof ConnectedRecordDetailResponseSchema
 >;
+export type GraphRecordDetail = z.infer<typeof GraphRecordDetailResponseSchema>;
+export type GraphDetailsResponse = z.infer<typeof GraphDetailsResponseSchema>;
 
 /**
  * 기록 상세 조회 응답의 record 타입

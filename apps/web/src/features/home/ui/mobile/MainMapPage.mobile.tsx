@@ -2,6 +2,7 @@ import { useState, useEffect, Suspense } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import AppHeader from '@/shared/ui/header/AppHeader';
+import { PWAInstallGuide } from '@/shared/ui/pwa';
 import CategoryChip from '@/shared/ui/category/CategoryChip';
 import BottomTabBar from '@/shared/ui/navigation/BottomTabBar';
 import MapLoadingSkeleton from '@/shared/ui/loading/MapLoadingSkeleton';
@@ -35,6 +36,7 @@ export function MainMapPageMobile() {
   const [isActionSheetOpen, setIsActionSheetOpen] = useState(false);
   const [isTagManagementModalOpen, setIsTagManagementModalOpen] =
     useState(false);
+  const [showPwaInstallGuide, setShowPwaInstallGuide] = useState(false);
   const logout = useAuthStore((state) => state.logout);
 
   // 알림 상태 관리
@@ -208,7 +210,7 @@ export function MainMapPageMobile() {
   return (
     <div className="flex flex-col h-screen bg-white relative overflow-hidden">
       <AppHeader
-        onTitleClick={() => void navigate(ROUTES.HOME)}
+        onTitleClick={() => setShowPwaInstallGuide(true)}
         onSearchClick={handleSearchClick}
         onSettingsClick={handleSettingsClick}
         isSearchActive={isSearchActive}
@@ -310,6 +312,12 @@ export function MainMapPageMobile() {
       <TagManagementModal
         isOpen={isTagManagementModalOpen}
         onClose={() => setIsTagManagementModalOpen(false)}
+      />
+
+      {/* PWA 설치 가이드 (헤더 가운데 Locus 제목 클릭 시) */}
+      <PWAInstallGuide
+        isOpen={showPwaInstallGuide}
+        onClose={() => setShowPwaInstallGuide(false)}
       />
     </div>
   );

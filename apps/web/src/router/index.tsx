@@ -226,6 +226,9 @@ function RecordDetailPageRoute() {
       <RecordDetailPage
         {...recordProps}
         connectedRecords={connectedRecords}
+        graphNodes={graphData?.data?.nodes}
+        graphEdges={graphData?.data?.edges}
+        baseRecordPublicId={id}
         onBack={() => void navigate(ROUTES.RECORD_LIST)}
         onFavoriteToggle={handleFavoriteToggle}
         // onMenuClick을 전달하지 않으면 내부에서 ActionSheet를 열도록 함
@@ -375,6 +378,9 @@ function ConnectionManagementPageRoute() {
       <ConnectionManagementPage
         baseRecord={baseRecord}
         connectedRecords={connectedRecords}
+        graphNodes={graphData?.data?.nodes}
+        graphEdges={graphData?.data?.edges}
+        baseRecordPublicId={id}
         onBack={() => {
           if (id) {
             void navigate(generatePath(ROUTES.RECORD_DETAIL, { id }));

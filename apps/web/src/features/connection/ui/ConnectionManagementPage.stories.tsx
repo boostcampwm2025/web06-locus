@@ -1,6 +1,8 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { fn } from '@storybook/test';
 import ConnectionManagementPage from './ConnectionManagementPage';
+import type { GraphNode } from '@locus/shared';
+import type { GraphEdgeResponse } from '@/infra/types/connection';
 
 const meta = {
   title: 'Features/Connection/ConnectionManagementPage',
@@ -125,6 +127,49 @@ const sampleConnectedRecords = [
   },
 ];
 
+/** GET /records/{publicId}/graph 응답과 동일한 형태의 mock (API 스펙 기준) */
+const mockGraphNodes: (GraphNode & { title?: string })[] = [
+  {
+    publicId: '1',
+    location: { latitude: 37.52, longitude: 127.04 },
+    title: '서울숲 산책',
+  },
+  {
+    publicId: '2',
+    location: { latitude: 37.58, longitude: 126.98 },
+    title: '경복궁 나들이',
+  },
+  {
+    publicId: '3',
+    location: { latitude: 37.58, longitude: 126.99 },
+    title: '북촌 한옥마을',
+  },
+  {
+    publicId: '4',
+    location: { latitude: 37.53, longitude: 126.99 },
+    title: '이태원 맛집 탐방',
+  },
+  {
+    publicId: '5',
+    location: { latitude: 37.56, longitude: 126.99 },
+    title: '명동 스피',
+  },
+  {
+    publicId: '6',
+    location: { latitude: 37.55, longitude: 126.99 },
+    title: '남산 타워 전망',
+  },
+];
+
+/** GET /records/{publicId}/graph 응답의 edges 형태 */
+const mockGraphEdges: GraphEdgeResponse[] = [
+  { fromRecordPublicId: '1', toRecordPublicId: '2' },
+  { fromRecordPublicId: '1', toRecordPublicId: '3' },
+  { fromRecordPublicId: '1', toRecordPublicId: '4' },
+  { fromRecordPublicId: '1', toRecordPublicId: '5' },
+  { fromRecordPublicId: '1', toRecordPublicId: '6' },
+];
+
 export const Default: Story = {
   args: {
     baseRecord: sampleBaseRecord,
@@ -132,6 +177,29 @@ export const Default: Story = {
     onBack: fn(),
     onSearchChange: fn(),
     onRecordRemove: fn(),
+  },
+};
+
+/** D3 연결 네트워크 뷰 포함 (API mock 데이터 사용) */
+export const WithD3Network: Story = {
+  args: {
+    baseRecord: sampleBaseRecord,
+    connectedRecords: sampleConnectedRecords,
+    graphNodes: mockGraphNodes,
+    graphEdges: mockGraphEdges,
+    baseRecordPublicId: '1',
+    onBack: fn(),
+    onSearchChange: fn(),
+    onRecordRemove: fn(),
+    onRecordClick: fn(),
+  },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          'GET /records/{publicId}/graph 형태의 mock nodes/edges로 D3 네트워크 뷰 표시. 노드 클릭·드래그·줌 가능.',
+      },
+    },
   },
 };
 

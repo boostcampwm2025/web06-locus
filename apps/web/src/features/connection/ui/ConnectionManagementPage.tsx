@@ -3,6 +3,7 @@ import BackHeader from '@/shared/ui/header/BackHeader';
 import BaseRecordSection from './BaseRecordSection';
 import ConnectionSearchInput from './ConnectionSearchInput';
 import ConnectionMapVisualization from './ConnectionMapVisualization';
+import ConnectionNetworkView from './ConnectionNetworkView';
 import ConnectedRecordList from './ConnectedRecordList';
 import type { ConnectionManagementPageProps } from '../types/connectionManagement';
 import { useDebounce } from '@/shared/hooks/useDebounce';
@@ -14,6 +15,9 @@ import { extractTagNames } from '@/shared/utils/tagUtils';
 export default function ConnectionManagementPage({
   baseRecord,
   connectedRecords,
+  graphNodes,
+  graphEdges,
+  baseRecordPublicId,
   onBack,
   onSearchChange,
   onRecordRemove,
@@ -58,9 +62,20 @@ export default function ConnectionManagementPage({
           value={searchValue}
           onChange={handleSearchChange}
         />
-        <ConnectionMapVisualization
-          connectionCount={baseRecord.connectionCount}
-        />
+        {graphNodes && graphNodes.length > 0 && graphEdges ? (
+          <ConnectionNetworkView
+            nodes={graphNodes}
+            edges={graphEdges}
+            baseRecordPublicId={baseRecordPublicId}
+            height={280}
+            className="w-full min-w-0"
+            onNodeClick={onRecordClick}
+          />
+        ) : (
+          <ConnectionMapVisualization
+            connectionCount={baseRecord.connectionCount}
+          />
+        )}
         <ConnectedRecordList
           records={filteredRecords}
           onRecordRemove={onRecordRemove}

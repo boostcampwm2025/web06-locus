@@ -15,6 +15,9 @@ export function useCreateConnection() {
       void queryClient.invalidateQueries({ queryKey: ['records'] });
       void queryClient.invalidateQueries({ queryKey: ['connections'] });
       void queryClient.invalidateQueries({ queryKey: ['record-graph'] });
+      void queryClient.invalidateQueries({
+        queryKey: ['record-graph-details'],
+      });
     },
   });
 }
