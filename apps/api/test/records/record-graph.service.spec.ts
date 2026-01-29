@@ -1,66 +1,20 @@
-import { RecordsService } from '@/records/records.service';
+import { RecordGraphService } from '@/records/record-graph.service';
 import { PrismaService } from '@/prisma/prisma.service';
-import { MapsService } from '@/maps/maps.service';
 import { RecordNotFoundException } from '@/records/exceptions/record.exceptions';
-import { OutboxService } from '@/outbox/outbox.service';
-import { ImageProcessingService } from '@/records/services/image-processing.service';
-import { ObjectStorageService } from '@/records/services/object-storage.service';
-import { UsersService } from '@/users/users.service';
-import { RecordSearchService } from '@/records/record-search.service';
-import { RecordTagsService } from '@/records/record-tags.service';
 import { TagsService } from '@/tags/tags.services';
-import { ImagesService } from '@/images/images.service';
+
 interface PrismaMock {
   record: { findUnique: jest.Mock };
   $queryRaw: jest.Mock;
 }
 
-interface ReverseGeocodingMock {
-  getAddressFromCoordinates: jest.Mock;
-}
-
-interface OutboxMock {
-  publish: jest.Mock;
-}
-
-interface ImageProcessingServiceMock {
-  process: jest.Mock;
-}
-interface ObjectStorageServiceMock {
-  deleteImages: jest.Mock;
-  uploadRecordImages: jest.Mock;
-}
-interface UsersServiceMock {
-  findById: jest.Mock;
-}
-interface RecordSearchServiceMock {
-  search: jest.Mock;
-}
-
-interface RecordTagsServiceMock {
-  createRecordTags: jest.Mock;
-}
-
 interface TagsServiceMock {
   findManyByRecordIds: jest.Mock;
 }
-interface ImagesServiceMock {
-  getThumbnailsByRecordIds: jest.Mock;
-  findManyByRecordIds: jest.Mock;
-}
 
-describe('RecordsService - getGraph', () => {
-  let service: RecordsService;
+describe('RecordGraphService - getGraph', () => {
+  let service: RecordGraphService;
   let prismaMock: PrismaMock;
-  let reverseGeocodingMock: ReverseGeocodingMock;
-  let outboxServiceMock: OutboxMock;
-  let imageProcessingServiceMock: ImageProcessingServiceMock;
-  let objectStorageServiceMock: ObjectStorageServiceMock;
-  let usersServiceMock: UsersServiceMock;
-  let recordSearchServiceMock: RecordSearchServiceMock;
-  let recordTagsServiceMock: RecordTagsServiceMock;
-  let tagsServiceMock: TagsServiceMock;
-  let imagesServiceMock: ImagesServiceMock;
 
   beforeEach(() => {
     prismaMock = {
@@ -68,55 +22,13 @@ describe('RecordsService - getGraph', () => {
       $queryRaw: jest.fn(),
     };
 
-    reverseGeocodingMock = {
-      getAddressFromCoordinates: jest.fn(),
-    };
-
-    outboxServiceMock = {
-      publish: jest.fn(),
-    };
-
-    imageProcessingServiceMock = {
-      process: jest.fn(),
-    };
-
-    objectStorageServiceMock = {
-      deleteImages: jest.fn(),
-      uploadRecordImages: jest.fn(),
-    };
-
-    usersServiceMock = {
-      findById: jest.fn(),
-    };
-
-    recordSearchServiceMock = {
-      search: jest.fn(),
-    };
-
-    recordTagsServiceMock = {
-      createRecordTags: jest.fn(),
-    };
-
-    tagsServiceMock = {
+    const tagsServiceMock: TagsServiceMock = {
       findManyByRecordIds: jest.fn(),
     };
 
-    imagesServiceMock = {
-      getThumbnailsByRecordIds: jest.fn(),
-      findManyByRecordIds: jest.fn(),
-    };
-
-    service = new RecordsService(
+    service = new RecordGraphService(
       prismaMock as unknown as PrismaService,
-      reverseGeocodingMock as unknown as MapsService,
-      outboxServiceMock as unknown as OutboxService,
-      imageProcessingServiceMock as unknown as ImageProcessingService,
-      objectStorageServiceMock as unknown as ObjectStorageService,
-      usersServiceMock as unknown as UsersService,
-      recordSearchServiceMock as unknown as RecordSearchService,
-      recordTagsServiceMock as unknown as RecordTagsService,
       tagsServiceMock as unknown as TagsService,
-      imagesServiceMock as unknown as ImagesService,
     );
 
     jest.clearAllMocks();
@@ -248,18 +160,10 @@ describe('RecordsService - getGraph', () => {
   });
 });
 
-describe('RecordsService - getGraphNeighborDetail', () => {
-  let service: RecordsService;
+describe('RecordGraphService - getGraphNeighborDetail', () => {
+  let service: RecordGraphService;
   let prismaMock: PrismaMock;
-  let reverseGeocodingMock: ReverseGeocodingMock;
-  let outboxServiceMock: OutboxMock;
-  let imageProcessingServiceMock: ImageProcessingServiceMock;
-  let objectStorageServiceMock: ObjectStorageServiceMock;
-  let usersServiceMock: UsersServiceMock;
-  let recordSearchServiceMock: RecordSearchServiceMock;
-  let recordTagsServiceMock: RecordTagsServiceMock;
   let tagsServiceMock: TagsServiceMock;
-  let imagesServiceMock: ImagesServiceMock;
 
   beforeEach(() => {
     prismaMock = {
@@ -267,55 +171,13 @@ describe('RecordsService - getGraphNeighborDetail', () => {
       $queryRaw: jest.fn(),
     };
 
-    reverseGeocodingMock = {
-      getAddressFromCoordinates: jest.fn(),
-    };
-
-    outboxServiceMock = {
-      publish: jest.fn(),
-    };
-
-    imageProcessingServiceMock = {
-      process: jest.fn(),
-    };
-
-    objectStorageServiceMock = {
-      deleteImages: jest.fn(),
-      uploadRecordImages: jest.fn(),
-    };
-
-    usersServiceMock = {
-      findById: jest.fn(),
-    };
-
-    recordSearchServiceMock = {
-      search: jest.fn(),
-    };
-
-    recordTagsServiceMock = {
-      createRecordTags: jest.fn(),
-    };
-
     tagsServiceMock = {
       findManyByRecordIds: jest.fn(),
     };
 
-    imagesServiceMock = {
-      getThumbnailsByRecordIds: jest.fn(),
-      findManyByRecordIds: jest.fn(),
-    };
-
-    service = new RecordsService(
+    service = new RecordGraphService(
       prismaMock as unknown as PrismaService,
-      reverseGeocodingMock as unknown as MapsService,
-      outboxServiceMock as unknown as OutboxService,
-      imageProcessingServiceMock as unknown as ImageProcessingService,
-      objectStorageServiceMock as unknown as ObjectStorageService,
-      usersServiceMock as unknown as UsersService,
-      recordSearchServiceMock as unknown as RecordSearchService,
-      recordTagsServiceMock as unknown as RecordTagsService,
       tagsServiceMock as unknown as TagsService,
-      imagesServiceMock as unknown as ImagesService,
     );
 
     jest.clearAllMocks();
