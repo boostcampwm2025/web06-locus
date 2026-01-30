@@ -131,19 +131,21 @@ function ConnectedRecordTitle({ title }: { title: string }) {
 }
 
 /**
- * 연결된 기록 위치 및 날짜
+ * 연결된 기록 위치 및 날짜 (LocationIcon 옆에 name 우선, 없으면 address)
  */
 function ConnectedRecordLocationDate({
   location,
   date,
 }: {
-  location: { name: string };
+  location: { name: string; address: string };
   date: Date;
 }) {
+  const locationLabel =
+    location.name?.trim() || location.address?.trim() || '장소 없음';
   return (
     <div className="flex items-center gap-1.5 text-sm text-gray-500 mb-2">
       <LocationIcon className="w-4 h-4 shrink-0" />
-      <span className="truncate">{location.name}</span>
+      <span className="truncate">{locationLabel}</span>
       <span>{formatDateShort(date)}</span>
     </div>
   );

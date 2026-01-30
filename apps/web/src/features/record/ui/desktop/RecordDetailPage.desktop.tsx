@@ -6,6 +6,7 @@ import { XIcon } from '@/shared/ui/icons/XIcon';
 import { CalendarIcon } from '@/shared/ui/icons/CalendarIcon';
 import { LocationIcon } from '@/shared/ui/icons/LocationIcon';
 import { GitBranchIcon } from '@/shared/ui/icons/GitBranchIcon';
+import { ArrowTopRightOnSquareIcon } from '@/shared/ui/icons/ArrowTopRightOnSquareIcon';
 import { ConfirmDialog } from '@/shared/ui/dialog';
 import { ROUTES } from '@/router/routes';
 import type { RecordDetailPageProps } from '@/features/record/types';
@@ -185,7 +186,11 @@ export function RecordDetailPageDesktop({
           <div className="flex items-center gap-6 text-gray-500 mt-8">
             <div className="flex items-center gap-2">
               <LocationIcon className="w-5 h-5 text-[#73C92E]" />
-              <span className="font-bold text-gray-900">{location.name}</span>
+              <span className="font-bold text-gray-900">
+                {location.name?.trim() ||
+                  location.address?.trim() ||
+                  '장소 없음'}
+              </span>
             </div>
             <div className="flex items-center gap-2">
               <CalendarIcon className="w-5 h-5" />

@@ -45,10 +45,12 @@ export default function RecordCard({
           {title}
         </h3>
 
-        {/* 위치 & 날짜 */}
+        {/* 위치 & 날짜 (name 우선, 없으면 address) */}
         <div className="flex items-center gap-1.5 text-sm text-gray-500">
           <LocationIcon className="w-4 h-4 shrink-0" />
-          <span className="truncate">{location.name}</span>
+          <span className="truncate">
+            {location.name?.trim() || location.address?.trim() || '장소 없음'}
+          </span>
           <span>{formatDateShort(date)}</span>
         </div>
 

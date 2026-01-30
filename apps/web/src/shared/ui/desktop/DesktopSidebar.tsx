@@ -567,7 +567,9 @@ function RecordCard({
           </h3>
           <p className="text-sm text-gray-500 flex items-center gap-1.5 mb-1">
             <LocationIcon className="w-[14px] h-[14px] text-[#73C92E]" />
-            {record.location.name}
+            {record.location.name?.trim() ||
+              record.location.address?.trim() ||
+              '장소 없음'}
           </p>
           <p className="text-xs text-gray-400 flex items-center gap-1.5">
             <CalendarIcon className="w-[14px] h-[14px]" />
@@ -720,7 +722,9 @@ function RecordSummaryPanel({
               <div className="flex items-center gap-2 text-gray-500">
                 <LocationIcon className="w-[14px] h-[14px] text-[#73C92E]" />
                 <span className="text-sm font-bold text-gray-700">
-                  {recordDetail.location.name ?? ''}
+                  {recordDetail.location.name?.trim() ??
+                    recordDetail.location.address?.trim() ??
+                    '장소 없음'}
                 </span>
               </div>
               <div className="flex items-center gap-2 text-gray-400">
