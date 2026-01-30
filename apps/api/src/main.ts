@@ -15,7 +15,11 @@ async function bootstrap() {
 
   const allowedOrigins = process.env.CORS_URL
     ? process.env.CORS_URL.split(',').map((origin) => origin.trim())
-    : ['http://localhost:5173'];
+    : [
+        'http://localhost:5173',
+        'https://dev.locus.io.kr',
+        'https://locus.io.kr',
+      ];
 
   app.enableCors({
     origin: allowedOrigins,
