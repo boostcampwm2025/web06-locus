@@ -242,11 +242,15 @@ export default function ConnectionNetworkView({
   ]);
 
   const h = initialHeight ?? actualHeight;
+  const fillParent = initialHeight == null;
+  const wrapperStyle = fillParent
+    ? { width: '100%' as const, height: '100%' as const }
+    : { width: '100%' as const, height: h };
 
   return (
     <div
       className={`relative overflow-hidden rounded-[32px] border border-slate-800 bg-slate-950 shadow-inner ${className}`}
-      style={{ width: '100%', height: h }}
+      style={wrapperStyle}
     >
       <div ref={containerRef} className="h-full w-full" />
     </div>
