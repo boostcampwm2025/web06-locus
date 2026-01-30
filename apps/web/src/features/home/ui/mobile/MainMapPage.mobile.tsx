@@ -15,6 +15,7 @@ import { useDeleteRecord } from '@/features/record/hooks/useDeleteRecord';
 import { useAuthStore } from '@/features/auth/domain/authStore';
 import { useBottomTabNavigation } from '@/shared/hooks/useBottomTabNavigation';
 import { useGeocodeSearch } from '@/features/home/hooks/useGeocodeSearch';
+import SearchResultsPanel from '@/features/home/ui/SearchResultsPanel';
 import { ROUTES } from '@/router/routes';
 import {
   getStoredRecordPins,
@@ -76,19 +77,6 @@ export function MainMapPageMobile() {
     isLoading: isGeocoding,
     error: geocodeError,
   } = useGeocodeSearch('');
-
-  /**
-   * 2. 검색 결과에 따른 지도 중심 이동
-   */
-  useEffect(() => {
-    const firstAddr = geocodeData?.data?.addresses?.[0];
-    if (firstAddr) {
-      setTargetLocation({
-        lat: parseFloat(firstAddr.latitude),
-        lng: parseFloat(firstAddr.longitude),
-      });
-    }
-  }, [geocodeData]);
 
   /**
    * 3. 기록 삭제 훅
@@ -218,6 +206,21 @@ export function MainMapPageMobile() {
         onSearchChange={setSearchValue}
         onSearchCancel={handleSearchCancel}
         onSearch={(value) => setSearchValue(value)}
+      />
+
+      <SearchResultsPanel
+        isOpen={isSearchActive}
+        isLoading={isGeocoding}
+        query={searchValue}
+        results={geocodeData?.data?.addresses}
+        onSelect={(addr) => {
+          setTargetLocation({
+            lat: parseFloat(addr.latitude),
+            lng: parseFloat(addr.longitude),
+          });
+          setIsSearchActive(false);
+        }}
+        onClose={() => setIsSearchActive(false)}
       />
 
       <div className="pt-[72px]">

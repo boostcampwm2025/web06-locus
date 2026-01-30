@@ -39,7 +39,7 @@ export const API_ENDPOINTS = {
   TAGS_BY_ID: (publicId: string) => `/tags/${publicId}`,
 
   // Maps
-  MAPS_GEOCODE: '/maps/geocode',
+  MAPS_GEOCODE: '/maps',
   MAPS_REVERSE_GEOCODE: '/maps/reverse-geocode',
 
   // Notifications
