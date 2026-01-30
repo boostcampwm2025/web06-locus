@@ -550,11 +550,10 @@ export default function MapViewport({
         // 화면 bounds만 업데이트 (API 호출은 하지 않음)
         setCurrentViewBounds((prev) => {
           if (
-            !prev ||
-            prev.neLat !== currentBounds.neLat ||
-            prev.neLng !== currentBounds.neLng ||
-            prev.swLat !== currentBounds.swLat ||
-            prev.swLng !== currentBounds.swLng
+            prev?.neLat !== currentBounds.neLat ||
+            prev?.neLng !== currentBounds.neLng ||
+            prev?.swLat !== currentBounds.swLat ||
+            prev?.swLng !== currentBounds.swLng
           ) {
             return currentBounds;
           }
@@ -579,10 +578,10 @@ export default function MapViewport({
       setCurrentViewBounds((prev) => {
         if (
           !prev ||
-          prev.neLat !== currentBounds.neLat ||
-          prev.neLng !== currentBounds.neLng ||
-          prev.swLat !== currentBounds.swLat ||
-          prev.swLng !== currentBounds.swLng
+          prev?.neLat !== currentBounds.neLat ||
+          prev?.neLng !== currentBounds.neLng ||
+          prev?.swLat !== currentBounds.swLat ||
+          prev?.swLng !== currentBounds.swLng
         ) {
           return currentBounds;
         }
