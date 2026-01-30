@@ -169,9 +169,7 @@ export function RecordDetailPageDesktop({
             <h2 className="text-lg font-black text-gray-900 mb-1">
               연결 네트워크 뷰
             </h2>
-            <p className="text-sm text-gray-500">
-              노드를 클릭하여 관계를 탐색하세요.
-            </p>
+            <p className="text-sm text-gray-500">노드의 관계를 탐색하세요.</p>
           </div>
           <div className="flex-1 min-h-0 p-4 flex flex-col">
             <ConnectionNetworkView

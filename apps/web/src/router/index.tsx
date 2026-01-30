@@ -98,6 +98,57 @@ function RecordDetailPageRoute() {
     enabled: !!id,
   });
 
+  // 연결된 기록 상세 (제목·장소 등, D3 노드 제목·connectedRecords용)
+  const { data: graphDetailsData } = useRecordGraphDetails(id ?? null, {
+    enabled: !!id,
+  });
+
+  // 연결된 기록 목록 (graph/details → RecordDetailPage connectedRecords)
+  const connectedRecordsFromApi = useMemo((): {
+    id: string;
+    title: string;
+    location: { name: string; address: string };
+    date: Date;
+    tags: string[];
+    imageUrl?: string;
+  }[] => {
+    const records = getGraphDetailsRecords(graphDetailsData);
+    if (!records?.length) return [];
+
+    return records.map((record: GraphRecordDetail) => ({
+      id: record.publicId,
+      title: record.title,
+      location: {
+        name: record.location?.name ?? '',
+        address: record.location?.address ?? '',
+      },
+      date: new Date(record.createdAt),
+      tags: (record.tags ?? []).map((tag: { name: string }) => tag.name),
+      imageUrl: record.thumbnail?.url ?? RECORD_PLACEHOLDER_IMAGE,
+    }));
+  }, [graphDetailsData]);
+
+  // D3 네트워크 뷰용: 노드에 제목 병합 (기준 기록 = recordDetail, 연결 = graph/details)
+  const enrichedGraphNodes = useMemo(() => {
+    const nodes = graphData?.data?.nodes;
+    if (!nodes?.length) return undefined;
+
+    const titleByPublicId = new Map<string, string>();
+    if (id && recordDetail) titleByPublicId.set(id, recordDetail.title);
+
+    for (const r of connectedRecordsFromApi) titleByPublicId.set(r.id, r.title);
+
+    return nodes.map(
+      (node: {
+        publicId: string;
+        location: { latitude: number; longitude: number };
+      }) => ({
+        ...node,
+        title: titleByPublicId.get(node.publicId) ?? '제목 없음',
+      }),
+    );
+  }, [graphData?.data?.nodes, id, recordDetail, connectedRecordsFromApi]);
+
   if (!id) {
     logger.warn('기록 상세 페이지: ID가 없음');
     return (
@@ -227,23 +278,12 @@ function RecordDetailPageRoute() {
     })();
   };
 
-  // 연결된 기록 목록 (API 연동 전이므로 빈 배열)
-  // TODO: API 연동 후 graphData에서 연결된 기록 상세 정보를 가져와서 전달
-  const connectedRecords: {
-    id: string;
-    title: string;
-    location: { name: string; address: string };
-    date: Date;
-    tags: string[];
-    imageUrl?: string;
-  }[] = [];
-
   return (
     <Suspense fallback={<RouteLoadingFallback />}>
       <RecordDetailPage
         {...recordProps}
-        connectedRecords={connectedRecords}
-        graphNodes={graphData?.data?.nodes}
+        connectedRecords={connectedRecordsFromApi}
+        graphNodes={enrichedGraphNodes ?? graphData?.data?.nodes}
         graphEdges={graphData?.data?.edges}
         baseRecordPublicId={id}
         onBack={() => void navigate(ROUTES.RECORD_LIST)}
