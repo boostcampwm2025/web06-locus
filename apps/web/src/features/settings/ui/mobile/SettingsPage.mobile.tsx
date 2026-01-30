@@ -13,6 +13,9 @@ export default function SettingsPageMobile(props: SettingsPageMobileProps) {
   const {
     activeTab,
     setActiveTab,
+    user,
+    userLoading,
+    userError,
     isNotificationEnabled,
     setIsNotificationEnabled,
     isPushEnabled,
@@ -50,6 +53,9 @@ export default function SettingsPageMobile(props: SettingsPageMobileProps) {
               onNavigateToNotifications={() => setActiveTab('notifications')}
               onNavigateToTags={() => setActiveTab('tags')}
               onLogout={() => setShowLogoutConfirm(true)}
+              user={user}
+              userLoading={userLoading}
+              userError={userError}
             />
           )}
           {activeTab === 'notifications' && (

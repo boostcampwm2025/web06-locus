@@ -20,13 +20,15 @@ export function TagsTabMobile({
   onRemoveTag,
 }: TagsTabMobileProps) {
   const [inputValue, setInputValue] = useState('');
-  const [tagToDelete, setTagToDelete] = useState<string | null>(null);
+  const [tagToDelete, setTagToDelete] = useState<(typeof tags)[number] | null>(
+    null,
+  );
 
   const handleAddTag = () => {
-    if (inputValue.trim() && !tags.includes(inputValue.trim())) {
-      onAddTag(inputValue.trim());
-      setInputValue('');
-    }
+    const trimmed = inputValue.trim();
+    if (!trimmed || tags.some((t) => t.name === trimmed)) return;
+    onAddTag(trimmed);
+    setInputValue('');
   };
 
   const handleDeleteConfirm = () => {
@@ -70,11 +72,17 @@ export function TagsTabMobile({
                   placeholder="예: 가족 여행, 업무, 독서"
                   value={inputValue}
                   onChange={(e) => setInputValue(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleAddTag()}
+                  onKeyDown={(e) => {
+                    if (e.key !== 'Enter') return;
+                    e.preventDefault();
+                    if (e.nativeEvent.isComposing) return;
+                    handleAddTag();
+                  }}
                   className="h-[56px] w-full bg-transparent font-['Inter:Regular',sans-serif] text-[16px] text-[#364153] outline-none placeholder:text-[#99a1af]"
                 />
               </div>
               <button
+                type="button"
                 onClick={handleAddTag}
                 className="flex size-[56px] items-center justify-center rounded-2xl bg-[#f3f4f6] text-[#99a1af] hover:bg-[#e5e7eb] active:scale-95 transition-all"
               >
@@ -97,7 +105,7 @@ export function TagsTabMobile({
               <AnimatePresence>
                 {tags.map((tag) => (
                   <motion.div
-                    key={tag}
+                    key={tag.publicId}
                     layout
                     initial={{ opacity: 0, scale: 0.8 }}
                     animate={{ opacity: 1, scale: 1 }}
@@ -105,7 +113,7 @@ export function TagsTabMobile({
                     className="flex items-center gap-2 rounded-full bg-[#f3f4f6] py-2.5 pl-4 pr-3 transition-colors hover:bg-gray-200"
                   >
                     <span className="font-['Inter:Medium','Noto_Sans_KR:Medium',sans-serif] text-[14px] font-medium text-[#4a5565]">
-                      {tag}
+                      {tag.name}
                     </span>
                     <button
                       onClick={() => setTagToDelete(tag)}
@@ -125,7 +133,7 @@ export function TagsTabMobile({
         isOpen={!!tagToDelete}
         onCancel={() => setTagToDelete(null)}
         onConfirm={handleDeleteConfirm}
-        tagName={tagToDelete ?? ''}
+        tagName={tagToDelete?.name ?? ''}
       />
     </>
   );

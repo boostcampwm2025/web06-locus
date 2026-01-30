@@ -36,7 +36,19 @@ export function ProfileTabMobile({
   onNavigateToNotifications,
   onNavigateToTags,
   onLogout,
+  user,
+  userLoading,
+  userError,
 }: ProfileTabMobileProps) {
+  const displayName =
+    user?.nickname ?? user?.email ?? (userLoading ? '불러오는 중…' : '—');
+  const displayEmail = userLoading
+    ? '불러오는 중…'
+    : userError
+      ? '—'
+      : (user?.email ?? '—');
+  const profileImageUrl = user?.profileImageUrl ?? undefined;
+
   return (
     <motion.div
       initial={{ x: '-100%' }}
@@ -60,16 +72,16 @@ export function ProfileTabMobile({
         <section className="flex flex-col items-center py-10">
           <div className="relative mb-4 size-24 overflow-hidden rounded-full bg-[#f3f4f6] ring-4 ring-blue-50">
             <ImageWithFallback
-              src="https://placehold.co/96x96"
+              src={profileImageUrl ?? 'https://placehold.co/96x96'}
               alt="프로필 이미지"
               className="size-full object-cover"
             />
           </div>
           <h2 className="font-['Inter:SemiBold','Noto_Sans_KR:SemiBold',sans-serif] text-[22px] font-semibold text-[#1e2939]">
-            Lucus
+            {displayName}
           </h2>
           <p className="font-['Inter:Regular',sans-serif] text-[15px] text-[#99a1af]">
-            lucus@example.com
+            {displayEmail}
           </p>
         </section>
         <div className="h-2 bg-[#f3f4f6]/40" />

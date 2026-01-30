@@ -14,8 +14,11 @@ import LoadingPage from '@/shared/ui/loading/LoadingPage';
 import { getRandomLoadingVersion } from '@/shared/utils/loadingUtils';
 import { useDeleteRecord } from '@/features/record/hooks/useDeleteRecord';
 import { useGetRecordDetail } from '@/features/record/hooks/useGetRecordDetail';
+import { useUpdateRecordFavorite } from '@/features/record/hooks/useUpdateRecordFavorite';
 import { useRecordGraph } from '@/features/connection/hooks/useRecordGraph';
 import { logger } from '@/shared/utils/logger';
+import { useToast } from '@/shared/ui/toast';
+import { RECORD_PLACEHOLDER_IMAGE } from '@/shared/constants/record';
 import type { RecordDetail } from '@locus/shared';
 
 // 라우트별 지연 로딩
@@ -63,6 +66,8 @@ function RecordDetailPageRoute() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const deleteRecordMutation = useDeleteRecord();
+  const updateFavoriteMutation = useUpdateRecordFavorite();
+  const { showToast } = useToast();
 
   // 기록 상세 조회
   const {
@@ -124,11 +129,11 @@ function RecordDetailPageRoute() {
       : 0;
 
   // API 응답을 RecordDetailPageProps로 변환
-  // 이미지가 있는 경우 첫 번째 이미지의 썸네일 URL 사용
+  // 이미지가 있는 경우 첫 번째 이미지의 썸네일 URL 사용, 없으면 기본 이미지
   const thumbnailImageUrl =
     detail.images && detail.images.length > 0
       ? detail.images[0]?.medium.url
-      : undefined;
+      : RECORD_PLACEHOLDER_IMAGE;
 
   // 태그를 문자열 배열로 변환 (기존 타입 호환)
   const tags = (detail.tags ?? []).map((tag) => tag.name);
@@ -163,7 +168,44 @@ function RecordDetailPageRoute() {
             component: 'RecordDetailPageRoute',
           },
         );
-        // TODO: 에러 토스트 표시
+        showToast({
+          variant: 'error',
+          message: '기록 삭제에 실패했습니다.',
+        });
+      }
+    })();
+  };
+
+  const handleFavoriteToggle = () => {
+    if (!id || !recordDetail) return;
+
+    const newFavoriteState = !recordDetail.isFavorite;
+
+    void (async () => {
+      try {
+        await updateFavoriteMutation.mutateAsync({
+          publicId: id,
+          isFavorite: newFavoriteState,
+        });
+        showToast({
+          variant: 'success',
+          message: newFavoriteState
+            ? '즐겨찾기에 추가되었습니다.'
+            : '즐겨찾기에서 제거되었습니다.',
+        });
+      } catch (error) {
+        logger.error(
+          error instanceof Error ? error : new Error('즐겨찾기 변경 실패'),
+          {
+            publicId: id,
+            isFavorite: newFavoriteState,
+            component: 'RecordDetailPageRoute',
+          },
+        );
+        showToast({
+          variant: 'error',
+          message: '즐겨찾기 변경에 실패했습니다.',
+        });
       }
     })();
   };
@@ -184,11 +226,11 @@ function RecordDetailPageRoute() {
       <RecordDetailPage
         {...recordProps}
         connectedRecords={connectedRecords}
+        graphNodes={graphData?.data?.nodes}
+        graphEdges={graphData?.data?.edges}
+        baseRecordPublicId={id}
         onBack={() => void navigate(ROUTES.RECORD_LIST)}
-        // TODO: API 연동 후 구현 예정
-        onFavoriteToggle={() => {
-          void undefined;
-        }}
+        onFavoriteToggle={handleFavoriteToggle}
         // onMenuClick을 전달하지 않으면 내부에서 ActionSheet를 열도록 함
         onConnectionManage={() => {
           if (id) {
@@ -336,6 +378,9 @@ function ConnectionManagementPageRoute() {
       <ConnectionManagementPage
         baseRecord={baseRecord}
         connectedRecords={connectedRecords}
+        graphNodes={graphData?.data?.nodes}
+        graphEdges={graphData?.data?.edges}
+        baseRecordPublicId={id}
         onBack={() => {
           if (id) {
             void navigate(generatePath(ROUTES.RECORD_DETAIL, { id }));

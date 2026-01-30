@@ -1,3 +1,11 @@
+import type { ChangeEvent } from 'react';
+import type {
+  Record as ApiRecord,
+  SearchRecordItem,
+  GraphNode,
+} from '@locus/shared';
+import type { GraphEdgeResponse } from '@/infra/types/connection';
+
 /**
  * 위치 정보
  */
@@ -120,8 +128,6 @@ export interface RecordWriteHeaderProps {
   onCancel: () => void;
 }
 
-import type { ChangeEvent } from 'react';
-
 /**
  * 기록 작성 폼 Props
  */
@@ -213,6 +219,12 @@ export interface RecordDetailPageProps {
   imageUrl?: string;
   connectionCount: number;
   connectedRecords?: ConnectedRecord[];
+  /** GET /records/{publicId}/graph 응답의 nodes (데스크톱 사이드패널 D3 뷰용) */
+  graphNodes?: GraphNode[];
+  /** GET /records/{publicId}/graph 응답의 edges (데스크톱 사이드패널 D3 뷰용) */
+  graphEdges?: GraphEdgeResponse[];
+  /** 현재 기록의 publicId (D3 뷰 base 노드 강조용) */
+  baseRecordPublicId?: string;
   isFavorite?: boolean;
   onBack?: () => void;
   onFavoriteToggle?: () => void;
@@ -267,4 +279,45 @@ export interface RecordConnectionHeaderProps {
     location: Location;
   } | null;
   onCancel: () => void;
+}
+
+/**
+ * 기록 즐겨찾기 변경 파라미터
+ */
+export interface UpdateRecordFavoriteParams {
+  publicId: string;
+  isFavorite: boolean;
+}
+
+/**
+ * 기록 목록 데이터 (캐시용)
+ */
+export interface RecordsData {
+  records: (ApiRecord | SearchRecordItem)[];
+  totalCount?: number;
+}
+
+/**
+ * 사이드바 기록 필터링 훅 Props
+ */
+export interface UseSidebarRecordsProps {
+  sortOrder: SortOrder;
+  startDate?: string;
+  endDate?: string;
+  favoritesOnly?: boolean; // 추가 가능성 대비
+  includeImages?: boolean; // 추가 가능성 대비
+  selectedCategory?: string;
+  categories?: { id: string; label: string }[]; // 서버 사이드 필터링으로 변경
+}
+
+/**
+ * 검색 결과 데이터
+ */
+export interface SearchRecordsData {
+  records: SearchRecordItem[];
+  pagination: {
+    hasMore: boolean;
+    nextCursor: string | null;
+    totalCount: number;
+  };
 }

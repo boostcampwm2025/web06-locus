@@ -1,7 +1,9 @@
 import { z } from 'zod';
 import {
   LocationSchema,
+  LocationWithoutCoordsSchema,
   ImageResponseSchema,
+  ImageSizeResponseSchema,
   SuccessResponseSchema,
   FailResponseSchema,
   ErrorResponseSchema,
@@ -95,6 +97,20 @@ export const SearchRecordsRequestSchema = z.object({
 });
 
 /**
+ * 전체 기록 조회 Request (Query Parameters)
+ *
+ * @api GET /records/all
+ */
+export const GetAllRecordsRequestSchema = z.object({
+  page: z.number().int().min(1).optional().default(1),
+  limit: z.number().int().min(10).max(100).optional().default(10),
+  sortOrder: z.enum(['desc', 'asc']).optional().default('desc'),
+  startDate: z.string().datetime().optional(),
+  endDate: z.string().datetime().optional(),
+  tagPublicIds: z.array(z.string()).optional(),
+});
+
+/**
  * 기록 생성 Request (Multipart Form Data의 data 필드)
  *
  * @api POST /records
@@ -176,6 +192,37 @@ export const RecordsByBoundsResponseSchema = SuccessResponseSchema.extend({
 });
 
 /**
+ * 전체 기록 조회용 기록 스키마 (좌표 없음, Response용 - camelCase)
+ *
+ * @api GET /records/all - 응답의 records 배열 아이템
+ * 좌표값은 포함하지 않으며, connectionCount 필드를 포함함
+ */
+export const RecordWithoutCoordsResponseSchema = z.object({
+  publicId: z.string(),
+  title: z.string(),
+  content: z.string().nullable().optional(),
+  location: LocationWithoutCoordsSchema,
+  tags: z.array(TagDetailResponseSchema),
+  images: z.array(ImageResponseSchema).optional(),
+  isFavorite: z.boolean().optional(),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+  connectionCount: z.number(),
+});
+
+/**
+ * 전체 기록 조회 응답 스키마
+ *
+ * @api GET /records/all
+ */
+export const GetAllRecordsResponseSchema = SuccessResponseSchema.extend({
+  data: z.object({
+    records: z.array(RecordWithoutCoordsResponseSchema),
+    totalCount: z.number(),
+  }),
+});
+
+/**
  * 기록 삭제 응답 스키마
  *
  * @api DELETE /records/{public_id}
@@ -188,13 +235,12 @@ export const DeleteRecordResponseSchema = SuccessResponseSchema;
  * @api GET /records/search - 검색 응답의 records 배열 아이템
  */
 export const SearchRecordItemResponseSchema = z.object({
-  recordId: z.number(),
+  recordId: z.string(),
   title: z.string(),
   tags: z.array(z.string()),
-  locationName: z.string(),
+  locationName: z.string().nullable(),
   isFavorite: z.boolean(),
-  thumbnailImage: z.string().url().optional(),
-  date: z.string(),
+  thumbnailImage: z.string().nullable(),
   connectionCount: z.number(),
   createdAt: z.string().datetime(),
 });
@@ -316,6 +362,34 @@ export const ConnectedRecordsResponseSchema = SuccessResponseSchema.extend({
   }),
 });
 
+/**
+ * 연결된 기록 조회(Depth=1) 응답의 기록 스키마 (Response용 - camelCase)
+ *
+ * @api GET /records/{publicId}/graph/details - 응답의 data.records 배열 아이템
+ */
+export const GraphRecordDetailResponseSchema = z.object({
+  publicId: z.string(),
+  title: z.string(),
+  location: LocationSchema,
+  tags: z.array(TagDetailResponseSchema),
+  thumbnail: ImageSizeResponseSchema.nullable(),
+  connectionsCount: z.number().optional(),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+});
+
+/**
+ * 연결된 기록 조회(Depth=1) 응답 스키마
+ *
+ * @api GET /records/{publicId}/graph/details
+ */
+export const GraphDetailsResponseSchema = SuccessResponseSchema.extend({
+  data: z.object({
+    start: z.string(),
+    depth: z.literal(1),
+    records: z.array(GraphRecordDetailResponseSchema),
+  }),
+});
 
 /**
  * 기록 상세 조회 응답 스키마

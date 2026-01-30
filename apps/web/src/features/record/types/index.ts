@@ -17,4 +17,10 @@ export type {
   SortOrder,
   FilterBottomSheetProps,
   RecordDetailPageProps,
+  UpdateRecordFavoriteParams,
+  RecordsData,
+  UseSidebarRecordsProps,
+  SearchRecordsData,
 } from './record';
+
+export type { SearchRecordItem } from '@locus/shared';

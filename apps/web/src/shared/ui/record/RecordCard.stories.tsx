@@ -35,7 +35,7 @@ export const WithImage: Story = {
     date: mockDate,
     tags: ['역사', '명소'],
     connectionCount: 3,
-    imageUrl: 'https://placehold.co/80',
+    imageUrl: '/record-placehold.webp',
     onClick: () => {
       /* empty */
     },
@@ -125,7 +125,7 @@ export const WithManyTags: Story = {
     date: new Date('2025-12-12'),
     tags: ['맛집', '한식', '데이트', '친구', '저녁'],
     connectionCount: 8,
-    imageUrl: 'https://placehold.co/80',
+    imageUrl: '/record-placehold.webp',
     onClick: () => {
       /* empty */
     },
@@ -149,7 +149,7 @@ export const States: Story = {
         date={mockDate}
         tags={['역사', '명소']}
         connectionCount={3}
-        imageUrl="https://placehold.co/80"
+        imageUrl="/record-placehold.webp"
       />
       <RecordCard
         title="북촌 한옥마을"

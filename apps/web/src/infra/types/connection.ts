@@ -2,7 +2,10 @@ import type {
   GraphNode,
   GraphMeta,
   ConnectedRecordDetail,
+  GraphDetailsResponse,
 } from '@locus/shared';
+
+export type { GraphDetailsResponse };
 
 /**
  * 연결 생성 요청

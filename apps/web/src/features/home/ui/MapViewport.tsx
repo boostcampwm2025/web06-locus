@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { AnimatePresence } from 'motion/react';
 import type { MapViewportProps } from '@features/home/types/mapViewport';
 import type { PinMarkerData } from '@/shared/types/marker';
 import { PinOverlay } from '@/infra/map/marker';
@@ -36,6 +37,8 @@ export default function MapViewport({
   targetLocation,
   onTargetLocationChange,
   onCreateRecord,
+  onRecordPinClick,
+  renderLocationConfirmation,
 }: MapViewportProps) {
   const navigate = useNavigate();
   const [isBottomSheetOpen, setIsBottomSheetOpen] = useState(false);
@@ -105,6 +108,7 @@ export default function MapViewport({
   const [fetchBounds, setFetchBounds] = useState<Bounds | null>(null);
 
   // 확장된 bounds로 기록 조회 (GET /records - 확장 bounds 기반)
+  // 지도 뷰 + 클러스터링용: 좌표 포함 데이터 필요
   const { data: recordsByBoundsData } = useGetRecordsByBounds(
     fetchBounds
       ? {
@@ -113,7 +117,7 @@ export default function MapViewport({
           swLat: fetchBounds.swLat,
           swLng: fetchBounds.swLng,
           page: 1,
-          limit: 100, // 충분히 큰 값으로 설정
+          limit: 100, //  클러스터링용 100개 제한
           sortOrder: 'desc',
         }
       : null,
@@ -397,9 +401,8 @@ export default function MapViewport({
         });
         polylinesRef.current = [];
       } else {
-        // 빈 공간 클릭 시 기록 생성 바텀시트 열기
+        // 빈 공간 클릭 시 기록 생성 바텀시트/모달 열기 (데스크톱은 하단 중앙 고정 모달)
         const latlng = e.coord as naver.maps.LatLng;
-        // 역지오코딩은 나중에 구현하고, 일단 기본값 사용
         setSelectedLocation({
           name: '선택한 위치',
           address: '',
@@ -431,7 +434,7 @@ export default function MapViewport({
     };
     // ref는 변경되어도 재렌더링을 트리거하지 않으므로 dependency에서 제외
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isMapLoaded, selectedRecordPublicId]);
+  }, [isMapLoaded, selectedRecordPublicId, renderLocationConfirmation]);
 
   // 좌표를 소수점 4째 자리로 반올림하는 헬퍼 함수
   const roundTo4Decimals = (value: number): number => {
@@ -774,19 +777,20 @@ export default function MapViewport({
     };
   }, [connectedRecords, isMapLoaded, mapInstanceRef, allPins, allRecords]);
 
-  // 보라 핀(기록 핀) 클릭 핸들러 - summary 표시 및 그래프 조회
+  // 보라 핀(기록 핀) 클릭 핸들러 - summary 표시 및 그래프(연결선) 조회 (또는 onRecordPinClick 위임)
   const handleRecordPinClick = (pinId: string | number) => {
+    const publicId = String(pinId);
+    // 연결된 기록(그래프/연결선)은 항상 표시
+    setSelectedPinId(pinId);
+    setSelectedRecordPublicId(publicId);
+    if (onRecordPinClick) {
+      onRecordPinClick(publicId);
+      return;
+    }
     const record = allRecords[pinId];
     if (record) {
-      const publicId = String(pinId);
       setSelectedRecord(record);
       setIsSummaryOpen(true);
-      setSelectedPinId(pinId);
-      // record.id가 publicId라고 가정 (실제 API 응답에 따라 조정 필요)
-      setSelectedRecordPublicId(publicId);
-
-      // 핀 클릭 시 지도 클릭 이벤트가 실행되지 않도록 플래그 설정
-      // (지도 클릭 핸들러의 setTimeout을 취소하기 위해)
     }
   };
 
@@ -962,30 +966,45 @@ export default function MapViewport({
             />
           ))}
 
-        {/* Floating Action Button */}
-        <button
-          type="button"
-          onClick={() => void navigate(ROUTES.CONNECTION)}
-          className="absolute bottom-8 left-1/2 -translate-x-1/2 bg-gray-900 text-white px-6 py-3 rounded-full text-sm font-medium shadow-lg hover:bg-gray-800 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900 focus-visible:ring-offset-2 z-10"
-          aria-label="연결 모드"
-        >
-          연결 모드
-        </button>
+        {/* 연결 모드 FAB (데스크톱에서는 미표시) */}
+        {!onRecordPinClick && (
+          <button
+            type="button"
+            onClick={() => void navigate(ROUTES.CONNECTION)}
+            className="absolute bottom-8 left-1/2 -translate-x-1/2 bg-gray-900 text-white px-6 py-3 rounded-full text-sm font-medium shadow-lg hover:bg-gray-800 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900 focus-visible:ring-offset-2 z-10"
+            aria-label="연결 모드"
+          >
+            연결 모드
+          </button>
+        )}
       </div>
-      {/* 기록 작성용 Bottom Sheet (현재는 사용 안 함) */}
-      {selectedLocation && (
-        <RecordCreateBottomSheet
-          isOpen={isBottomSheetOpen}
-          onClose={handleCloseBottomSheet}
-          locationName={selectedLocation.name}
-          address={selectedLocation.address}
-          coordinates={selectedLocation.coordinates}
-          onConfirm={handleConfirmRecord}
-        />
-      )}
+      {/* 기록 작성용: 데스크톱은 LocationConfirmation, 모바일은 RecordCreateBottomSheet */}
+      {selectedLocation &&
+        (renderLocationConfirmation ? (
+          <AnimatePresence>
+            {renderLocationConfirmation({
+              location: {
+                name: selectedLocation.name,
+                address: selectedLocation.address,
+                coordinates: selectedLocation.coordinates,
+              },
+              onConfirm: handleConfirmRecord,
+              onCancel: handleCloseBottomSheet,
+            })}
+          </AnimatePresence>
+        ) : (
+          <RecordCreateBottomSheet
+            isOpen={isBottomSheetOpen}
+            onClose={handleCloseBottomSheet}
+            locationName={selectedLocation.name}
+            address={selectedLocation.address}
+            coordinates={selectedLocation.coordinates}
+            onConfirm={handleConfirmRecord}
+          />
+        ))}
 
-      {/* 기록 Summary Bottom Sheet */}
-      {selectedRecord && (
+      {/* 기록 Summary Bottom Sheet (onRecordPinClick 제공 시 미표시) */}
+      {selectedRecord && !onRecordPinClick && (
         <RecordSummaryBottomSheet
           isOpen={isSummaryOpen}
           onClose={() => {

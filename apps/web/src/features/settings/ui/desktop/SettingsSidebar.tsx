@@ -17,13 +17,18 @@ const menuItems: {
   { id: 'tags', label: '태그 관리', icon: TagIcon },
 ];
 
-// TODO: api/me 연동
 export function SettingsSidebar({
   activeTab,
   onTabChange,
   onClose,
   onLogout,
+  user,
+  userLoading,
 }: SettingsSidebarProps) {
+  const displayName =
+    user?.nickname ?? user?.email ?? (userLoading ? '불러오는 중…' : '—');
+  const displayEmail = userLoading ? '' : (user?.email ?? '');
+
   return (
     <aside className="w-[320px] bg-gray-50 border-r border-gray-100 flex flex-col h-full">
       <div className="p-8 pb-4">
@@ -40,13 +45,15 @@ export function SettingsSidebar({
             <UserIcon className="w-8 h-8" />
             <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-[#73C92E] border-4 border-gray-50 rounded-full" />
           </div>
-          <div>
-            <h2 className="text-xl font-black text-gray-900 tracking-tight">
-              Lucus
+          <div className="min-w-0 flex-1">
+            <h2 className="text-xl font-black text-gray-900 tracking-tight truncate">
+              {displayName}
             </h2>
-            <p className="text-xs text-gray-400 font-medium">
-              lucus@example.com
-            </p>
+            {displayEmail && (
+              <p className="text-xs text-gray-400 font-medium truncate">
+                {displayEmail}
+              </p>
+            )}
           </div>
         </div>
       </div>

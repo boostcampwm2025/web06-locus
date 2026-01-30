@@ -8,6 +8,7 @@ import type { Record as ApiRecord } from '@locus/shared';
 import type { RecordConnectionItem } from '../../types/recordConnection';
 import type { RecordConnectionDrawerProps } from '@/features/record/types/record';
 import RecordSearchInput from '../RecordSearchInput';
+import { RECORD_PLACEHOLDER_IMAGE } from '@/shared/constants/record';
 import { extractTagNames } from '@/shared/utils/tagUtils';
 import RecommendedRecordsSection from '../RecommendedRecordsSection';
 import RecordSelectionContextSheet from '../RecordSelectionContextSheet';
@@ -169,7 +170,7 @@ export default function RecordConnectionDrawer({
         const thumbnailUrl =
           recordWithImages.images && recordWithImages.images.length > 0
             ? recordWithImages.images[0].thumbnail.url
-            : undefined;
+            : RECORD_PLACEHOLDER_IMAGE;
 
         return {
           id: record.publicId,
@@ -262,7 +263,11 @@ export default function RecordConnectionDrawer({
             id: departure.id,
             title: departure.title,
             location: departure.location,
-            imageUrl: records.find((r) => r.id === departure.id)?.imageUrl,
+            // 출발 기록은 records에서 제외되어 있으므로, fromRecordDetail에서 이미지 사용
+            imageUrl:
+              departure.id === fromRecordId && fromRecordDetail?.images?.length
+                ? fromRecordDetail.images[0].medium.url
+                : records.find((r) => r.id === departure.id)?.imageUrl,
           }}
           arrival={{
             id: arrival.id,

@@ -141,15 +141,12 @@ export class RecordsController {
 
   @Patch(':publicId')
   @ApiOperation({ summary: '기록 수정' })
-  // @ApiConsumes('multipart/form-data')
-  // @UseInterceptors(FilesInterceptor('images', 10))
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   async updateRecord(
     @CurrentUser('sub') userId: bigint,
     @Param('publicId') publicId: string,
     @Body() dto: UpdateRecordDto,
-    // @UploadedFiles() files?: Array<Express.Multer.File>,
   ): Promise<RecordResponseDto> {
     return this.recordsService.updateRecord(userId, publicId, dto);
   }

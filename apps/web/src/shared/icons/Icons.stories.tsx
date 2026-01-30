@@ -48,6 +48,9 @@ import { XMarkIcon } from '../ui/icons/XMarkIcon';
 import { WarningCircleIcon } from '../ui/icons/WarningCircleIcon';
 import { ChevronDownIcon } from '../ui/icons/ChevronDownIcon';
 import { CheckIconMobile } from '../ui/icons/CheckIconMobile';
+import { DownloadIcon } from '../ui/icons/DownloadIcon';
+import { LocusPinIcon } from '../ui/icons/LocusPinIcon';
+import { NavigationIcon } from '../ui/icons/NavigationIcon';
 
 const meta = {
   title: 'Shared/Icons',
@@ -274,6 +277,16 @@ export const IconCatalog: Story = {
             icon={<UsersIcon className="w-8 h-8 text-gray-600" />}
             description="그룹/사용자들 아이콘"
           />
+          <IconCard
+            name="DownloadIcon"
+            icon={<DownloadIcon className="w-8 h-8 text-gray-600" />}
+            description="다운로드/설치 아이콘"
+          />
+          <IconCard
+            name="NavigationIcon"
+            icon={<NavigationIcon className="w-8 h-8 text-gray-600" />}
+            description="방향/내비게이션(위치 라벨용)"
+          />
         </div>
       </div>
 
@@ -356,6 +369,10 @@ export const AllIcons: Story = {
         icon={<MoreVerticalIcon className="w-8 h-8" />}
       />
       <IconCard name="MapPinIcon" icon={<MapPinIcon className="w-8 h-8" />} />
+      <IconCard
+        name="NavigationIcon"
+        icon={<NavigationIcon className="w-8 h-8" />}
+      />
       <IconCard name="Link2Icon" icon={<Link2Icon className="w-8 h-8" />} />
       <IconCard
         name="FileTextIcon"
@@ -388,10 +405,18 @@ export const AllIcons: Story = {
       <IconCard name="ShieldIcon" icon={<ShieldIcon className="w-8 h-8" />} />
       <IconCard name="UsersIcon" icon={<UsersIcon className="w-8 h-8" />} />
       <IconCard name="ClockIcon" icon={<ClockIcon className="w-8 h-8" />} />
+      <IconCard
+        name="DownloadIcon"
+        icon={<DownloadIcon className="w-8 h-8" />}
+      />
       <IconCard name="GoogleIcon" icon={<GoogleIcon className="w-8 h-8" />} />
       <IconCard name="NaverIcon" icon={<NaverIcon className="w-8 h-8" />} />
       <IconCard name="KakaoIcon" icon={<KakaoIcon className="w-8 h-8" />} />
       <IconCard name="Logo" icon={<Logo className="w-16 h-16" />} />
+      <IconCard
+        name="LocusPinIcon"
+        icon={<LocusPinIcon className="w-8 h-8" />}
+      />
       <IconCard
         name="BackArrowIcon"
         icon={<BackArrowIcon className="w-8 h-8" />}

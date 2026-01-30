@@ -64,7 +64,13 @@ export function DesktopFilterPanel({
           }
           selectedDate={startDate}
           onSelect={(date) => {
-            onStartDateChange?.(date);
+            // 시작일이 종료일보다 늦으면: 종료일을 시작일로 두고 종료일은 비움
+            if (endDate && date > endDate) {
+              onStartDateChange?.(endDate);
+              onEndDateChange?.('');
+            } else {
+              onStartDateChange?.(date);
+            }
             setActivePicker(null);
           }}
           onClose={() => setActivePicker(null)}
@@ -80,7 +86,13 @@ export function DesktopFilterPanel({
             }
             selectedDate={endDate}
             onSelect={(date) => {
-              onEndDateChange?.(date);
+              // 종료일이 시작일보다 이전이면: 찍은 날짜를 시작일로, 종료일은 비움
+              if (startDate && date < startDate) {
+                onStartDateChange?.(date);
+                onEndDateChange?.('');
+              } else {
+                onEndDateChange?.(date);
+              }
               setActivePicker(null);
             }}
             onClose={() => setActivePicker(null)}

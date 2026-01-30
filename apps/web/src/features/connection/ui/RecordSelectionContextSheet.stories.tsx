@@ -55,7 +55,7 @@ const mockRecord: RecordConnectionItem = {
   location: { name: '남산', address: '서울특별시 용산구 남산공원길' },
   date: new Date('2025-12-15'),
   tags: ['명소', '자연'],
-  imageUrl: 'https://placehold.co/80',
+  imageUrl: '/record-placehold.webp',
   isRelated: false,
 };
 
