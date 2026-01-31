@@ -8,7 +8,7 @@ import {
   RecordSyncEvent,
   RecordSyncPayload,
 } from '../type/record-sync.types';
-import { RecordSearchService } from '../records-search.service';
+import { RecordSearchService } from '../services/records-search.service';
 import { OUTBOX_EVENT_TYPE } from '@/common/constants/event-types.constants';
 
 @Controller()
