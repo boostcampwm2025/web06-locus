@@ -108,130 +108,16 @@ Locus를 이해하는 가장 빠른 방법입니다.
 
 ---
 
-## 🚀 시작하기
-
-### 사전 요구사항
-
-- **Node.js 22.x** (`.nvmrc` / `package.json` engines 참조, 권장: 22.20.0)
-- **pnpm 9.x** (패키지 매니저, `packageManager` 필드 기준)
-- **PostgreSQL** (백엔드 개발 시 DB)
-- **(선택)** Redis, RabbitMQ, Elasticsearch — 백엔드 전체 기능 사용 시
-
-> [!NOTE]
-> 실행 방법은 프로젝트 업데이트에 따라 변경될 수 있습니다. 최신 내용은 이 README를 참고해 주세요.
-
-### 설치 및 실행
-
-1. **Node.js 버전 설정** (nvm 사용 시)
-
-   ```bash
-   nvm use
-   ```
-
-   > `.nvmrc`에 명시된 Node.js 버전(22.20.0)을 사용합니다.
-
-2. **의존성 설치**
-
-   ```bash
-   pnpm install
-   ```
-
-3. **환경 변수 설정** (`env.example` → `.env`)
-
-   프론트엔드와 백엔드 각각 `.env.example`을 복사한 뒤 값을 채워 넣습니다.
-
-   ```bash
-   # 프론트엔드 (apps/web)
-   cp apps/web/.env.example apps/web/.env
-
-   # 백엔드 (apps/api)
-   cp apps/api/.env.example apps/api/.env
-   ```
-
-   > `.env` 파일에는 API URL, OAuth 클라이언트 정보, DB 연결 정보 등이 들어갑니다.  
-   > `apps/web/.env.example`, `apps/api/.env.example` 안의 주석과 플레이스홀더를 참고해 실제 값으로 수정하세요.
-
-4. **Playwright 브라우저 설치** (필수)
-
-   ```bash
-   pnpm exec playwright install
-   ```
-
-   > [!WARNING]
-   > 스토리북 테스트 실행을 위해 필수입니다.
-
-5. **데이터베이스 설정** (백엔드 실행 전)
-
-   ```bash
-   cd apps/api
-   pnpm db:generate
-   pnpm db:migrate
-   ```
-
-6. **개발 서버 실행**
-
-   ```bash
-   # 전체 앱 동시 실행 (web + api)
-   pnpm dev
-
-   # 프론트엔드만 실행
-   pnpm dev:web
-   # 또는: cd apps/web && pnpm dev
-
-   # 백엔드만 실행
-   pnpm dev:api
-   # 또는: cd apps/api && pnpm dev
-   ```
-
-7. **스토리북 실행**
-
-   ```bash
-   cd apps/web
-   pnpm storybook
-   ```
-
-### 테스트 실행
+## 🚀 Quick Start
 
 ```bash
-# 전체 테스트
-pnpm test
-
-# 프론트엔드 테스트 (Vitest + Storybook)
-pnpm test:web
-
-# 백엔드 테스트 (Jest)
-pnpm test:api
+pnpm install
+cp apps/web/.env.example apps/web/.env
+cp apps/api/.env.example apps/api/.env
+pnpm dev
 ```
 
-### 빌드
-
-```bash
-# 전체 빌드
-pnpm build
-
-# 프론트엔드 빌드
-pnpm build:web
-
-# 백엔드 빌드
-pnpm build:api
-```
-
-### 데이터베이스 설정 (백엔드)
-
-> 처음 설정 시에는 위 **설치 및 실행** 5단계(`db:generate`, `db:migrate`)를 먼저 진행하세요.
-
-```bash
-cd apps/api
-
-# Prisma 클라이언트 생성
-pnpm db:generate
-
-# 마이그레이션 실행
-pnpm db:migrate
-
-# Prisma Studio 실행 (DB GUI)
-pnpm db:studio
-```
+> 자세한 실행/환경변수/DB 세팅은 👉 [Development Guide](https://github.com/boostcampwm2025/web06-locus/wiki/Development-Guide)에서 확인하세요.
 
 ---
 
@@ -298,3 +184,73 @@ pnpm db:studio
 Made with 🐥 by **Team Haping**
 
 > _by you, for memory, thought, and spatial understanding._
+
+<div align="center">
+
+### 💻 Frontend
+
+![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white)
+![React](https://img.shields.io/badge/React-61DAFB?style=for-the-badge&logo=react&logoColor=black)
+![React Router](https://img.shields.io/badge/React_Router-CA4245?style=for-the-badge&logo=react-router&logoColor=white)
+![Vite](https://img.shields.io/badge/Vite-646CFF?style=for-the-badge&logo=vite&logoColor=white)
+<br/>
+![Zustand](https://img.shields.io/badge/Zustand-000000?style=for-the-badge&logo=zustand&logoColor=white)
+![TanStack Query](https://img.shields.io/badge/TanStack_Query-FF4154?style=for-the-badge&logo=reactquery&logoColor=white)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)
+![Zod](https://img.shields.io/badge/Zod-3E63DD?style=for-the-badge&logo=zod&logoColor=white)
+<br/>
+![Vitest](https://img.shields.io/badge/Vitest-6E9F18?style=for-the-badge&logo=vitest&logoColor=white)
+![Testing Library](https://img.shields.io/badge/Testing_Library-E33332?style=for-the-badge&logo=testing-library&logoColor=white)
+![Storybook](https://img.shields.io/badge/Storybook-FF4785?style=for-the-badge&logo=storybook&logoColor=white)
+![Sentry](https://img.shields.io/badge/Sentry-362D59?style=for-the-badge&logo=sentry&logoColor=white)
+
+### ⚙️ Backend & Database
+
+![NestJS](https://img.shields.io/badge/NestJS-E0234E?style=for-the-badge&logo=nestjs&logoColor=white)
+![Prisma](https://img.shields.io/badge/Prisma-2D3748?style=for-the-badge&logo=prisma&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4169E1?style=for-the-badge&logo=postgresql&logoColor=white)
+![Redis](https://img.shields.io/badge/Redis-DC382D?style=for-the-badge&logo=redis&logoColor=white)
+<br/>
+![RabbitMQ](https://img.shields.io/badge/RabbitMQ-FF6600?style=for-the-badge&logo=rabbitmq&logoColor=white)
+![ElasticSearch](https://img.shields.io/badge/ElasticSearch-005571?style=for-the-badge&logo=elasticsearch&logoColor=white)
+![Firebase](https://img.shields.io/badge/Firebase-FFCA28?style=for-the-badge&logo=firebase&logoColor=black)
+![Swagger](https://img.shields.io/badge/Swagger-85EA2D?style=for-the-badge&logo=swagger&logoColor=black)
+
+### 🚀 Infra & Tools
+
+![Naver Cloud](https://img.shields.io/badge/Naver_Cloud-03C75A?style=for-the-badge&logo=naver&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)
+![GitHub Actions](https://img.shields.io/badge/GitHub_Actions-2088FF?style=for-the-badge&logo=github-actions&logoColor=white)
+![pnpm](https://img.shields.io/badge/pnpm-F69220?style=for-the-badge&logo=pnpm&logoColor=white)
+
+</div>
+
+### 🛠 Tech Stack
+
+| Category         | Skills                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| :--------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Frontend**     | ![TS](https://img.shields.io/badge/TypeScript-3178C6?style=flat-square&logo=typescript&logoColor=white) ![React](https://img.shields.io/badge/React-61DAFB?style=flat-square&logo=react&logoColor=black) ![Vite](https://img.shields.io/badge/Vite-646CFF?style=flat-square&logo=vite&logoColor=white) ![Tailwind](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=flat-square&logo=tailwind-css&logoColor=white) |
+| **State & Data** | ![Zustand](https://img.shields.io/badge/Zustand-000000?style=flat-square&logo=zustand&logoColor=white) ![Query](https://img.shields.io/badge/TanStack_Query-FF4154?style=flat-square&logo=reactquery&logoColor=white) ![Zod](https://img.shields.io/badge/Zod-3E63DD?style=flat-square&logo=zod&logoColor=white)                                                                                                         |
+| **Backend**      | ![NestJS](https://img.shields.io/badge/NestJS-E0234E?style=flat-square&logo=nestjs&logoColor=white) ![Prisma](https://img.shields.io/badge/Prisma-2D3748?style=flat-square&logo=prisma&logoColor=white) ![Swagger](https://img.shields.io/badge/Swagger-85EA2D?style=flat-square&logo=swagger&logoColor=black)                                                                                                           |
+| **Storage**      | ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4169E1?style=flat-square&logo=postgresql&logoColor=white) ![Redis](https://img.shields.io/badge/Redis-DC382D?style=flat-square&logo=redis&logoColor=white) ![Elastic](https://img.shields.io/badge/ElasticSearch-005571?style=flat-square&logo=elasticsearch&logoColor=white)                                                                                      |
+| **DevOps/Tools** | ![Docker](https://img.shields.io/badge/Docker-2496ED?style=flat-square&logo=docker&logoColor=white) ![Actions](https://img.shields.io/badge/GH_Actions-2088FF?style=flat-square&logo=github-actions&logoColor=white) ![pnpm](https://img.shields.io/badge/pnpm-F69220?style=flat-square&logo=pnpm&logoColor=white)                                                                                                       |
+
+### 🌟 Technologies
+
+**Frontend**
+
+<p>
+  <img src="https://skillicons.dev/icons?i=ts,react,vite,tailwind,styledcomponents,jest,vitest,sentry" />
+</p>
+
+**Backend & Database**
+
+<p>
+  <img src="https://skillicons.dev/icons?i=nestjs,prisma,postgres,redis,elasticsearch,rabbitmq,firebase" />
+</p>
+
+**Infrastructure & Tools**
+
+<p>
+  <img src="https://skillicons.dev/icons?i=nginx,docker,githubactions,pnpm" />
+</p>
