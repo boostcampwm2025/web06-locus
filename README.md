@@ -69,11 +69,7 @@ _Locus는 생각이 태어난 `장소(Locus)`를 기록의 중심에 둡니다._
 ![pnpm](https://img.shields.io/badge/pnpm-F69220?style=for-the-badge&logo=pnpm&logoColor=white)
 ![Turbo](https://img.shields.io/badge/Turbo-5C1678?style=for-the-badge&logo=turbo&logoColor=white)
 
-</div>
-
----
-
----
+## </div>
 
 ## 인프라 아키텍처
 
@@ -100,29 +96,28 @@ _Locus는 생각이 태어난 `장소(Locus)`를 기록의 중심에 둡니다._
 
 ---
 
----
-
 ## 더 알아보기
 
-Locus를 이해하는 가장 빠른 방법입니다.
+Locus 문서는 **역할별 허브**로 구성되어 있습니다.  
+아래 링크를 따라가면 프로젝트를 빠르게 파악할 수 있습니다.
 
-- 👉 **프로젝트 전반이 궁금하다면**  
-  [Project Overview / 서비스 개요](링크)  
-  → Locus가 어떤 문제를 풀고, 어떤 경험을 제공하는지 한눈에 볼 수 있습니다.
+- 👉 [Product Overview](https://github.com/boostcampwm2025/web06-locus/wiki/Product-Overview)  
+  → 서비스 개요, 문제·유저·가치, 핵심 기능 설계, 판단 기준
 
-- 👉 **프론트엔드 구현이 궁금하다면**  
-  [Frontend 문서 모음](링크)  
-  → UI 흐름, 상태 관리, 지도 렌더링 최적화, 반응형(PWA·데스크톱) 전략
+- 👉 [Frontend 문서 모음](https://github.com/boostcampwm2025/web06-locus/wiki/Frontend)  
+  → UI/UX 설계, 지도 중심 상태 설계, 렌더링/성능 최적화, 안정성 전략
 
-- 👉 **백엔드·아키텍처가 궁금하다면**  
-  [Backend & Architecture](링크)  
-  → API 구조, 검색·알림 시스템, 이벤트 기반 아키텍처, 운영 인프라 설계
+- 👉 [Backend 문서 모음](https://github.com/boostcampwm2025/web06-locus/wiki/Backend)  
+  → 데이터 모델링, 검색/알림 시스템, 공간 데이터 처리, 인프라 설계(NCP)
 
-- 👉 **팀이 어떻게 일했는지 궁금하다면**  
-  [Sprint Log](링크)  
-  → 회고 기록
-  [**팀 공식 블로그**](https://locus-log.tistory.com/)  
-  → 설계 결정 과정, 구현 중 고민, 회고를 기록합니다
+- 👉 [**Team Workflow**](https://github.com/boostcampwm2025/web06-locus/wiki/%ED%8C%80-%ED%98%91%EC%97%85%EC%9D%84-%EC%9C%84%ED%95%9C-PR-Stacking-%EC%A0%84%EB%9E%B5)  
+  → 협업 방식과 작업 흐름(PR Stacking 등)
+
+- 👉 [**Development Guide**](https://github.com/boostcampwm2025/web06-locus/wiki/Development-Guide)  
+  → 로컬 실행, 환경 변수, 테스트/빌드, 운영 방식
+
+- 👉 [Weekly Sprint Log](https://github.com/boostcampwm2025/web06-locus/wiki/Weekly-Sprint-Log) · [팀 공식 블로그](https://locus-log.tistory.com/)  
+  → 주차별 회고와 설계/구현 과정 기록
 
 ---
 
@@ -135,7 +130,7 @@ cp apps/api/.env.example apps/api/.env
 pnpm dev
 ```
 
-> 자세한 실행/환경변수/DB 세팅은 [Development Guide](https://github.com/boostcampwm2025/web06-locus/wiki/Development-Guide)에서 확인하세요.
+> 자세한 실행/환경변수/DB 세팅은 👉 [Development Guide](https://github.com/boostcampwm2025/web06-locus/wiki/Development-Guide)에서 확인하세요.
 
 ---
 
