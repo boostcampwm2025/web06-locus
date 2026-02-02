@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { RecordsController } from './records.controller';
+import { WebhooksController } from './webhooks/webhooks.controller';
 import { RecordsService } from './records.service';
 import { MapsService } from '../maps/maps.service';
 import { PrismaModule } from '@/prisma/prisma.module';
@@ -28,7 +29,7 @@ import { RecordImageService } from './services/records-image.service';
     TagsModule,
     ImagesModule,
   ],
-  controllers: [RecordsController, RecordSyncConsumer],
+  controllers: [RecordsController, WebhooksController, RecordSyncConsumer],
   providers: [
     RecordsService,
     RecordSearchService,
