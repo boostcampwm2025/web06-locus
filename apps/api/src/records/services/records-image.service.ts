@@ -4,7 +4,7 @@ import { ObjectStorageService } from './object-storage.service';
 import { PrismaService } from '@/prisma/prisma.service';
 import { ProcessedImage, UploadedImage } from './object-storage.types';
 import { nanoid } from 'nanoid';
-import { Prisma } from '@prisma/client';
+import { Prisma, ImageStatus } from '@prisma/client';
 import { ImageModel } from '../records.types';
 
 @Injectable()
@@ -131,6 +131,65 @@ export class RecordImageService {
         `[Storage Error] Failed to delete images: ${imageKeys.join(', ')}`,
         error,
       );
+    }
+  }
+
+  /**
+   * Cloud Functions 웹훅: 이미지 리사이징 완료 처리
+   * Image 레코드를 찾아서 URLs와 메타데이터를 업데이트하고 status를 COMPLETED로 변경
+   */
+  async handleResizeComplete(
+    imageId: string,
+    urls: { original: string; thumbnail: string; medium: string },
+    metadata: {
+      original: { width: number; height: number; size: number };
+      thumbnail: { width: number; height: number; size: number };
+      medium: { width: number; height: number; size: number };
+    },
+  ): Promise<void> {
+    try {
+      // Image 레코드 찾기 (publicId = imageId)
+      const image = await this.prisma.image.findUnique({
+        where: { publicId: imageId },
+      });
+
+      if (!image) {
+        // 웹훅이 먼저 도착한 경우 (클라이언트가 아직 createRecordWithPresignedImages 호출 안 함)
+        this.logger.warn(
+          `Image not found for webhook: imageId=${imageId}. Webhook arrived before record creation.`,
+        );
+        return;
+      }
+
+      // Image 업데이트 (URLs, metadata, status)
+      await this.prisma.image.update({
+        where: { publicId: imageId },
+        data: {
+          originalUrl: urls.original,
+          originalWidth: metadata.original.width,
+          originalHeight: metadata.original.height,
+          originalSize: metadata.original.size,
+          thumbnailUrl: urls.thumbnail,
+          thumbnailWidth: metadata.thumbnail.width,
+          thumbnailHeight: metadata.thumbnail.height,
+          thumbnailSize: metadata.thumbnail.size,
+          mediumUrl: urls.medium,
+          mediumWidth: metadata.medium.width,
+          mediumHeight: metadata.medium.height,
+          mediumSize: metadata.medium.size,
+          status: ImageStatus.COMPLETED,
+        },
+      });
+
+      this.logger.log(`Image resize completed: imageId=${imageId}`);
+    } catch (error) {
+      if (error instanceof Error) {
+        this.logger.error(
+          `Failed to handle resize complete: imageId=${imageId}, error=${error.message}`,
+          error.stack,
+        );
+      }
+      throw error;
     }
   }
 
