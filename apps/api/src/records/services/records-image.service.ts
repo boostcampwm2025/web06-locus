@@ -2,11 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ImageProcessingService } from './image-processing.service';
 import { ObjectStorageService } from './object-storage.service';
 import { PrismaService } from '@/prisma/prisma.service';
-import {
-  ImageUrls,
-  ProcessedImage,
-  UploadedImage,
-} from './object-storage.types';
+import { ProcessedImage, UploadedImage } from './object-storage.types';
 import { nanoid } from 'nanoid';
 import { Prisma } from '@prisma/client';
 import { ImageModel } from '../records.types';
@@ -114,16 +110,19 @@ export class RecordImageService {
         originalWidth: true,
         originalHeight: true,
         originalSize: true,
+        status: true,
       },
     });
 
     return this.groupImagesByRecordId(images);
   }
 
-  async deleteImagesFromStorage(imageUrls: ImageUrls[]): Promise<void> {
+  async deleteImagesFromStorage(imageUrls: string[]): Promise<void> {
     if (imageUrls.length === 0) return;
 
-    const imageKeys = this.extractImageKeys(imageUrls);
+    const imageKeys = imageUrls.map((url) =>
+      this.objectStorageService.extractKeyFromUrl(url),
+    );
 
     try {
       await this.objectStorageService.deleteImages(imageKeys);
@@ -133,14 +132,6 @@ export class RecordImageService {
         error,
       );
     }
-  }
-
-  extractImageKeys(images: ImageUrls[]): string[] {
-    return images.flatMap((img) => [
-      this.objectStorageService.extractKeyFromUrl(img.thumbnail),
-      this.objectStorageService.extractKeyFromUrl(img.medium),
-      this.objectStorageService.extractKeyFromUrl(img.original),
-    ]);
   }
 
   private groupImagesByRecordId(
