@@ -19,6 +19,11 @@ import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { FilesInterceptor } from '@nestjs/platform-express';
 import { RecordsService } from './records.service';
 import { CreateRecordDto } from './dto/create-record.dto';
+import { CreateRecordWithPresignedDto } from './dto/create-record-with-presigned.dto';
+import {
+  GenerateUploadUrlsRequestDto,
+  GenerateUploadUrlsResponseDto,
+} from './dto/generate-upload-urls.dto';
 import { GetRecordsQueryDto } from './dto/get-records-query.dto';
 import { GetRecordsByLocationDto } from './dto/get-records-by-location.dto';
 import { GetAllRecordsDto } from './dto/get-all-records.dto';
@@ -88,6 +93,33 @@ export class RecordsController {
     @Query() dto: SearchRecordsDto,
   ): Promise<SearchRecordListResponseDto> {
     return await this.recordsService.searchRecords(userId, dto);
+  }
+
+  @Post('images/upload-urls')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Presigned URL 생성' })
+  @ApiBearerAuth()
+  async generateUploadUrls(
+    @CurrentUser('sub') userId: bigint,
+    @Body() dto: GenerateUploadUrlsRequestDto,
+  ): Promise<GenerateUploadUrlsResponseDto> {
+    return await this.recordsService.generateUploadUrls(userId, dto.count);
+  }
+
+  @Post('with-presigned-images')
+  @HttpCode(HttpStatus.CREATED)
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Presigned URL 방식으로 기록 생성' })
+  @ApiBearerAuth()
+  async createRecordWithPresignedImages(
+    @CurrentUser('sub') userId: bigint,
+    @Body() dto: CreateRecordWithPresignedDto,
+  ): Promise<RecordResponseDto> {
+    return await this.recordsService.createRecordWithPresignedImages(
+      userId,
+      dto,
+    );
   }
 
   @Post()
