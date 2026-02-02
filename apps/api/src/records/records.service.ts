@@ -35,11 +35,7 @@ import {
   OUTBOX_EVENT_TYPE,
 } from '@/common/constants/event-types.constants';
 import { nanoid } from 'nanoid';
-import {
-  ImageUrls,
-  ProcessedImage,
-  UploadedImage,
-} from './services/object-storage.types';
+import { ProcessedImage, UploadedImage } from './services/object-storage.types';
 import { RecordSearchService } from './services/records-search.service';
 import { RecordTagsService } from './services/records-tags.service';
 import { RecordImageService } from './services/records-image.service';
@@ -243,11 +239,11 @@ export class RecordsService {
     if (record.userId !== userId)
       throw new RecordAccessDeniedException(publicId);
 
-    const imageUrls: ImageUrls[] = record.images.map((img) => ({
-      thumbnail: img.thumbnailUrl,
-      medium: img.mediumUrl,
-      original: img.originalUrl,
-    }));
+    const imageUrlsToDelete: string[] = record.images.flatMap((img) =>
+      [img.thumbnailUrl, img.mediumUrl, img.originalUrl].filter(
+        (url): url is string => url !== null,
+      ),
+    );
 
     try {
       await this.prisma.$transaction(async (tx) => {
@@ -260,7 +256,7 @@ export class RecordsService {
           payload: { publicId, userId: userId.toString() },
         });
       });
-      await this.recordImageService.deleteImagesFromStorage(imageUrls);
+      await this.recordImageService.deleteImagesFromStorage(imageUrlsToDelete);
     } catch (error) {
       if (error instanceof Error) {
         this.logger.error(
