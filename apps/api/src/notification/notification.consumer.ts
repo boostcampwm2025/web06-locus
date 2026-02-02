@@ -36,6 +36,8 @@ export class NotificationConsumer {
     const { notifyDatas, attempt } = payload;
 
     try {
+      this.logger.log(`[Consumer]: ${notifyDatas.length}`);
+
       const retryNotifyDatas =
         await this.fcmService.sendDailyReminderBatch(notifyDatas);
 

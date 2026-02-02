@@ -1,13 +1,13 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ElasticsearchService } from '@nestjs/elasticsearch';
 import { errors } from '@elastic/elasticsearch';
-import { RecordSearchService } from '../../src/records/records-search.service';
-import { RecordSyncPayload } from '../../src/records/type/record-sync.types';
+import { RecordSearchService } from '../../../src/records/services/records-search.service';
+import { RecordSyncPayload } from '../../../src/records/type/record-sync.types';
 import {
   RECORD_INDEX_NAME,
   RECORD_INDEX_SETTINGS,
   RECORD_SEARCH_MAPPING,
-} from '../../src/records/constants/record-search.constant';
+} from '../../../src/records/constants/record-search.constant';
 import { ESDocumentNotFoundException } from '@/records/exceptions/record.exceptions';
 import { SearchRecordsDto } from '@/records/dto/search-records.dto';
 
@@ -157,7 +157,7 @@ describe('RecordSearchService', () => {
       expect(filters).not.toContainEqual({ term: { isFavorite: true } });
     });
 
-    test('isFavorite이 true일 때만 isFavorite 필터가 포함되어 bear 한다', async () => {
+    test('isFavorite이 true일 때만 isFavorite 필터가 포함되어야 한다', async () => {
       // given
       const userId = 1n;
       const dto: SearchRecordsDto = {
@@ -237,6 +237,117 @@ describe('RecordSearchService', () => {
       expect(mockElasticsearchService.search).toHaveBeenCalledWith(
         expect.objectContaining({
           search_after: cursorContent,
+        }),
+      );
+    });
+
+    test('검색 결과 데이터(_source)가 누락된 경우에도 안전하게 처리해야 한다', async () => {
+      // given
+      const userId = 1n;
+      const dto: SearchRecordsDto = {
+        keyword: 'test',
+        hasImage: false,
+        isFavorite: false,
+      };
+
+      const brokenResult = {
+        hits: {
+          total: { value: 1 },
+          hits: [{ sort: [123] }],
+        },
+      };
+
+      mockElasticsearchService.search.mockResolvedValue(brokenResult);
+
+      // when
+      const result = await service.search(userId, dto);
+
+      // then
+      expect(result.hits.hits).toHaveLength(1);
+      expect(result.hits.hits[0]._source).toBeUndefined();
+    });
+
+    test('검색 결과가 여러 페이지일 때 cursor를 올바르게 생성할 수 있어야 한다', async () => {
+      // given
+      const userId = 1n;
+      const dto: SearchRecordsDto = {
+        keyword: 'multi-page',
+        hasImage: false,
+        isFavorite: false,
+        size: 2,
+      };
+
+      const mockResult = {
+        hits: {
+          total: { value: 10, relation: 'eq' },
+          hits: [
+            {
+              _source: { publicId: 'rec_1', title: 'First' },
+              sort: [1704067200000, 'rec_1'],
+            },
+            {
+              _source: { publicId: 'rec_2', title: 'Second' },
+              sort: [1704153600000, 'rec_2'],
+            },
+          ],
+        },
+      };
+
+      mockElasticsearchService.search.mockResolvedValue(mockResult);
+
+      // when
+      const result = await service.search(userId, dto);
+
+      // then
+      expect(result.hits.hits).toHaveLength(2);
+      expect(result.hits.hits[1].sort).toEqual([1704153600000, 'rec_2']);
+    });
+
+    test('빈 검색 결과에 대해서도 올바른 응답을 반환해야 한다', async () => {
+      // given
+      const userId = 1n;
+      const dto: SearchRecordsDto = {
+        keyword: 'nonexistent',
+        hasImage: false,
+        isFavorite: false,
+      };
+
+      mockElasticsearchService.search.mockResolvedValue({
+        hits: {
+          total: { value: 0, relation: 'eq' },
+          hits: [],
+        },
+      });
+
+      // when
+      const result = await service.search(userId, dto);
+
+      // then
+      expect(result.hits.hits).toEqual([]);
+      expect(result.hits.total).toEqual({ value: 0, relation: 'eq' });
+    });
+
+    test('size가 지정되지 않은 경우 기본값(20)으로 검색해야 한다', async () => {
+      // given
+      const userId = 1n;
+      const dto: SearchRecordsDto = {
+        keyword: 'default-size',
+        hasImage: false,
+        isFavorite: false,
+        // size가 없음
+      };
+
+      mockElasticsearchService.search.mockResolvedValue({
+        hits: { total: 0, hits: [] },
+      });
+
+      // when
+      await service.search(userId, dto);
+
+      // then
+      expect(mockElasticsearchService.search).toHaveBeenCalledWith(
+        expect.objectContaining({
+          size: 20,
         }),
       );
     });
@@ -496,6 +607,23 @@ describe('RecordSearchService', () => {
 
       // when & then
       await expect(service.deleteRecord(recordId)).rejects.toThrow(error);
+    });
+
+    test('이미 삭제된 문서(404)인 경우 경고만 로그하고 예외를 던지지 않아야 한다', async () => {
+      // given
+      const recordId = '404';
+      const elastic404Error = new errors.ResponseError({
+        body: { error: 'not_found' },
+        statusCode: 404,
+        warnings: null,
+        meta: {} as any,
+      });
+      mockElasticsearchService.delete = jest
+        .fn()
+        .mockRejectedValue(elastic404Error);
+
+      // when & then
+      await expect(service.deleteRecord(recordId)).resolves.not.toThrow();
     });
   });
 });

@@ -25,10 +25,15 @@ export class FcmService {
   ): Promise<NotificationData[]> {
     // FCM 배치 전송
     const tokens = notifyDatas.map((n) => n.token);
+    this.logger.log(`[DEBUG] FCM 전송 시작 - 토큰 개수: ${tokens.length}`);
     const dailyReminderMessage = this.buildDailyReminderContent();
     const batchResponse = await this.sendMulticastPushNotification(
       tokens,
       dailyReminderMessage,
+    );
+
+    this.logger.log(
+      `[DEBUG] FCM 응답 결과 - 성공: ${batchResponse.successCount}, 실패: ${batchResponse.failureCount}`,
     );
 
     return batchResponse.responses.reduce((acc, response, index) => {
@@ -73,7 +78,13 @@ export class FcmService {
       tokens,
       ...messagePayload,
     };
-    return await this.firebaseAdmin.messaging().sendEachForMulticast(message);
+    const result = await this.firebaseAdmin
+      .messaging()
+      .sendEachForMulticast(message);
+    this.logger.log(
+      `[FCM] 전송 완료. 성공: ${result.successCount}, 실패: ${result.failureCount}`,
+    );
+    return result;
   }
 
   private buildDailyReminderContent(): BaseMessage {
