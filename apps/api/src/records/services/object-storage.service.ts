@@ -10,6 +10,7 @@ import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import {
   IMAGE_SIZES,
   ImageSize,
+  TEMP_UPLOAD_KEY,
   ProcessedImage,
   UploadedImage,
 } from './object-storage.types';
@@ -147,9 +148,9 @@ export class ObjectStorageService {
     userPublicId: string,
     recordPublicId: string,
     imageId: string,
-    size: ImageSize,
+    variant: ImageSize | typeof TEMP_UPLOAD_KEY,
   ): string {
-    return `records/${userPublicId}/${recordPublicId}/${imageId}/${size}.jpg`;
+    return `records/${userPublicId}/${recordPublicId}/${imageId}/${variant}.jpg`;
   }
 
   /**

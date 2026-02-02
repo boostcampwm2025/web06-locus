@@ -43,6 +43,7 @@ import {
 import { nanoid } from 'nanoid';
 import {
   IMAGE_SIZE,
+  TEMP_UPLOAD_KEY,
   ProcessedImage,
   UploadedImage,
 } from './services/object-storage.types';
@@ -96,7 +97,7 @@ export class RecordsService {
           user.publicId,
           recordPublicId,
           imageId,
-          IMAGE_SIZE.ORIGINAL,
+          TEMP_UPLOAD_KEY,
         );
         const uploadUrl =
           await this.objectStorageService.generatePresignedUrl(key);
@@ -121,14 +122,14 @@ export class RecordsService {
   ): Promise<RecordResponseDto> {
     const user = await this.usersService.findById(userId);
 
-    // S3 HEAD로 각 imageId 존재 확인 (병렬)
+    // S3 HEAD로 각 imageId의 pre-resizing.jpg 존재 확인 (병렬)
     await Promise.all(
       dto.imageIds.map(async (imageId) => {
         const key = this.objectStorageService.buildKey(
           user.publicId,
           dto.recordPublicId,
           imageId,
-          IMAGE_SIZE.ORIGINAL,
+          TEMP_UPLOAD_KEY,
         );
         const exists = await this.objectStorageService.checkExists(key);
         if (!exists) {
