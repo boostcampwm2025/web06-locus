@@ -63,7 +63,9 @@ export function DuckMapSceneHybrid({
       }}
       aria-label="클릭한 위치로 오리가 이동합니다"
     >
-      {children}
+      {children != null ? (
+        <div className="absolute inset-0 z-0">{children}</div>
+      ) : null}
       {hint ? (
         <p className="absolute left-4 top-4 z-10 text-xs text-slate-500">
           {hint}
@@ -71,7 +73,7 @@ export function DuckMapSceneHybrid({
       ) : null}
 
       <motion.div
-        className="absolute left-0 top-0 will-change-transform"
+        className="absolute left-0 top-0 z-10 will-change-transform"
         animate={{ x: pos.x - HALF, y: pos.y - HALF }}
         transition={{
           type: 'tween',
