@@ -4,7 +4,9 @@ import {
   S3Client,
   PutObjectCommand,
   DeleteObjectsCommand,
+  HeadObjectCommand,
 } from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import {
   IMAGE_SIZES,
   ImageSize,
@@ -141,13 +143,59 @@ export class ObjectStorageService {
     }
   }
 
-  private buildKey(
+  buildKey(
     userPublicId: string,
     recordPublicId: string,
     imageId: string,
     size: ImageSize,
   ): string {
     return `records/${userPublicId}/${recordPublicId}/${imageId}/${size}.jpg`;
+  }
+
+  /**
+   * Presigned URL 생성
+   * @param key - S3 객체 키
+   * @param expiresIn - 만료 시간 (초 단위, 기본 1시간)
+   * @returns presigned URL
+   */
+  async generatePresignedUrl(key: string, expiresIn = 3600): Promise<string> {
+    const command = new PutObjectCommand({
+      Bucket: this.bucketName,
+      Key: key,
+      ContentType: 'image/jpeg',
+      ACL: 'public-read',
+    });
+
+    return await getSignedUrl(this.s3Client, command, { expiresIn });
+  }
+
+  /**
+   * S3 객체 존재 여부 확인 (HEAD 요청)
+   * @param key - S3 객체 키
+   * @returns 존재 여부
+   */
+  async checkExists(key: string): Promise<boolean> {
+    try {
+      const command = new HeadObjectCommand({
+        Bucket: this.bucketName,
+        Key: key,
+      });
+      await this.s3Client.send(command);
+      return true;
+    } catch (error: unknown) {
+      // NotFound 에러 체크
+      if (error instanceof Error && error.name === 'NotFound') {
+        return false;
+      }
+      // 404 상태 코드 체크
+      if (typeof error === 'object' && error !== null && '$metadata' in error) {
+        const awsError = error as { $metadata?: { httpStatusCode?: number } };
+        if (awsError.$metadata?.httpStatusCode === 404) {
+          return false;
+        }
+      }
+      throw error;
+    }
   }
 
   /**
