@@ -199,6 +199,15 @@ export class ObjectStorageService {
   }
 
   /**
+   * S3 키로부터 전체 URL 생성
+   * @param key - S3 객체 키
+   * @returns 전체 URL
+   */
+  buildUrl(key: string): string {
+    return `${this.publicUrl}/${key}`;
+  }
+
+  /**
    * 저장된 URL에서 S3 키를 추출합니다.
    * URL 형식: ${publicUrl}/${key}
    */
