@@ -145,7 +145,7 @@ export class RecordsService {
             userId,
             updatedRecord,
             tagNames,
-            images[0]?.thumbnailUrl,
+            images[0]?.thumbnailUrl ?? undefined,
           ),
         });
 
