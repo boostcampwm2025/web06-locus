@@ -9,8 +9,8 @@ import { ValidationException } from './common/exceptions/validation.exception';
 import { ValidationError } from 'class-validator';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
   process.env.TZ = 'Asia/Seoul';
+  const app = await NestFactory.create(AppModule);
 
   app.setGlobalPrefix('api');
 
