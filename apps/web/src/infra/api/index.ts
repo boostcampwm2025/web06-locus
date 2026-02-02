@@ -75,4 +75,5 @@ export const apiClient = async <T = unknown>(
 
 // 자주 사용하는 함수 re-export
 export { buildApiUrl } from './core/buildUrl';
+export { buildOAuthUrl } from './core/buildOAuthUrl';
 export { executeRefresh } from './auth/tokenRefresh';
