@@ -10,6 +10,7 @@ import { ValidationError } from 'class-validator';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  process.env.TZ = 'Asia/Seoul';
 
   app.setGlobalPrefix('api');
 
