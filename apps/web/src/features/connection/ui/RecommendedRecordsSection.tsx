@@ -1,3 +1,4 @@
+import { RECORD_PLACEHOLDER_IMAGE } from '@/shared/constants/record';
 import { LocationIcon } from '@/shared/ui/icons/LocationIcon';
 import { ConnectionBadge } from '@/shared/ui/badge';
 import type {
@@ -63,18 +64,16 @@ function RecordConnectionCard({
       onClick={onClick}
       className={`flex items-start gap-3 p-4 bg-white border-b border-gray-100 hover:bg-gray-50 transition-colors text-left w-full ${className}`}
     >
-      {/* 이미지 영역 */}
-      {record.imageUrl && (
-        <div className="shrink-0 w-20 h-20 rounded-lg overflow-hidden">
-          <img
-            src={record.imageUrl}
-            alt=""
-            loading="lazy"
-            decoding="async"
-            className="w-full h-full object-cover"
-          />
-        </div>
-      )}
+      {/* 이미지 영역 - 없으면 기본 이미지 */}
+      <div className="shrink-0 w-20 h-20 rounded-lg overflow-hidden">
+        <img
+          src={record.imageUrl ?? RECORD_PLACEHOLDER_IMAGE}
+          alt=""
+          loading="lazy"
+          decoding="async"
+          className="w-full h-full object-cover"
+        />
+      </div>
 
       {/* 콘텐츠 영역 */}
       <div className="flex-1 min-w-0 flex flex-col gap-2">
@@ -91,10 +90,14 @@ function RecordConnectionCard({
           )}
         </div>
 
-        {/* 위치 & 날짜 */}
+        {/* 위치 & 날짜 (name 우선, 없으면 address) */}
         <div className="flex items-center gap-1.5 text-sm text-gray-500">
           <LocationIcon className="w-4 h-4 shrink-0" />
-          <span className="truncate">{record.location.name}</span>
+          <span className="truncate">
+            {record.location.name?.trim() ||
+              record.location.address?.trim() ||
+              '장소 없음'}
+          </span>
           <span className="mx-1">·</span>
           <span>{formatDateShort(record.date)}</span>
         </div>

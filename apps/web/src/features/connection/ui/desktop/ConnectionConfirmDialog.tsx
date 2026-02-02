@@ -1,6 +1,7 @@
 import { AnimatePresence, motion } from 'motion/react';
 import { LinkIcon } from '@/shared/ui/icons/LinkIcon';
 import { PlusIcon } from '@/shared/ui/icons/PlusIcon';
+import { RECORD_PLACEHOLDER_IMAGE } from '@/shared/constants/record';
 import { ImageWithFallback } from '@/shared/ui/image';
 import type { ConnectionConfirmDialogProps } from '@/features/record/types/record';
 
@@ -130,7 +131,7 @@ function ConnectionNode({
     <div className="relative z-10 flex flex-col items-center w-1/3">
       <div className="w-28 h-28 rounded-[32px] overflow-hidden shadow-xl mb-4 border-4 border-white ring-1 ring-gray-100">
         <ImageWithFallback
-          src={imageUrl ?? 'https://placehold.co/400x400'}
+          src={imageUrl ?? RECORD_PLACEHOLDER_IMAGE}
           alt={title}
           className="w-full h-full object-cover"
         />

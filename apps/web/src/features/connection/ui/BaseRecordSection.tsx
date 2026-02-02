@@ -36,13 +36,15 @@ function BaseRecordLocationDate({
   location,
   date,
 }: {
-  location: { name: string };
+  location: { name: string; address: string };
   date: Date;
 }) {
   return (
     <div className="flex items-center gap-1.5 text-sm text-white mb-3">
       <LocationIcon className="w-4 h-4 shrink-0 text-white" />
-      <span>{location.name}</span>
+      <span>
+        {location.name?.trim() || location.address?.trim() || '장소 없음'}
+      </span>
       <span>{formatDateShort(date)}</span>
     </div>
   );

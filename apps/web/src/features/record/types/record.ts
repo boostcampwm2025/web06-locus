@@ -1,5 +1,10 @@
 import type { ChangeEvent } from 'react';
-import type { Record as ApiRecord, SearchRecordItem } from '@locus/shared';
+import type {
+  Record as ApiRecord,
+  SearchRecordItem,
+  GraphNode,
+} from '@locus/shared';
+import type { GraphEdgeResponse } from '@/infra/types/connection';
 
 /**
  * 위치 정보
@@ -214,6 +219,12 @@ export interface RecordDetailPageProps {
   imageUrl?: string;
   connectionCount: number;
   connectedRecords?: ConnectedRecord[];
+  /** GET /records/{publicId}/graph 응답의 nodes (데스크톱 사이드패널 D3 뷰용) */
+  graphNodes?: GraphNode[];
+  /** GET /records/{publicId}/graph 응답의 edges (데스크톱 사이드패널 D3 뷰용) */
+  graphEdges?: GraphEdgeResponse[];
+  /** 현재 기록의 publicId (D3 뷰 base 노드 강조용) */
+  baseRecordPublicId?: string;
   isFavorite?: boolean;
   onBack?: () => void;
   onFavoriteToggle?: () => void;

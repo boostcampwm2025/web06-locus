@@ -6,6 +6,7 @@ import type {
   DeleteConnectionResponse,
   GraphEdgeResponse,
   GraphResponse,
+  GraphDetailsResponse,
   ConnectedRecordsResponse,
 } from '@/infra/types/connection';
 
@@ -15,6 +16,7 @@ export type {
   DeleteConnectionResponse,
   GraphEdgeResponse,
   GraphResponse,
+  GraphDetailsResponse,
   ConnectedRecordsResponse,
 };
 
@@ -86,6 +88,21 @@ export async function getRecordGraph(
   });
 
   return response;
+}
+
+/**
+ * 연결된 기록 조회 (Depth=1, 페이지네이션 없음)
+ * GET /records/{publicId}/graph/details
+ */
+export async function getRecordGraphDetails(
+  publicId: string,
+): Promise<GraphDetailsResponse> {
+  return apiClient<GraphDetailsResponse>(
+    API_ENDPOINTS.RECORDS_GRAPH_DETAILS(publicId),
+    {
+      method: 'GET',
+    },
+  );
 }
 
 /**

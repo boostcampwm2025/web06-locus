@@ -101,3 +101,21 @@ export class AuthError extends Error {
 export function isAuthError(error: unknown): error is AuthError {
   return error instanceof AuthError;
 }
+
+/**
+ * 네트워크 오류 여부 (Failed to fetch, 오프라인 등)
+ * 토스트에서 "네트워크가 불안정합니다." 등으로 대체 표시할 때 사용
+ */
+export function isNetworkError(error: unknown): boolean {
+  if (error instanceof TypeError && error.message === 'Failed to fetch')
+    return true;
+  if (error instanceof Error) {
+    const msg = error.message.toLowerCase();
+    return (
+      msg === 'failed to fetch' ||
+      msg.includes('network request failed') ||
+      msg.includes('networkerror')
+    );
+  }
+  return false;
+}

@@ -16,9 +16,27 @@ import { useDeleteRecord } from '@/features/record/hooks/useDeleteRecord';
 import { useGetRecordDetail } from '@/features/record/hooks/useGetRecordDetail';
 import { useUpdateRecordFavorite } from '@/features/record/hooks/useUpdateRecordFavorite';
 import { useRecordGraph } from '@/features/connection/hooks/useRecordGraph';
+import { useRecordGraphDetails } from '@/features/connection/hooks/useRecordGraphDetails';
 import { logger } from '@/shared/utils/logger';
 import { useToast } from '@/shared/ui/toast';
-import type { RecordDetail } from '@locus/shared';
+import { RECORD_PLACEHOLDER_IMAGE } from '@/shared/constants/record';
+import type { RecordDetail, GraphDetailsResponse } from '@locus/shared';
+
+/** GET /records/{publicId}/graph/details 응답의 data.records 배열 요소 타입 */
+type GraphRecordDetail = GraphDetailsResponse['data']['records'][number];
+
+function getGraphDetailsRecords(
+  value: unknown,
+): GraphRecordDetail[] | undefined {
+  if (value == null || typeof value !== 'object') return undefined;
+  const v = value as {
+    status?: string;
+    data?: { records?: GraphRecordDetail[] };
+  };
+  if (v.status === 'success' && Array.isArray(v.data?.records))
+    return v.data.records;
+  return undefined;
+}
 
 // 라우트별 지연 로딩
 const OAuthLoginPage = lazy(() => import('@/features/auth/ui/OAuthLoginPage'));
@@ -80,6 +98,57 @@ function RecordDetailPageRoute() {
     enabled: !!id,
   });
 
+  // 연결된 기록 상세 (제목·장소 등, D3 노드 제목·connectedRecords용)
+  const { data: graphDetailsData } = useRecordGraphDetails(id ?? null, {
+    enabled: !!id,
+  });
+
+  // 연결된 기록 목록 (graph/details → RecordDetailPage connectedRecords)
+  const connectedRecordsFromApi = useMemo((): {
+    id: string;
+    title: string;
+    location: { name: string; address: string };
+    date: Date;
+    tags: string[];
+    imageUrl?: string;
+  }[] => {
+    const records = getGraphDetailsRecords(graphDetailsData);
+    if (!records?.length) return [];
+
+    return records.map((record: GraphRecordDetail) => ({
+      id: record.publicId,
+      title: record.title,
+      location: {
+        name: record.location?.name ?? '',
+        address: record.location?.address ?? '',
+      },
+      date: new Date(record.createdAt),
+      tags: (record.tags ?? []).map((tag: { name: string }) => tag.name),
+      imageUrl: record.thumbnail?.url ?? RECORD_PLACEHOLDER_IMAGE,
+    }));
+  }, [graphDetailsData]);
+
+  // D3 네트워크 뷰용: 노드에 제목 병합 (기준 기록 = recordDetail, 연결 = graph/details)
+  const enrichedGraphNodes = useMemo(() => {
+    const nodes = graphData?.data?.nodes;
+    if (!nodes?.length) return undefined;
+
+    const titleByPublicId = new Map<string, string>();
+    if (id && recordDetail) titleByPublicId.set(id, recordDetail.title);
+
+    for (const r of connectedRecordsFromApi) titleByPublicId.set(r.id, r.title);
+
+    return nodes.map(
+      (node: {
+        publicId: string;
+        location: { latitude: number; longitude: number };
+      }) => ({
+        ...node,
+        title: titleByPublicId.get(node.publicId) ?? '제목 없음',
+      }),
+    );
+  }, [graphData?.data?.nodes, id, recordDetail, connectedRecordsFromApi]);
+
   if (!id) {
     logger.warn('기록 상세 페이지: ID가 없음');
     return (
@@ -128,11 +197,11 @@ function RecordDetailPageRoute() {
       : 0;
 
   // API 응답을 RecordDetailPageProps로 변환
-  // 이미지가 있는 경우 첫 번째 이미지의 썸네일 URL 사용
+  // 이미지가 있는 경우 첫 번째 이미지의 썸네일 URL 사용, 없으면 기본 이미지
   const thumbnailImageUrl =
     detail.images && detail.images.length > 0
       ? detail.images[0]?.medium.url
-      : undefined;
+      : RECORD_PLACEHOLDER_IMAGE;
 
   // 태그를 문자열 배열로 변환 (기존 타입 호환)
   const tags = (detail.tags ?? []).map((tag) => tag.name);
@@ -209,22 +278,14 @@ function RecordDetailPageRoute() {
     })();
   };
 
-  // 연결된 기록 목록 (API 연동 전이므로 빈 배열)
-  // TODO: API 연동 후 graphData에서 연결된 기록 상세 정보를 가져와서 전달
-  const connectedRecords: {
-    id: string;
-    title: string;
-    location: { name: string; address: string };
-    date: Date;
-    tags: string[];
-    imageUrl?: string;
-  }[] = [];
-
   return (
     <Suspense fallback={<RouteLoadingFallback />}>
       <RecordDetailPage
         {...recordProps}
-        connectedRecords={connectedRecords}
+        connectedRecords={connectedRecordsFromApi}
+        graphNodes={enrichedGraphNodes ?? graphData?.data?.nodes}
+        graphEdges={graphData?.data?.edges}
+        baseRecordPublicId={id}
         onBack={() => void navigate(ROUTES.RECORD_LIST)}
         onFavoriteToggle={handleFavoriteToggle}
         // onMenuClick을 전달하지 않으면 내부에서 ActionSheet를 열도록 함
@@ -272,7 +333,7 @@ function ConnectionManagementPageRoute() {
   const { data: recordDetail, isLoading: isRecordDetailLoading } =
     useGetRecordDetail(id ?? null);
 
-  // 연결 그래프 조회
+  // 연결 그래프 조회 (D3 네트워크 뷰용 nodes/edges)
   const {
     data: graphData,
     isLoading: isGraphLoading,
@@ -281,7 +342,12 @@ function ConnectionManagementPageRoute() {
     enabled: !!id,
   });
 
-  // 연결된 기록 publicId 추출
+  // 연결된 기록 상세 조회 (제목·장소·태그·썸네일 등 목록용)
+  const { data: graphDetailsData } = useRecordGraphDetails(id ?? null, {
+    enabled: !!id,
+  });
+
+  // 연결된 기록 publicId 추출 (baseRecord.connectionCount, D3용)
   const connectedRecordIds = useMemo(() => {
     if (!graphData?.data?.edges || !id) return [];
     const connectedIds = new Set<string>();
@@ -295,35 +361,48 @@ function ConnectionManagementPageRoute() {
     return Array.from(connectedIds);
   }, [graphData?.data?.edges, id]);
 
-  // 연결된 기록 목록 변환 (그래프 API의 nodes에서 위치 정보만 사용)
-  // TODO: 각 연결된 기록의 상세 정보를 개별 API로 가져와야 함.
-  // 현재는 그래프 API의 nodes에서 위치 정보만 사용
-  const connectedRecords = useMemo(() => {
-    if (!graphData?.data?.nodes || connectedRecordIds.length === 0) return [];
+  // 연결된 기록 목록: GET /records/{publicId}/graph/details 응답으로 변환
+  const connectedRecords = useMemo((): {
+    id: string;
+    title: string;
+    location: { name: string; address: string };
+    date: Date;
+    tags: string[];
+    imageUrl?: string;
+  }[] => {
+    const records = getGraphDetailsRecords(graphDetailsData);
+    if (!records?.length) return [];
 
-    return connectedRecordIds
-      .map((connectedId) => {
-        const node = graphData.data.nodes.find(
-          (n) => n.publicId === connectedId,
-        );
-        if (!node) return null;
+    return records.map((record: GraphRecordDetail) => ({
+      id: record.publicId,
+      title: record.title,
+      location: {
+        name: record.location?.name ?? '',
+        address: record.location?.address ?? '',
+      },
+      date: new Date(record.createdAt),
+      tags: (record.tags ?? []).map((tag: { name: string }) => tag.name),
+      imageUrl: record.thumbnail?.url ?? RECORD_PLACEHOLDER_IMAGE,
+    }));
+  }, [graphDetailsData]);
 
-        return {
-          id: connectedId,
-          title: '', // 그래프 API는 위치 정보만 제공
-          location: {
-            name: '', // 위치 정보는 있지만 name/address는 없음
-            address: '',
-          },
-          date: new Date(), // 그래프 API에는 날짜 정보 없음
-          tags: [], // 그래프 API에는 태그 정보 없음
-          imageUrl: undefined,
-        };
-      })
-      .filter(
-        (record): record is NonNullable<typeof record> => record !== null,
-      );
-  }, [graphData?.data?.nodes, connectedRecordIds]);
+  // D3 네트워크 뷰용: graph API nodes에는 title 없음 → graph/details·기준 기록에서 병합
+  const enrichedGraphNodes = useMemo(() => {
+    const nodes = graphData?.data?.nodes;
+    if (!nodes?.length) return undefined;
+    const titleByPublicId = new Map<string, string>();
+    if (id && recordDetail) titleByPublicId.set(id, recordDetail.title);
+    for (const r of connectedRecords) titleByPublicId.set(r.id, r.title);
+    return nodes.map(
+      (node: {
+        publicId: string;
+        location: { latitude: number; longitude: number };
+      }) => ({
+        ...node,
+        title: titleByPublicId.get(node.publicId) ?? '제목 없음',
+      }),
+    );
+  }, [graphData?.data?.nodes, id, recordDetail, connectedRecords]);
 
   if (!id) {
     return (
@@ -374,6 +453,9 @@ function ConnectionManagementPageRoute() {
       <ConnectionManagementPage
         baseRecord={baseRecord}
         connectedRecords={connectedRecords}
+        graphNodes={enrichedGraphNodes}
+        graphEdges={graphData?.data?.edges}
+        baseRecordPublicId={id}
         onBack={() => {
           if (id) {
             void navigate(generatePath(ROUTES.RECORD_DETAIL, { id }));

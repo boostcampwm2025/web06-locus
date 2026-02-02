@@ -10,6 +10,7 @@ import { LocationIcon } from '@/shared/ui/icons/LocationIcon';
 import { CalendarIcon } from '@/shared/ui/icons/CalendarIcon';
 import { ChevronRightIcon } from '@/shared/ui/icons/ChevronRightIcon';
 import { LinkIcon } from '@/shared/ui/icons/LinkIcon';
+import { RECORD_PLACEHOLDER_IMAGE } from '@/shared/constants/record';
 import { ImageSkeleton } from '@/shared/ui/skeleton';
 import { useScrollPosition } from '@/shared/hooks/useScrollPosition';
 import { useIntersectionObserver } from '@/shared/hooks/useIntersectionObserver';
@@ -48,6 +49,9 @@ export function DesktopSidebar({
   onRecordSelect,
   onOpenFullDetail,
   onStartConnection,
+  pinSelectedRecordIds = null,
+  pinSelectedRecordsOverride = null,
+  onClearPinSelection,
 }: DesktopSidebarProps) {
   const navigate = useNavigate();
   const [isFilterOpen, setIsFilterOpen] = useState(false);
@@ -179,13 +183,33 @@ export function DesktopSidebar({
       ? isSearchLoading
       : isRecordsLoading;
 
-  // 무한 스크롤: 표시할 레코드만 선택
-  const records = useMemo(() => {
-    return allRecords.slice(0, displayCount);
-  }, [allRecords, displayCount]);
+  // 핀 선택 시 해당 기록만 필터링 (override가 있으면 사용, 없으면 allRecords에서 필터)
+  const filteredRecords = useMemo(() => {
+    if (pinSelectedRecordIds && pinSelectedRecordIds.length > 0) {
+      if (pinSelectedRecordsOverride && pinSelectedRecordsOverride.length > 0) {
+        return pinSelectedRecordsOverride.map((r) => ({
+          ...r,
+          connectionCount: r.connectionCount ?? 0,
+        }));
+      }
+      const idSet = new Set(pinSelectedRecordIds);
+      return allRecords.filter((r) => idSet.has(r.id));
+    }
+    return allRecords;
+  }, [allRecords, pinSelectedRecordIds, pinSelectedRecordsOverride]);
 
-  // 무한 스크롤: 더 많은 아이템이 있는지 확인
-  const hasMore = displayCount < allRecords.length;
+  // 무한 스크롤: 표시할 레코드만 선택 (핀 선택 모드에서는 전체 표시)
+  const records = useMemo(() => {
+    if (pinSelectedRecordIds && pinSelectedRecordIds.length > 0) {
+      return filteredRecords;
+    }
+    return filteredRecords.slice(0, displayCount);
+  }, [filteredRecords, displayCount, pinSelectedRecordIds]);
+
+  // 무한 스크롤: 더 많은 아이템이 있는지 확인 (핀 선택 모드에서는 더보기 없음)
+  const hasMore =
+    !(pinSelectedRecordIds && pinSelectedRecordIds.length > 0) &&
+    displayCount < filteredRecords.length;
 
   // 무한 스크롤: 더 많은 아이템 로드
   const loadMore = useCallback(() => {
@@ -309,11 +333,27 @@ export function DesktopSidebar({
                 </div>
               </SidebarSection>
 
+              {/* 핀 선택 시 전체 보기 버튼 */}
+              {pinSelectedRecordIds && pinSelectedRecordIds.length > 0 && (
+                <SidebarSection className="px-8 pb-2">
+                  <button
+                    type="button"
+                    onClick={onClearPinSelection}
+                    className="flex items-center gap-2 text-sm text-[#FE8916] font-medium hover:underline"
+                  >
+                    <ChevronRightIcon className="w-4 h-4 rotate-180" />
+                    전체 목록 보기
+                  </button>
+                </SidebarSection>
+              )}
+
               {/* 검색 결과 정보 + 필터 버튼 */}
               <SidebarSection>
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium text-gray-900">
-                    검색 결과 {records.length}
+                    {pinSelectedRecordIds && pinSelectedRecordIds.length > 0
+                      ? `선택한 위치 기록 ${records.length}`
+                      : `검색 결과 ${records.length}`}
                   </span>
                   <div className="relative">
                     <button
@@ -490,13 +530,13 @@ function RecordCard({
       }`}
     >
       <div className="flex gap-5 items-center">
-        {/* 이미지 썸네일 */}
+        {/* 이미지 썸네일 - 없으면 기본 이미지 */}
         <div className="w-24 h-24 rounded-[20px] overflow-hidden shrink-0 relative">
-          {record.imageUrl && !imageError ? (
+          {!imageError ? (
             <>
               {imageLoading && <ImageSkeleton className="absolute inset-0" />}
               <img
-                src={record.imageUrl}
+                src={record.imageUrl ?? RECORD_PLACEHOLDER_IMAGE}
                 alt={record.title}
                 className={`w-full h-full object-cover transition-opacity duration-300 ${
                   imageLoading ? 'opacity-0' : 'opacity-100'
@@ -527,7 +567,9 @@ function RecordCard({
           </h3>
           <p className="text-sm text-gray-500 flex items-center gap-1.5 mb-1">
             <LocationIcon className="w-[14px] h-[14px] text-[#73C92E]" />
-            {record.location.name}
+            {record.location.name?.trim() ||
+              record.location.address?.trim() ||
+              '장소 없음'}
           </p>
           <p className="text-xs text-gray-400 flex items-center gap-1.5">
             <CalendarIcon className="w-[14px] h-[14px]" />
@@ -594,7 +636,7 @@ function RecordSummaryPanel({
   const imageUrl =
     recordDetail.images && recordDetail.images.length > 0
       ? recordDetail.images[0].medium.url
-      : undefined;
+      : RECORD_PLACEHOLDER_IMAGE;
 
   return (
     <motion.div
@@ -627,36 +669,32 @@ function RecordSummaryPanel({
 
       {/* 스크롤 영역 */}
       <div className="flex-1 overflow-y-auto no-scrollbar">
-        {/* 이미지 */}
+        {/* 이미지 - 없으면 기본 이미지 */}
         <div className="w-full aspect-video relative group overflow-hidden">
-          {imageUrl ? (
-            <>
-              <ImageSkeleton className="absolute inset-0 z-0" />
-              <img
-                src={imageUrl}
-                alt={recordDetail.title}
-                className="w-full h-full object-cover group-hover:scale-105 transition-all duration-700 relative z-10"
-                onLoad={(e) => {
-                  // 이미지 로드 완료 시 스켈레톤 숨김
-                  const img = e.currentTarget;
-                  const skeleton = img.previousElementSibling as HTMLElement;
-                  if (skeleton) {
-                    skeleton.style.opacity = '0';
-                    setTimeout(() => {
-                      skeleton.remove();
-                    }, 300);
-                  }
-                }}
-                onError={(e) => {
-                  // 이미지 로드 실패 시 스켈레톤 유지
-                  const img = e.currentTarget;
-                  img.style.opacity = '0';
-                }}
-              />
-            </>
-          ) : (
-            <ImageSkeleton className="w-full h-full" />
-          )}
+          <>
+            <ImageSkeleton className="absolute inset-0 z-0" />
+            <img
+              src={imageUrl}
+              alt={recordDetail.title}
+              className="w-full h-full object-cover group-hover:scale-105 transition-all duration-700 relative z-10"
+              onLoad={(e) => {
+                // 이미지 로드 완료 시 스켈레톤 숨김
+                const img = e.currentTarget;
+                const skeleton = img.previousElementSibling as HTMLElement;
+                if (skeleton) {
+                  skeleton.style.opacity = '0';
+                  setTimeout(() => {
+                    skeleton.remove();
+                  }, 300);
+                }
+              }}
+              onError={(e) => {
+                // 이미지 로드 실패 시 스켈레톤 유지
+                const img = e.currentTarget;
+                img.style.opacity = '0';
+              }}
+            />
+          </>
         </div>
 
         {/* 콘텐츠 */}
@@ -684,7 +722,9 @@ function RecordSummaryPanel({
               <div className="flex items-center gap-2 text-gray-500">
                 <LocationIcon className="w-[14px] h-[14px] text-[#73C92E]" />
                 <span className="text-sm font-bold text-gray-700">
-                  {recordDetail.location.name ?? ''}
+                  {recordDetail.location.name?.trim() ??
+                    recordDetail.location.address?.trim() ??
+                    '장소 없음'}
                 </span>
               </div>
               <div className="flex items-center gap-2 text-gray-400">

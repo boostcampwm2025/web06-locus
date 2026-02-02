@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { useAllRecords } from './useRecords';
+import { RECORD_PLACEHOLDER_IMAGE } from '@/shared/constants/record';
 import { sortRecordsByFavorite } from '@/shared/utils/recordSortUtils';
 import { extractTagNames } from '@/shared/utils/tagUtils';
 import type { UseSidebarRecordsProps } from '@/features/record/types';
@@ -81,7 +82,7 @@ export function useSidebarRecords({
       },
       date: new Date(record.createdAt),
       tags: extractTagNames(record.tags),
-      imageUrl: record.images?.[0]?.thumbnail?.url,
+      imageUrl: record.images?.[0]?.thumbnail?.url ?? RECORD_PLACEHOLDER_IMAGE,
       connectionCount: record.connectionCount,
     }));
   }, [

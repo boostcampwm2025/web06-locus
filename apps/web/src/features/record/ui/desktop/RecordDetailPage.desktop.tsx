@@ -6,6 +6,7 @@ import { XIcon } from '@/shared/ui/icons/XIcon';
 import { CalendarIcon } from '@/shared/ui/icons/CalendarIcon';
 import { LocationIcon } from '@/shared/ui/icons/LocationIcon';
 import { GitBranchIcon } from '@/shared/ui/icons/GitBranchIcon';
+import { LinkIcon } from '@/shared/ui/icons/LinkIcon';
 import { ConfirmDialog } from '@/shared/ui/dialog';
 import { ROUTES } from '@/router/routes';
 import type { RecordDetailPageProps } from '@/features/record/types';
@@ -14,6 +15,7 @@ import type {
   ConnectedRecordsSectionProps,
 } from '@/shared/types';
 import { formatDateShort } from '@/shared/utils/dateUtils';
+import ConnectionNetworkView from '@/features/connection/ui/ConnectionNetworkView';
 
 export function RecordDetailPageDesktop({
   title,
@@ -24,6 +26,9 @@ export function RecordDetailPageDesktop({
   imageUrl,
   connectionCount,
   connectedRecords = [],
+  graphNodes,
+  graphEdges,
+  baseRecordPublicId,
   isFavorite = false,
   onBack,
   onFavoriteToggle,
@@ -35,10 +40,7 @@ export function RecordDetailPageDesktop({
 }: RecordDetailPageProps) {
   const navigate = useNavigate();
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
-
-  // 연결된 기록 그래프 조회 (연결된 기록 목록 표시용)
-  // TODO: recordId를 props에서 받아야 함. 현재는 connectionCount만 있음
-  // const { data: graphData } = useRecordGraph(recordId, { enabled: !!recordId });
+  const [isGraphPanelOpen, setIsGraphPanelOpen] = useState(false);
 
   const handleBack = () => {
     if (onBack) {
@@ -48,9 +50,140 @@ export function RecordDetailPageDesktop({
     }
   };
 
+  /** 연결보기: 그래프 데이터가 있으면 사이드패널 열기, 없으면 연결 모드 페이지로 이동 */
   const handleOpenGraph = () => {
-    onConnectionMode?.();
+    if (
+      graphNodes &&
+      graphNodes.length > 0 &&
+      graphEdges &&
+      baseRecordPublicId
+    ) {
+      setIsGraphPanelOpen(true);
+    } else {
+      onConnectionMode?.();
+    }
   };
+
+  const handleGraphNodeClick = (publicId: string) => {
+    onRecordClick?.(publicId);
+    setIsGraphPanelOpen(false);
+  };
+
+  /** 연결 그래프 뷰: 좌측 기록 요약 패널 + 우측 전체 그래프 */
+  const showGraphView =
+    isGraphPanelOpen &&
+    graphNodes &&
+    graphNodes.length > 0 &&
+    graphEdges &&
+    baseRecordPublicId;
+
+  if (showGraphView) {
+    return (
+      <div
+        className={`fixed inset-0 bg-white z-100 flex overflow-hidden ${className}`}
+      >
+        {/* 좌측: 기록 요약 사이드패널 */}
+        <aside
+          className="w-full max-w-[400px] shrink-0 border-r border-gray-100 bg-white flex flex-col overflow-y-auto"
+          aria-label="기록 요약"
+        >
+          <div className="p-4 pb-6 flex flex-col flex-1">
+            <button
+              type="button"
+              onClick={() => setIsGraphPanelOpen(false)}
+              className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-900 font-medium mb-4 w-fit"
+            >
+              <ChevronRightIcon className="w-4 h-4 rotate-180" />
+              기록 상세로 돌아가기
+            </button>
+
+            {/* 태그 */}
+            <div className="flex flex-wrap gap-2 mb-3">
+              {tags.map((tag) => (
+                <span
+                  key={tag}
+                  className="px-3 py-1 rounded-full bg-orange-50 text-[#FE8916] text-xs font-black uppercase tracking-wider"
+                >
+                  #{tag}
+                </span>
+              ))}
+            </div>
+
+            {/* 제목 */}
+            <h1 className="text-xl font-black text-gray-900 mb-4 leading-tight">
+              {title}
+            </h1>
+
+            {/* 위치 & 날짜 */}
+            <div className="flex items-center gap-4 text-sm text-gray-500 mb-4">
+              <div className="flex items-center gap-1.5">
+                <LocationIcon className="w-4 h-4 text-[#73C92E]" />
+                <span>
+                  {location.name?.trim() ||
+                    location.address?.trim() ||
+                    '장소 없음'}
+                </span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <CalendarIcon className="w-4 h-4" />
+                <span>{formatDateShort(date)}</span>
+              </div>
+            </div>
+
+            {/* 이미지 */}
+            {imageUrl && (
+              <div className="w-full aspect-video rounded-2xl overflow-hidden bg-gray-100 mb-6">
+                <img
+                  src={imageUrl}
+                  alt={title}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+            )}
+
+            {/* 기록 요약 */}
+            <div className="mb-6">
+              <h2 className="text-xs font-black text-gray-400 uppercase tracking-wider mb-2">
+                기록 요약
+              </h2>
+              <p className="text-sm text-gray-700 leading-relaxed line-clamp-6">
+                {description || '요약 내용이 없습니다.'}
+              </p>
+            </div>
+
+            {/* 기록 상세 페이지로 이동 */}
+            <button
+              type="button"
+              onClick={() => setIsGraphPanelOpen(false)}
+              className="mt-auto flex items-center justify-center gap-2 w-full py-3.5 px-4 bg-gray-900 text-white text-sm font-bold rounded-xl hover:bg-gray-800 transition-colors"
+            >
+              기록 상세 페이지로 이동
+              <LinkIcon className="w-4 h-4" />
+            </button>
+          </div>
+        </aside>
+
+        {/* 우측: 연결 네트워크 뷰 (요약 패널 옆 전체 스크린 채움) */}
+        <div className="flex-1 min-w-0 min-h-0 flex flex-col h-full bg-gray-50">
+          <div className="px-6 py-4 border-b border-gray-200 bg-white shrink-0">
+            <h2 className="text-lg font-black text-gray-900 mb-1">
+              연결 네트워크 뷰
+            </h2>
+            <p className="text-sm text-gray-500">노드의 관계를 탐색하세요.</p>
+          </div>
+          <div className="flex-1 min-h-0 p-4 flex flex-col">
+            <ConnectionNetworkView
+              nodes={graphNodes}
+              edges={graphEdges}
+              baseRecordPublicId={baseRecordPublicId}
+              onNodeClick={handleGraphNodeClick}
+              className="flex-1 min-h-0 w-full rounded-2xl"
+            />
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div
@@ -126,7 +259,11 @@ export function RecordDetailPageDesktop({
           <div className="flex items-center gap-6 text-gray-500 mt-8">
             <div className="flex items-center gap-2">
               <LocationIcon className="w-5 h-5 text-[#73C92E]" />
-              <span className="font-bold text-gray-900">{location.name}</span>
+              <span className="font-bold text-gray-900">
+                {location.name?.trim() ||
+                  location.address?.trim() ||
+                  '장소 없음'}
+              </span>
             </div>
             <div className="flex items-center gap-2">
               <CalendarIcon className="w-5 h-5" />
@@ -297,7 +434,9 @@ function ConnectedRecordsSection({
                       {record.title}
                     </h4>
                     <p className="text-sm text-gray-500">
-                      {record.location.name}
+                      {record.location.name?.trim() ||
+                        record.location.address?.trim() ||
+                        '장소 없음'}
                     </p>
                   </div>
                 </div>

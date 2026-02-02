@@ -110,19 +110,19 @@ function createMockRecord(
           {
             publicId: `img-${id}`,
             thumbnail: {
-              url: 'https://placehold.co/80',
+              url: '/record-placehold.webp',
               width: 80,
               height: 80,
               size: 5000,
             },
             medium: {
-              url: 'https://placehold.co/400',
+              url: '/record-placehold.webp',
               width: 400,
               height: 400,
               size: 50000,
             },
             original: {
-              url: 'https://placehold.co/400',
+              url: '/record-placehold.webp',
               width: 400,
               height: 400,
               size: 50000,

@@ -1,3 +1,5 @@
+import type { TagResponse } from '@/infra/api/services/tagService';
+
 /**
  * Settings Feature Types
  */
@@ -9,10 +11,12 @@ export type SettingsTab = 'profile' | 'notifications' | 'tags';
 
 /**
  * 설정 페이지 Props
+ * notificationEditable: true면 모바일(PWA)에서 알림 POST/PATCH 가능, false면 데스크톱(조회만)
  */
 export interface SettingsPageProps {
   onClose?: () => void;
   onLogout?: () => void;
+  notificationEditable?: boolean;
 }
 
 /**
@@ -23,6 +27,9 @@ export interface SettingsSidebarProps {
   onTabChange: (tab: SettingsTab) => void;
   onClose: () => void;
   onLogout: () => void;
+  /** GET /users/me 로 조회한 사용자 (로딩/에러 시 undefined) */
+  user?: import('@/infra/api/services/userService').UserProfile | null;
+  userLoading?: boolean;
 }
 
 /**
@@ -30,10 +37,15 @@ export interface SettingsSidebarProps {
  */
 export interface ProfileTabProps {
   onSave?: () => void;
+  /** GET /users/me 로 조회한 사용자 (로딩/에러 시 undefined) */
+  user?: import('@/infra/api/services/userService').UserProfile | null;
+  userLoading?: boolean;
+  userError?: boolean;
 }
 
 /**
  * 알림 설정 탭 Props
+ * readOnly: true면 데스크톱(조회만), 토글/시간 변경 비활성화
  */
 export interface NotificationsTabProps {
   isNotificationEnabled: boolean;
@@ -42,15 +54,17 @@ export interface NotificationsTabProps {
   onPushToggle: (enabled: boolean) => void;
   notificationTime: string;
   onNotificationTimeChange: (time: string) => void;
+  readOnly?: boolean;
+  notificationLoading?: boolean;
 }
 
 /**
  * 태그 관리 탭 Props
  */
 export interface TagsTabProps {
-  tags: string[];
-  onAddTag: (tag: string) => void;
-  onRemoveTag: (tag: string) => void;
+  tags: TagResponse[];
+  onAddTag: (name: string) => void;
+  onRemoveTag: (tag: TagResponse) => void;
 }
 
 /**
@@ -73,12 +87,9 @@ export interface LogoutConfirmModalProps {
 }
 
 /**
- * 모바일 설정 페이지 Props
+ * 모바일 설정 페이지 Props (notificationEditable true 시 PWA에서 알림 POST/PATCH 가능)
  */
-export interface SettingsPageMobileProps {
-  onClose?: () => void;
-  onLogout?: () => void;
-}
+export type SettingsPageMobileProps = SettingsPageProps;
 
 /**
  * 시간 선택 모달 Props

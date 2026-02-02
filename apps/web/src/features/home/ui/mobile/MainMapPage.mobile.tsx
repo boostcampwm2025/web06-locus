@@ -2,6 +2,7 @@ import { useState, useEffect, Suspense } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import AppHeader from '@/shared/ui/header/AppHeader';
+import { PWAInstallGuide } from '@/shared/ui/pwa';
 import CategoryChip from '@/shared/ui/category/CategoryChip';
 import BottomTabBar from '@/shared/ui/navigation/BottomTabBar';
 import MapLoadingSkeleton from '@/shared/ui/loading/MapLoadingSkeleton';
@@ -14,6 +15,7 @@ import { useDeleteRecord } from '@/features/record/hooks/useDeleteRecord';
 import { useAuthStore } from '@/features/auth/domain/authStore';
 import { useBottomTabNavigation } from '@/shared/hooks/useBottomTabNavigation';
 import { useGeocodeSearch } from '@/features/home/hooks/useGeocodeSearch';
+import SearchResultsPanel from '@/features/home/ui/SearchResultsPanel';
 import { ROUTES } from '@/router/routes';
 import {
   getStoredRecordPins,
@@ -35,6 +37,7 @@ export function MainMapPageMobile() {
   const [isActionSheetOpen, setIsActionSheetOpen] = useState(false);
   const [isTagManagementModalOpen, setIsTagManagementModalOpen] =
     useState(false);
+  const [showPwaInstallGuide, setShowPwaInstallGuide] = useState(false);
   const logout = useAuthStore((state) => state.logout);
 
   // 알림 상태 관리
@@ -74,19 +77,6 @@ export function MainMapPageMobile() {
     isLoading: isGeocoding,
     error: geocodeError,
   } = useGeocodeSearch('');
-
-  /**
-   * 2. 검색 결과에 따른 지도 중심 이동
-   */
-  useEffect(() => {
-    const firstAddr = geocodeData?.data?.addresses?.[0];
-    if (firstAddr) {
-      setTargetLocation({
-        lat: parseFloat(firstAddr.latitude),
-        lng: parseFloat(firstAddr.longitude),
-      });
-    }
-  }, [geocodeData]);
 
   /**
    * 3. 기록 삭제 훅
@@ -208,7 +198,7 @@ export function MainMapPageMobile() {
   return (
     <div className="flex flex-col h-screen bg-white relative overflow-hidden">
       <AppHeader
-        onTitleClick={() => void navigate(ROUTES.HOME)}
+        onTitleClick={() => setShowPwaInstallGuide(true)}
         onSearchClick={handleSearchClick}
         onSettingsClick={handleSettingsClick}
         isSearchActive={isSearchActive}
@@ -216,6 +206,21 @@ export function MainMapPageMobile() {
         onSearchChange={setSearchValue}
         onSearchCancel={handleSearchCancel}
         onSearch={(value) => setSearchValue(value)}
+      />
+
+      <SearchResultsPanel
+        isOpen={isSearchActive}
+        isLoading={isGeocoding}
+        query={searchValue}
+        results={geocodeData?.data?.addresses}
+        onSelect={(addr) => {
+          setTargetLocation({
+            lat: parseFloat(addr.latitude),
+            lng: parseFloat(addr.longitude),
+          });
+          setIsSearchActive(false);
+        }}
+        onClose={() => setIsSearchActive(false)}
       />
 
       <div className="pt-[72px]">
@@ -310,6 +315,12 @@ export function MainMapPageMobile() {
       <TagManagementModal
         isOpen={isTagManagementModalOpen}
         onClose={() => setIsTagManagementModalOpen(false)}
+      />
+
+      {/* PWA 설치 가이드 (헤더 가운데 Locus 제목 클릭 시) */}
+      <PWAInstallGuide
+        isOpen={showPwaInstallGuide}
+        onClose={() => setShowPwaInstallGuide(false)}
       />
     </div>
   );

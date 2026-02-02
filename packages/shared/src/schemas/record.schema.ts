@@ -3,6 +3,7 @@ import {
   LocationSchema,
   LocationWithoutCoordsSchema,
   ImageResponseSchema,
+  ImageSizeResponseSchema,
   SuccessResponseSchema,
   FailResponseSchema,
   ErrorResponseSchema,
@@ -361,6 +362,34 @@ export const ConnectedRecordsResponseSchema = SuccessResponseSchema.extend({
   }),
 });
 
+/**
+ * 연결된 기록 조회(Depth=1) 응답의 기록 스키마 (Response용 - camelCase)
+ *
+ * @api GET /records/{publicId}/graph/details - 응답의 data.records 배열 아이템
+ */
+export const GraphRecordDetailResponseSchema = z.object({
+  publicId: z.string(),
+  title: z.string(),
+  location: LocationSchema,
+  tags: z.array(TagDetailResponseSchema),
+  thumbnail: ImageSizeResponseSchema.nullable(),
+  connectionsCount: z.number().optional(),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+});
+
+/**
+ * 연결된 기록 조회(Depth=1) 응답 스키마
+ *
+ * @api GET /records/{publicId}/graph/details
+ */
+export const GraphDetailsResponseSchema = SuccessResponseSchema.extend({
+  data: z.object({
+    start: z.string(),
+    depth: z.literal(1),
+    records: z.array(GraphRecordDetailResponseSchema),
+  }),
+});
 
 /**
  * 기록 상세 조회 응답 스키마

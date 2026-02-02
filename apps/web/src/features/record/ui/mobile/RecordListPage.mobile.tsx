@@ -14,6 +14,7 @@ import { useSearchRecords } from '@/features/record/hooks/useSearchRecords';
 import { useGetTags } from '@/features/record/hooks/useGetTags';
 import { useIntersectionObserver } from '@/shared/hooks/useIntersectionObserver';
 import type { RecordWithoutCoords } from '@locus/shared';
+import { RECORD_PLACEHOLDER_IMAGE } from '@/shared/constants/record';
 import { extractTagNames } from '@/shared/utils/tagUtils';
 import { sortRecordsByFavorite } from '@/shared/utils/recordSortUtils';
 
@@ -137,7 +138,7 @@ export function RecordListPageMobile({
         date: new Date(record.createdAt),
         tags: record.tags,
         connectionCount: record.connectionCount,
-        imageUrl: record.thumbnailImage ?? undefined,
+        imageUrl: record.thumbnailImage ?? RECORD_PLACEHOLDER_IMAGE,
       }),
     );
   }, [hasSearchKeyword, searchData]);
@@ -184,11 +185,11 @@ export function RecordListPageMobile({
     // 정렬된 API 응답을 RecordListItem으로 변환
     // RecordWithoutCoords는 좌표 없음 (name, address만), isFavorite와 connectionCount 포함
     return sortedRecords.map((record: RecordWithoutCoords) => {
-      // 이미지가 있는 경우 첫 번째 이미지의 thumbnail URL 사용
+      // 이미지가 있는 경우 첫 번째 이미지의 thumbnail URL, 없으면 기본 이미지
       const thumbnailUrl =
         record.images && record.images.length > 0
           ? record.images[0].thumbnail.url
-          : undefined;
+          : RECORD_PLACEHOLDER_IMAGE;
 
       return {
         id: record.publicId,
