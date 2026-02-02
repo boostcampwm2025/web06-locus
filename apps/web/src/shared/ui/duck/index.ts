@@ -4,3 +4,5 @@ export { DuckMapScene } from './DuckMapScene';
 export type { DuckMapSceneProps } from './DuckMapScene';
 export { DuckMapSceneHybrid } from './DuckMapSceneHybrid';
 export type { DuckMapSceneHybridProps } from './DuckMapSceneHybrid';
+export { DuckMapSceneCrossing } from './DuckMapSceneCrossing';
+export type { DuckMapSceneCrossingProps } from './DuckMapSceneCrossing';

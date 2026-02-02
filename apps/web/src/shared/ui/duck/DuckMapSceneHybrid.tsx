@@ -12,10 +12,13 @@ const WALK_DURATION = 2;
 export interface DuckMapSceneHybridProps {
   children?: React.ReactNode /** 오리 뒤에 깔릴 콘텐츠(지도 등). 없으면 배경 없이 오리만 표시 */;
   initialPos?: DuckPosition /** 초기 위치 (픽셀) */;
-  height?: number /** 컨테이너 높이(px). 기본 500 */;
+  /** 컨테이너 높이. px 숫자 또는 '100%' (부모 높이에 맞춤) */
+  height?: number | string;
   duration?: number /** 이동 애니메이션 시간(초). 기본 2 */;
   bounce?: boolean /** 이동 중 위아래로 살짝 튀는 보조 애니메이션. 기본 true */;
   hint?: string | null /** 안내 문구. 없거나 빈 문자열이면 렌더하지 않음 */;
+  /** false면 레이어는 클릭 통과(pointer-events: none), 오리만 클릭 가능. 지도 위 레이어일 때 true 권장 */
+  clickThrough?: boolean;
   target?: DuckPosition | null /** 지정 경로(이벤트): 이 좌표가 설정되면 오리가 그쪽으로 걸어갑니다. (예: 기록/항로 선택 시) */;
   wanderOptions?: UseDuckWalkerHybridOptions /** idle 배회 옵션 */;
   className?: string;
@@ -24,8 +27,7 @@ export interface DuckMapSceneHybridProps {
 /**
  * 하이브리드 오리 씬: 평상시 근처를 랜덤 배회하고,
  * target이 설정되면(예: 사용자가 기록/항로 선택) 그 지점으로 걸어갑니다.
- * 클릭한 위치로도 이동 가능합니다.
- * children으로 지도 등을 넘기면 오리 뒤에 깔리고, 힌트는 옵션입니다.
+ * clickThrough=true면 레이어는 클릭 통과, 오리만 클릭 가능(지도/마커 클릭 가능).
  */
 export function DuckMapSceneHybrid({
   children,
@@ -34,6 +36,7 @@ export function DuckMapSceneHybrid({
   duration = WALK_DURATION,
   bounce = true,
   hint = null,
+  clickThrough = false,
   target = null,
   wanderOptions = {},
   className = '',
@@ -46,22 +49,31 @@ export function DuckMapSceneHybrid({
     if (target != null) setTarget(target);
   }, [target?.x, target?.y, setTarget]);
 
-  const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    walkTo(e.clientX - rect.left, e.clientY - rect.top);
-  };
+  const handleClick = clickThrough
+    ? undefined
+    : (e: React.MouseEvent<HTMLDivElement>) => {
+        const rect = e.currentTarget.getBoundingClientRect();
+        walkTo(e.clientX - rect.left, e.clientY - rect.top);
+      };
 
   return (
     <div
       className={`relative w-full overflow-hidden ${className}`}
-      style={{ height }}
-      onClick={handleClick}
-      role="button"
-      tabIndex={0}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') e.currentTarget.click();
+      style={{
+        height: height ?? 500,
+        pointerEvents: clickThrough ? 'none' : undefined,
       }}
-      aria-label="클릭한 위치로 오리가 이동합니다"
+      onClick={handleClick}
+      role={clickThrough ? undefined : 'button'}
+      tabIndex={clickThrough ? undefined : 0}
+      onKeyDown={
+        clickThrough
+          ? undefined
+          : (e) => {
+              if (e.key === 'Enter' || e.key === ' ') e.currentTarget.click();
+            }
+      }
+      aria-label={clickThrough ? undefined : '클릭한 위치로 오리가 이동합니다'}
     >
       {children != null ? (
         <div className="absolute inset-0 z-0">{children}</div>
@@ -81,7 +93,12 @@ export function DuckMapSceneHybrid({
           duration,
         }}
         onAnimationComplete={() => setIsMoving(false)}
-        style={{ width: DUCK_SIZE, height: DUCK_SIZE }}
+        style={{
+          width: DUCK_SIZE,
+          height: DUCK_SIZE,
+          pointerEvents: clickThrough ? 'auto' : undefined,
+          cursor: clickThrough ? 'pointer' : undefined,
+        }}
       >
         <motion.div
           className="flex items-center justify-center"
