@@ -7,6 +7,7 @@ import { PinOverlay } from '@/infra/map/marker';
 import DraggablePinOverlay from '@/infra/map/marker/DraggablePinOverlay';
 import RecordCreateBottomSheet from './RecordCreateBottomSheet';
 import RecordSummaryBottomSheet from '@/features/record/ui/RecordSummaryBottomSheet';
+import ClusterRecordBottomSheet from '@/features/record/ui/ClusterRecordBottomSheet';
 import { ROUTES } from '@/router/routes';
 import { useMapInstance } from '@/shared/hooks/useMapInstance';
 import type { Record as RecordType } from '@/features/record/types';
@@ -21,6 +22,7 @@ import {
   isNearBoundary,
   isSameGrid as isSameGridBounds,
   isSameGridCenter,
+  getGridCellKey,
   type Bounds,
 } from '@/features/home/utils/boundsUtils';
 import {
@@ -52,6 +54,9 @@ export default function MapViewport({
   } | null>(null);
   const [selectedRecord, setSelectedRecord] = useState<RecordType | null>(null);
   const [isSummaryOpen, setIsSummaryOpen] = useState(false);
+  const [selectedClusterRecords, setSelectedClusterRecords] = useState<
+    RecordType[] | null
+  >(null);
   const [selectedRecordPublicId, setSelectedRecordPublicId] = useState<
     string | null
   >(null);
@@ -197,27 +202,84 @@ export default function MapViewport({
     return visible;
   }, [currentViewBounds, allFetchedRecords]);
 
-  // 필터링된 기록을 핀 데이터로 변환
-  const apiPins = useMemo<PinMarkerData[]>(() => {
-    return visibleApiRecords.map((record: ApiRecord) => ({
-      id: record.publicId,
-      position: {
-        lat: record.location.latitude,
-        lng: record.location.longitude,
-      },
-      variant: 'record' as const,
-    }));
-  }, [visibleApiRecords]);
+  // 그리드 클러스터링: visibleApiRecords를 줌 기반 그리드로 묶어 단일/클러스터 핀 생성
+  const { apiPins, clusterDataMap } = useMemo(() => {
+    const map = new Map<string, string[]>();
+    const pins: PinMarkerData[] = [];
+
+    if (visibleApiRecords.length === 0) {
+      return { apiPins: pins, clusterDataMap: map };
+    }
+
+    // 그리드 셀별로 기록 그룹화 (셀 키 -> ApiRecord[])
+    const groups = new Map<string, ApiRecord[]>();
+    for (const record of visibleApiRecords) {
+      const key = getGridCellKey(
+        record.location.latitude,
+        record.location.longitude,
+        currentZoom,
+      );
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key)!.push(record);
+    }
+
+    // 셀별로 정렬: 최신순(대표 기록 = 첫 번째)
+    groups.forEach((arr) => {
+      arr.sort(
+        (a, b) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+      );
+    });
+
+    for (const [cellKey, records] of groups) {
+      if (records.length === 1) {
+        const r = records[0];
+        pins.push({
+          id: r.publicId,
+          position: {
+            lat: r.location.latitude,
+            lng: r.location.longitude,
+          },
+          variant: 'record',
+        });
+      } else {
+        const clusterId = `cluster_${cellKey}`;
+        const latSum = records.reduce((s, r) => s + r.location.latitude, 0);
+        const lngSum = records.reduce((s, r) => s + r.location.longitude, 0);
+        map.set(
+          clusterId,
+          records.map((r) => r.publicId),
+        );
+        pins.push({
+          id: clusterId,
+          position: {
+            lat: latSum / records.length,
+            lng: lngSum / records.length,
+          },
+          variant: 'cluster',
+          count: records.length,
+        });
+      }
+    }
+
+    return { apiPins: pins, clusterDataMap: map };
+  }, [visibleApiRecords, currentZoom]);
 
   const allPins = useMemo<PinMarkerData[]>(() => {
-    const pins = [...apiPins];
+    const allRecordIds = new Set<string>();
+    apiPins.forEach((pin) => {
+      if (pin.variant === 'record') allRecordIds.add(String(pin.id));
+      if (pin.variant === 'cluster') {
+        const ids = clusterDataMap.get(String(pin.id));
+        ids?.forEach((id) => allRecordIds.add(id));
+      }
+    });
 
-    const serverIds = new Set(pins.map((pin) => String(pin.id)));
+    const pins = [...apiPins];
 
     createdRecordPins.forEach((pinData) => {
       const recordId = String(pinData.record.id);
-
-      if (pinData.coordinates && !serverIds.has(recordId)) {
+      if (pinData.coordinates && !allRecordIds.has(recordId)) {
         pins.push({
           id: pinData.record.id,
           position: pinData.coordinates,
@@ -227,7 +289,7 @@ export default function MapViewport({
     });
 
     return pins;
-  }, [apiPins, createdRecordPins]);
+  }, [apiPins, clusterDataMap, createdRecordPins]);
 
   // 필터링된 기록을 RecordType으로 변환
   const apiRecords = useMemo<Record<string | number, RecordType>>(() => {
@@ -776,19 +838,46 @@ export default function MapViewport({
     };
   }, [connectedRecords, isMapLoaded, mapInstanceRef, allPins, allRecords]);
 
-  // 보라 핀(기록 핀) 클릭 핸들러 - summary 표시 및 그래프(연결선) 조회 (또는 onRecordPinClick 위임)
+  // 보라 핀(기록/클러스터) 클릭 핸들러 - summary 또는 클러스터 바텀시트, onRecordPinClick 위임
   const handleRecordPinClick = (pinId: string | number) => {
-    const publicId = String(pinId);
-    // 연결된 기록(그래프/연결선)은 항상 표시
+    const idStr = String(pinId);
     setSelectedPinId(pinId);
+
+    const clusterRecordIds = clusterDataMap.get(idStr);
+    if (clusterRecordIds && clusterRecordIds.length > 0) {
+      const clusterRecordsList = clusterRecordIds
+        .map((id) => allRecords[id])
+        .filter((r): r is RecordType => r != null);
+      const topRecordId = clusterRecordIds[0];
+      if (!topRecordId) return;
+
+      setSelectedRecordPublicId(topRecordId);
+
+      const onPinClick = onRecordPinClick;
+      if (onPinClick) {
+        onPinClick(topRecordId, {
+          clusterRecordIds,
+          clusterRecords: clusterRecordsList,
+        });
+        return;
+      }
+      setSelectedClusterRecords(clusterRecordsList);
+      setSelectedRecord(null);
+      setIsSummaryOpen(false);
+      return;
+    }
+
+    const publicId = idStr;
     setSelectedRecordPublicId(publicId);
-    if (onRecordPinClick) {
-      onRecordPinClick(publicId);
+    const onPinClick = onRecordPinClick;
+    if (onPinClick) {
+      onPinClick(publicId);
       return;
     }
     const record = allRecords[pinId];
     if (record) {
       setSelectedRecord(record);
+      setSelectedClusterRecords(null);
       setIsSummaryOpen(true);
     }
   };
@@ -981,15 +1070,20 @@ export default function MapViewport({
       {selectedLocation &&
         (renderLocationConfirmation ? (
           <AnimatePresence>
-            {renderLocationConfirmation({
-              location: {
-                name: selectedLocation.name,
-                address: selectedLocation.address,
-                coordinates: selectedLocation.coordinates,
-              },
-              onConfirm: handleConfirmRecord,
-              onCancel: handleCloseBottomSheet,
-            })}
+            {(() => {
+              const render = renderLocationConfirmation;
+              return typeof render === 'function'
+                ? render({
+                    location: {
+                      name: selectedLocation.name,
+                      address: selectedLocation.address,
+                      coordinates: selectedLocation.coordinates,
+                    },
+                    onConfirm: handleConfirmRecord,
+                    onCancel: handleCloseBottomSheet,
+                  })
+                : null;
+            })()}
           </AnimatePresence>
         ) : (
           <RecordCreateBottomSheet
@@ -1010,7 +1104,6 @@ export default function MapViewport({
             setIsSummaryOpen(false);
             setSelectedRecord(null);
             setSelectedRecordPublicId(null);
-            // 연결선 제거
             polylinesRef.current.forEach((polyline) => {
               polyline.setMap(null);
             });
@@ -1019,6 +1112,29 @@ export default function MapViewport({
           record={selectedRecord}
         />
       )}
+
+      {/* 클러스터 기록 Bottom Sheet: 대표 1개 + 슬라이드업 시 전체 목록 */}
+      {selectedClusterRecords &&
+        selectedClusterRecords.length > 0 &&
+        !onRecordPinClick && (
+          <ClusterRecordBottomSheet
+            isOpen={true}
+            onClose={() => {
+              setSelectedClusterRecords(null);
+              setSelectedRecordPublicId(null);
+              setSelectedPinId(null);
+              polylinesRef.current.forEach((polyline) => {
+                polyline.setMap(null);
+              });
+              polylinesRef.current = [];
+            }}
+            topRecord={selectedClusterRecords[0]}
+            clusterRecords={selectedClusterRecords}
+            onRecordClick={(recordId: string) => {
+              void navigate(ROUTES.RECORD_DETAIL.replace(':id', recordId));
+            }}
+          />
+        )}
     </>
   );
 }
