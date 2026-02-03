@@ -29,6 +29,8 @@ export interface RecordSyncPayload {
 export const createRecordSyncPayload = (
   userId: bigint,
   record: RecordModel,
+  tags: string[] = [],
+  thumbnailImageUrl?: string,
 ): RecordSyncPayload => {
   return {
     recordId: record.id.toString(),
@@ -38,9 +40,9 @@ export const createRecordSyncPayload = (
     content: record.content,
     isFavorite: record.isFavorite,
     locationName: record.locationName,
-    tags: [],
-    hasImages: false, // todo: 수정 필요 !!record.images?.length,
-    thumbnailImage: null, // todo: 수정 필요 record.images?.[0]?.url || null,
+    tags,
+    hasImages: !!thumbnailImageUrl,
+    thumbnailImage: thumbnailImageUrl ?? null,
     connectionsCount: 0,
     createdAt: record.createdAt.toISOString(),
   };

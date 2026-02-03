@@ -63,11 +63,18 @@ export interface DragState {
  * 지오코딩 API 응답의 주소 정보
  */
 export interface GeocodeAddress {
+  title: string;
   roadAddress: string;
   jibunAddress: string;
-  englishAddress: string;
   latitude: string;
   longitude: string;
+}
+
+export interface GeocodeData {
+  meta: {
+    totalCount: number;
+  };
+  addresses: GeocodeAddress[];
 }
 
 /**
@@ -75,12 +82,5 @@ export interface GeocodeAddress {
  */
 export interface GeocodeResponse {
   status: 'success';
-  data: {
-    meta: {
-      totalCount: number;
-      page: number;
-      count: number;
-    };
-    addresses: GeocodeAddress[];
-  };
+  data: GeocodeData;
 }

@@ -88,10 +88,10 @@ export function ProfileTab({
 }: ProfileTabProps) {
   // PWA 접속 여부 확인
   const { isPWA } = useDeviceType();
-  
+
   // 닉네임을 시드로 사용하여 일관된 프로필 이미지 유지
   const displayName = user?.nickname ?? user?.email ?? '—';
-  
+
   const [profileImageIndex, setProfileImageIndex] = useState(() =>
     getRandomProfileIndex(displayName),
   );
@@ -125,7 +125,7 @@ export function ProfileTab({
             사용자 정보를 불러오지 못했습니다.
           </p>
         )}
-        
+
         {/* 사용자 프로필 섹션 */}
         <section className="grid grid-cols-3 gap-8 items-start border-b border-gray-50 pb-10">
           <div>

@@ -204,7 +204,9 @@ function RecordMetaInfo({
         </div>
         <div className="flex items-center gap-1.5 text-sm text-gray-600">
           <LocationIcon className="w-4 h-4" />
-          <span>{location.name}</span>
+          <span>
+            {location.name?.trim() || location.address?.trim() || '장소 없음'}
+          </span>
         </div>
       </div>
       {displayTags.length > 0 && (

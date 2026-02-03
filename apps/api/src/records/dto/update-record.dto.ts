@@ -66,13 +66,12 @@ export class UpdateRecordDto {
   location?: LocationDto;
 
   @ApiPropertyOptional({
-    description: '태그 목록',
-    example: ['산책', '한강', '강아지'],
+    description: '태그 공개 ID 목록',
+    example: ['pQ2x9mL7kV1a', 'a7K9mP2nQ5xL'],
     type: [String],
   })
   @IsArray()
   @IsOptional()
   @IsString({ each: true })
-  @MaxLength(20, { each: true })
   tags?: string[];
 }

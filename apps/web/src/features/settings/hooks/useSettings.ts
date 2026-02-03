@@ -82,7 +82,8 @@ export function useSettings({
 
   // UI에 표시할 데이터 가공 (파생 상태)
   const isNotificationEnabled = notificationSettings?.isActive ?? false;
-  const notificationTime = notificationSettings?.notifyTime ?? DEFAULT_NOTIFY_TIME;
+  const notificationTime =
+    notificationSettings?.notifyTime ?? DEFAULT_NOTIFY_TIME;
   const isPushEnabled = notificationSettings?.isActive ?? false;
 
   const setIsNotificationEnabled = (enabled: boolean) => {

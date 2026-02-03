@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { getRecordGraphDetails } from '@/infra/api/services/connectionService';
+import type { GraphDetailsResponse } from '@/infra/types/connection';
 
 /**
  * 연결된 기록 조회(Depth=1) 훅
@@ -12,7 +13,7 @@ export function useRecordGraphDetails(
   const enabled =
     options?.enabled !== undefined ? options.enabled && !!publicId : !!publicId;
 
-  return useQuery({
+  return useQuery<GraphDetailsResponse, Error>({
     queryKey: ['record-graph-details', publicId],
     queryFn: () => {
       if (!publicId) throw new Error('publicId가 필요합니다');

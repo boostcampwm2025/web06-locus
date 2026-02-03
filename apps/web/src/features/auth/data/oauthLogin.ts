@@ -1,14 +1,13 @@
 import type { OAuthProvider } from '@/shared/types';
 import { API_ENDPOINTS } from '@/infra/api/constants';
-import { buildApiUrl } from '@/infra/api';
+import { buildOAuthUrl } from '@/infra/api';
 
 /**
- * OAuth 로그인 URL 생성
- * window.location.href로 이동하므로 절대 URL이 필요
+ * OAuth 로그인 URL 생성 (항상 현재 origin 기준 → 개발/운영 구분 없이 맞는 서버로 이동)
  */
 function getOAuthLoginUrl(provider: OAuthProvider): string {
   const endpoint = API_ENDPOINTS.AUTH_OAUTH2(provider);
-  return buildApiUrl(endpoint, true);
+  return buildOAuthUrl(endpoint);
 }
 
 /**

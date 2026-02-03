@@ -224,7 +224,11 @@ function RecordSummaryHeader({
 }
 
 function RecordLocationCard({ location }: RecordLocationCardProps) {
-  if (!location.name) return null;
+  const primary =
+    location.name?.trim() || location.address?.trim() || '장소 없음';
+  const secondary =
+    location.name?.trim() && location.address?.trim() ? location.address : null;
+  if (!location.name?.trim() && !location.address?.trim()) return null;
   return (
     <div className="mb-6 p-4 bg-blue-50/50 rounded-2xl border border-blue-100/50">
       <div className="flex items-start gap-3">
@@ -233,11 +237,13 @@ function RecordLocationCard({ location }: RecordLocationCardProps) {
         </div>
         <div className="flex-1 min-w-0">
           <p className="font-bold text-sm text-gray-900 mb-0.5 truncate">
-            {location.name}
+            {primary}
           </p>
-          <p className="text-[0.8125rem] text-gray-500 truncate">
-            {location.address}
-          </p>
+          {secondary && (
+            <p className="text-[0.8125rem] text-gray-500 truncate">
+              {secondary}
+            </p>
+          )}
         </div>
       </div>
     </div>

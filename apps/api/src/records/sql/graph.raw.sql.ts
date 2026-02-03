@@ -9,7 +9,7 @@ WITH RECURSIVE reach AS (
   UNION ALL
   SELECT c.to_record_id AS node_id, r.visited || c.to_record_id
   FROM reach r
-  JOIN connections c
+  JOIN locus.connections c
     ON c.from_record_id = r.node_id
    AND c.user_id = ${userId}
   WHERE NOT (c.to_record_id = ANY(r.visited))
@@ -22,7 +22,7 @@ component_edges AS MATERIALIZED (
   SELECT DISTINCT
     LEAST(c.from_record_id, c.to_record_id)    AS a_id,
     GREATEST(c.from_record_id, c.to_record_id) AS b_id
-  FROM connections c
+  FROM locus.connections c
   JOIN component_nodes n1 ON n1.node_id = c.from_record_id
   JOIN component_nodes n2 ON n2.node_id = c.to_record_id
   WHERE c.user_id = ${userId}
@@ -34,7 +34,7 @@ SELECT
   ST_X(r.location) AS longitude,
   NULL::text AS from_public_id,
   NULL::text AS to_public_id
-FROM records r
+FROM locus.records r
 JOIN component_nodes cn ON cn.node_id = r.id
 WHERE r.user_id = ${userId}
 
@@ -48,8 +48,8 @@ SELECT
   ra.public_id AS from_public_id,
   rb.public_id AS to_public_id
 FROM component_edges e
-JOIN records ra ON ra.id = e.a_id
-JOIN records rb ON rb.id = e.b_id
+JOIN locus.records ra ON ra.id = e.a_id
+JOIN locus.records rb ON rb.id = e.b_id
 
 ORDER BY row_type, node_public_id, from_public_id, to_public_id;
 `;
