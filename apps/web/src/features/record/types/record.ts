@@ -230,7 +230,10 @@ export interface RecordDetailPageProps {
   location: Location;
   tags: string[];
   description: string;
+  /** 단일 이미지 (하위 호환). imageUrls가 있으면 슬라이더로 모두 표시 */
   imageUrl?: string;
+  /** 기록에 올라온 이미지 URL 목록. 있으면 슬라이더로 표시 */
+  imageUrls?: string[];
   connectionCount: number;
   connectedRecords?: ConnectedRecord[];
   /** GET /records/{publicId}/graph 응답의 nodes (데스크톱 사이드패널 D3 뷰용) */
