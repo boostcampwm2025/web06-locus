@@ -304,13 +304,31 @@ export default function MapViewport({
     return pins;
   }, [apiPins, clusterDataMap, createdRecordPins]);
 
-  // 필터링된 기록을 RecordType으로 변환
+  // 필터링된 기록을 RecordType으로 변환 (이미지 URL 목록 포함)
   const apiRecords = useMemo<Record<string | number, RecordType>>(() => {
     const records: Record<string | number, RecordType> = {} as Record<
       string | number,
       RecordType
     >;
     visibleApiRecords.forEach((record: ApiRecord) => {
+      const rawImages =
+        'images' in record
+          ? (
+              record as {
+                images?: {
+                  medium?: { url?: string };
+                  thumbnail?: { url?: string };
+                  original?: { url?: string };
+                }[];
+              }
+            ).images
+          : undefined;
+      const images =
+        rawImages
+          ?.map(
+            (img) => img.medium?.url ?? img.thumbnail?.url ?? img.original?.url,
+          )
+          .filter((url): url is string => Boolean(url)) ?? [];
       records[record.publicId] = {
         id: record.publicId,
         text: record.title,
@@ -320,6 +338,7 @@ export default function MapViewport({
           address: record.location.address ?? '',
         },
         createdAt: new Date(record.createdAt),
+        ...(images.length > 0 ? { images } : {}),
       };
     });
     return records;
@@ -911,7 +930,8 @@ export default function MapViewport({
     setSelectedRecordPublicId(publicId);
     const onPinClick = onRecordPinClick;
     if (onPinClick) {
-      onPinClick(publicId);
+      const singleRecord = allRecords[publicId];
+      onPinClick(publicId, singleRecord ? { singleRecord } : undefined);
       return;
     }
     const record = allRecords[pinId];
@@ -1170,8 +1190,8 @@ export default function MapViewport({
           />
         ))}
 
-      {/* 기록 Summary Bottom Sheet (onRecordPinClick 제공 시 미표시) */}
-      {selectedRecord && !onRecordPinClick && (
+      {/* 기록 Summary Bottom Sheet (onRecordPinClick 제공 시 미표시). publicId로 넘겨 상세 API GET /records/{publicId} 호출 → 이미지 등 전체 데이터 표시 */}
+      {selectedRecord && selectedRecordPublicId && !onRecordPinClick && (
         <RecordSummaryBottomSheet
           isOpen={isSummaryOpen}
           onClose={() => {
@@ -1183,7 +1203,7 @@ export default function MapViewport({
             });
             polylinesRef.current = [];
           }}
-          record={selectedRecord}
+          record={selectedRecordPublicId}
         />
       )}
 

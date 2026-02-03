@@ -24,6 +24,8 @@ export interface Record {
   tags: string[];
   location: Location;
   createdAt: Date;
+  /** 이미지 URL 목록 (medium 등). 클러스터 바텀시트 갤러리 등에서 사용 */
+  images?: string[];
 }
 
 /**
@@ -128,6 +130,8 @@ export interface RecordSummaryContentProps
   title: string;
   date: Date | string;
   content: string;
+  /** 이미지 URL 목록. 있으면 갤러리 영역 표시 */
+  images?: string[];
   isDeleting: boolean;
   onEdit?: () => void;
   onDelete?: () => void;

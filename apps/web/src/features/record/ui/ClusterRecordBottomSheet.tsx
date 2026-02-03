@@ -9,6 +9,8 @@ import { ChevronDownIcon } from '@/shared/ui/icons/ChevronDownIcon';
 import { ChevronRightIcon } from '@/shared/ui/icons/ChevronRightIcon';
 import { BookmarkIcon } from '@/shared/ui/icons/BookmarkIcon';
 import { ClockIcon } from '@/shared/ui/icons/ClockIcon';
+import { ImageIcon } from '@/shared/ui/icons/ImageIcon';
+import { ImageWithFallback } from '@/shared/ui/image';
 import type { ClusterRecordBottomSheetProps } from '../types';
 import type { Record as RecordItem } from '../types/record';
 
@@ -115,6 +117,33 @@ export default function ClusterRecordBottomSheet({
 
         {/* Body & List Section — 하단 탭(홈/기록)에 가려지지 않도록 하단 여백 확보 */}
         <div className="flex-1 overflow-y-auto px-8 custom-scrollbar min-h-0 pb-[72px]">
+          {/* 본문 이미지 갤러리 (이미지 있을 때만) */}
+          {topRecord.images && topRecord.images.length > 0 && (
+            <div className="relative mb-8 group">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-1.5 text-xs font-black text-gray-400 uppercase tracking-widest">
+                  <ImageIcon className="w-3.5 h-3.5" />
+                  <span>Photos ({topRecord.images.length})</span>
+                </div>
+              </div>
+              <div className="flex gap-3 overflow-x-auto no-scrollbar snap-x snap-mandatory -mx-2 px-2">
+                {topRecord.images.map((img, idx) => (
+                  <motion.div
+                    key={`${img}-${idx}`}
+                    whileTap={{ scale: 0.98 }}
+                    className="relative shrink-0 w-64 h-48 rounded-4xl overflow-hidden shadow-md snap-center border-4 border-white"
+                  >
+                    <ImageWithFallback
+                      src={img}
+                      alt={`Photo ${idx + 1}`}
+                      className="w-full h-full object-cover"
+                    />
+                  </motion.div>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div className="py-4 mb-8">
             <div className="relative">
               <div className="absolute -left-4 top-0 bottom-0 w-1 bg-blue-100/50 rounded-full" />

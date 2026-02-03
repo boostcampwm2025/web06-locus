@@ -1,3 +1,4 @@
+import { motion } from 'motion/react';
 import BaseBottomSheet from '@/shared/ui/bottomSheet/BaseBottomSheet';
 import { CalendarIcon } from '@/shared/ui/icons/CalendarIcon';
 import { TagIcon } from '@/shared/ui/icons/TagIcon';
@@ -5,7 +6,9 @@ import { EditIcon } from '@/shared/ui/icons/EditIcon';
 import { TrashIcon } from '@/shared/ui/icons/TrashIcon';
 import { LocationIcon } from '@/shared/ui/icons/LocationIcon';
 import { XIcon } from '@/shared/ui/icons/XIcon';
+import { ImageIcon } from '@/shared/ui/icons/ImageIcon';
 import ActionButton from '@/shared/ui/button/ActionButton';
+import { ImageWithFallback } from '@/shared/ui/image';
 import { useGetRecordDetail } from '../hooks/useGetRecordDetail';
 import { logger } from '@/shared/utils/logger';
 import LoadingPage from '@/shared/ui/loading/LoadingPage';
@@ -67,6 +70,20 @@ export default function RecordSummaryBottomSheet({
     );
   }
 
+  // 이미지 URL 목록 추출 (API 응답: medium → thumbnail → original)
+  const getImageUrls = (detail: RecordDetail): string[] => {
+    const list = detail.images ?? [];
+    return list
+      .map(
+        (img: {
+          medium?: { url?: string };
+          thumbnail?: { url?: string };
+          original?: { url?: string };
+        }) => img.medium?.url ?? img.thumbnail?.url ?? img.original?.url,
+      )
+      .filter((url): url is string => Boolean(url));
+  };
+
   // 데이터 가공 (직접 전달받은 경우 vs API에서 가져온 경우)
   const displayData =
     typeof record !== 'string'
@@ -76,6 +93,7 @@ export default function RecordSummaryBottomSheet({
           location: record.location,
           tags: Array.isArray(record.tags) ? extractTagNames(record.tags) : [],
           content: record.text,
+          images: record.images,
         }
       : recordDetail
         ? {
@@ -87,6 +105,7 @@ export default function RecordSummaryBottomSheet({
             },
             tags: recordDetail.tags?.map((tag) => tag.name) ?? [],
             content: recordDetail.content ?? '',
+            images: getImageUrls(recordDetail),
           }
         : {
             title: '',
@@ -94,6 +113,7 @@ export default function RecordSummaryBottomSheet({
             location: { name: '', address: '' },
             tags: [],
             content: '',
+            images: undefined,
           };
 
   return (
@@ -142,6 +162,7 @@ function RecordSummaryContent({
   location,
   tags,
   content,
+  images,
   isDeleting,
   onEdit,
   onDelete,
@@ -155,8 +176,38 @@ function RecordSummaryContent({
         <RecordLocationCard location={location} />
       </div>
 
-      {/* 2. 스크롤 영역 (태그 + 본문) */}
+      {/* 2. 스크롤 영역 (이미지 갤러리 + 태그 + 본문) */}
       <div className="flex-1 overflow-y-auto px-6 min-h-0 custom-scrollbar">
+        {/* 본문 이미지 갤러리 (ClusterRecordBottomSheet와 동일 스타일) */}
+        {(() => {
+          const imageList = images ?? [];
+          if (imageList.length === 0) return null;
+          return (
+            <div className="relative mb-8 group">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-1.5 text-xs font-black text-gray-400 uppercase tracking-widest">
+                  <ImageIcon className="w-3.5 h-3.5" />
+                  <span>Photos ({imageList.length})</span>
+                </div>
+              </div>
+              <div className="flex gap-3 overflow-x-auto no-scrollbar snap-x snap-mandatory -mx-2 px-2">
+                {imageList.map((img, idx) => (
+                  <motion.div
+                    key={`${img}-${idx}`}
+                    whileTap={{ scale: 0.98 }}
+                    className="relative shrink-0 w-64 h-48 rounded-4xl overflow-hidden shadow-md snap-center border-4 border-white"
+                  >
+                    <ImageWithFallback
+                      src={img}
+                      alt={`Photo ${idx + 1}`}
+                      className="w-full h-full object-cover"
+                    />
+                  </motion.div>
+                ))}
+              </div>
+            </div>
+          );
+        })()}
         <RecordTagsSection tags={tags} />
         <div className="pb-8">
           <p className="text-sm text-gray-600 whitespace-pre-line leading-relaxed">

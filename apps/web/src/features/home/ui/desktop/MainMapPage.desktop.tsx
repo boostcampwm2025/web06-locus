@@ -270,42 +270,13 @@ export function MainMapPageDesktop() {
     meta?: {
       clusterRecordIds?: string[];
       clusterRecords?: Record[];
+      singleRecord?: Record;
     },
   ) => {
     const ids = meta?.clusterRecordIds ?? [recordId];
     setPinSelectedRecordIds(ids);
-
-    if (meta?.clusterRecords && meta.clusterRecords.length > 0) {
-      setPinSelectedRecordsOverride(
-        meta.clusterRecords.map((r) => ({
-          id: r.id,
-          title: r.text,
-          location: r.location,
-          date: r.createdAt,
-          tags: r.tags,
-          imageUrl: undefined,
-          connectionCount: 0,
-        })),
-      );
-      return;
-    }
-
-    const pin = createdRecordPins.find((p) => p.record.id === recordId);
-    setPinSelectedRecordsOverride(
-      pin
-        ? [
-            {
-              id: pin.record.id,
-              title: pin.record.text,
-              location: pin.record.location,
-              date: pin.record.createdAt,
-              tags: pin.record.tags,
-              imageUrl: undefined,
-              connectionCount: 0,
-            },
-          ]
-        : null,
-    );
+    // 카드 리스트는 항상 all API 결과만 사용
+    setPinSelectedRecordsOverride(null);
   };
 
   const handleClearPinSelection = () => {
