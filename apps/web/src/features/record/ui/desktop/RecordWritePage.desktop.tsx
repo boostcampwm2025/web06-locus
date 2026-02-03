@@ -1,8 +1,7 @@
 import { useEffect } from 'react';
 import { XIcon } from '@/shared/ui/icons/XIcon';
-import { PlusIcon } from '@/shared/ui/icons/PlusIcon';
 import { MapPinIcon } from '@/shared/ui/icons/MapPinIcon';
-import { TrashIcon } from '@/shared/ui/icons/TrashIcon';
+import { ImageUploadButton } from '@/shared/ui/form';
 import { useRecordForm } from '../hook/useRecordForm';
 import { useCreateRecord } from '../../hooks/useCreateRecord';
 import { useGetTags } from '../../hooks/useGetTags';
@@ -205,62 +204,15 @@ export function RecordWritePageDesktop({
 
         {/* 3. 사진 추가 */}
         <section>
-          <h3 className="text-xs font-black text-gray-400 uppercase tracking-[0.2em] mb-4">
-            3. 사진 추가
-          </h3>
-          {previewUrls && previewUrls.length > 0 ? (
-            <div className="space-y-4">
-              {previewUrls.map((url, index) => (
-                <div
-                  key={index}
-                  className="relative group rounded-[32px] overflow-hidden aspect-video border border-gray-100"
-                >
-                  <img
-                    src={url}
-                    alt={`이미지 ${index + 1}`}
-                    className="w-full h-full object-cover"
-                  />
-                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveFile(index)}
-                      className="bg-white/20 backdrop-blur-md p-3 rounded-full text-white"
-                    >
-                      <TrashIcon className="w-5 h-5" />
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <button
-              type="button"
-              onClick={() => {
-                const input = document.createElement('input');
-                input.type = 'file';
-                input.accept = 'image/*';
-                input.multiple = true;
-                input.onchange = async (e) => {
-                  const files = Array.from(
-                    (e.target as HTMLInputElement).files ?? [],
-                  );
-                  if (files.length > 0) {
-                    await handleFilesSelected(files);
-                  }
-                };
-                input.click();
-              }}
-              className="w-full aspect-video rounded-[32px] border-2 border-dashed border-gray-200 bg-gray-50 flex flex-col items-center justify-center gap-4 hover:border-orange-400 hover:bg-orange-50/30 transition-all"
-            >
-              <PlusIcon className="w-8 h-8 text-gray-300" />
-              <p className="text-sm font-bold text-gray-500">
-                클릭하거나 사진을 드래그하세요
-              </p>
-            </button>
-          )}
-          {isCompressing && (
-            <p className="text-sm text-gray-500 mt-2">이미지 압축 중...</p>
-          )}
+          <ImageUploadButton
+            label="사진 추가"
+            onFilesSelected={handleFilesSelected}
+            selectedImages={selectedImages}
+            previewUrls={previewUrls}
+            onRemoveImage={handleRemoveFile}
+            maxFiles={5}
+            isCompressing={isCompressing}
+          />
         </section>
 
         {/* 4. 태그 설정 */}
