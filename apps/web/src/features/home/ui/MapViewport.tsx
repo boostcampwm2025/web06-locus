@@ -31,6 +31,8 @@ import {
   type MapState,
 } from '@/infra/storage/mapStateStorage';
 import { extractTagNames } from '@/shared/utils/tagUtils';
+import { useDuckScenario } from '@/shared/hooks/useDuckScenario';
+import { DuckMapSceneCrossing } from '@/shared/ui/duck';
 
 export default function MapViewport({
   className = '',
@@ -79,10 +81,21 @@ export default function MapViewport({
   const polylinesRef = useRef<naver.maps.Polyline[]>([]);
   // 연결된 기록 표시용 연결선 관리
   const connectionPolylineRef = useRef<naver.maps.Polyline | null>(null);
+  // 지도 영역 크기 측정 (오리 레이어 초기 위치·높이용)
+  const mapAreaRef = useRef<HTMLDivElement>(null);
+  const [duckContainerSize, setDuckContainerSize] = useState<{
+    width: number;
+    height: number;
+  } | null>(null);
 
   // 저장된 지도 상태 불러오기
   const savedMapState = useMemo(() => loadMapState(), []);
   const hasRestoredMapStateRef = useRef(false);
+
+  // 오리 시나리오: 노출 여부 (시나리오 조건·확률은 별도 로직에서 설정)
+  const isDuckVisible = useDuckScenario((s) => s.isVisible);
+  const setDuckScenario = useDuckScenario((s) => s.setScenario);
+  const hasTriggeredDuckRef = useRef(false);
 
   // 지도 인스턴스 관리
   const {
@@ -497,6 +510,33 @@ export default function MapViewport({
     // ref는 변경되어도 재렌더링을 트리거하지 않으므로 dependency에서 제외
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isMapLoaded, selectedRecordPublicId, renderLocationConfirmation]);
+
+  // 지도 로드 후 한 번만 오리 노출 트리거 (시나리오·확률 로직은 별도에서 확장 가능)
+  useEffect(() => {
+    if (!isMapLoaded || hasTriggeredDuckRef.current) return;
+    hasTriggeredDuckRef.current = true;
+    const t = setTimeout(() => {
+      setDuckScenario('IDLE', true);
+    }, 800);
+    return () => clearTimeout(t);
+  }, [isMapLoaded, setDuckScenario]);
+
+  // 오리 레이어용 지도 영역 크기 측정 (isDuckVisible일 때만, 리사이즈 대응)
+  useEffect(() => {
+    if (!isMapLoaded || !isDuckVisible || !mapAreaRef.current) return;
+    const el = mapAreaRef.current;
+    const update = () => {
+      if (el)
+        setDuckContainerSize({
+          width: el.clientWidth,
+          height: el.clientHeight,
+        });
+    };
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [isMapLoaded, isDuckVisible]);
 
   // 좌표를 소수점 4째 자리로 반올림하는 헬퍼 함수
   const roundTo4Decimals = (value: number): number => {
@@ -949,6 +989,7 @@ export default function MapViewport({
   return (
     <>
       <div
+        ref={mapAreaRef}
         className={`relative flex-1 bg-gray-100 min-h-0 h-full w-full ${className || ''}`}
         style={{ minHeight: '500px' }}
         aria-label="지도 영역"
@@ -1053,6 +1094,21 @@ export default function MapViewport({
               onClick={handleRecordPinClick}
             />
           ))}
+
+        {/* 오리 마스코트 레이어: 끝→끝 연속 이동, 레이어는 클릭 통과(지도/마커 클릭 가능) */}
+        {isMapLoaded && isDuckVisible && duckContainerSize && (
+          <div
+            className="absolute inset-0 z-5 pointer-events-none"
+            aria-hidden="true"
+          >
+            <DuckMapSceneCrossing
+              containerSize={duckContainerSize}
+              duration={25}
+              bounce
+              height="100%"
+            />
+          </div>
+        )}
 
         {/* 연결 모드 FAB (데스크톱에서는 미표시) */}
         {!onRecordPinClick && (
