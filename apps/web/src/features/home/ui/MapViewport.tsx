@@ -957,29 +957,32 @@ export default function MapViewport({
   const handleConfirmRecord = () => {
     if (!selectedLocation) return;
 
+    const locationToUse = selectedLocation;
     setIsBottomSheetOpen(false);
+    setSelectedLocation(null);
+    setSelectedPinId(null);
 
     if (onCreateRecord) {
-      // MainMapPage의 상태 관리 사용
+      // MainMapPage의 상태 관리 사용 (사이드패널 오픈) — 모달은 이미 닫힘
       onCreateRecord(
         {
-          name: selectedLocation.name,
-          address: selectedLocation.address,
+          name: locationToUse.name,
+          address: locationToUse.address,
         },
-        selectedLocation.coordinates,
+        locationToUse.coordinates,
       );
     } else {
       // 하위 호환성: onCreateRecord가 없으면 기존 방식 사용
       if (selectedPinId) {
         void navigate(`${ROUTES.RECORD}?locationId=${selectedPinId}`, {
           state: {
-            location: selectedLocation,
+            location: locationToUse,
           },
         });
       } else {
         void navigate(ROUTES.RECORD, {
           state: {
-            location: selectedLocation,
+            location: locationToUse,
           },
         });
       }
