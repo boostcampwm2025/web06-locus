@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import {
   S3Client,
@@ -15,6 +15,10 @@ import {
   UploadedImage,
 } from './object-storage.types';
 import { ImageDeletionFailedException } from '../exceptions/record.exceptions';
+import {
+  IMAGE_UPLOAD_CONFIG,
+  ImageUploadConfig,
+} from '../config/image-upload.config';
 
 @Injectable()
 export class ObjectStorageService {
@@ -23,7 +27,11 @@ export class ObjectStorageService {
   private readonly bucketName: string;
   private readonly publicUrl: string;
 
-  constructor(private configService: ConfigService) {
+  constructor(
+    private configService: ConfigService,
+    @Inject(IMAGE_UPLOAD_CONFIG)
+    private readonly imageUploadConfig: ImageUploadConfig,
+  ) {
     this.bucketName = this.configService.getOrThrow<string>('NCP_BUCKET_NAME');
     this.publicUrl = this.configService.getOrThrow<string>('NCP_PUBLIC_URL');
 
@@ -197,6 +205,41 @@ export class ObjectStorageService {
       }
       throw error;
     }
+  }
+
+  /**
+   * S3 객체 존재 여부 확인 (재시도 포함)
+   *
+   * 네트워크 지연이나 일시적 업로드 중인 상황을 처리하기 위해
+   * 설정된 횟수만큼 재시도(Polling)합니다.
+   *
+   * @param key - S3 객체 키
+   * @returns 존재 여부
+   */
+  async checkExistsWithRetry(key: string): Promise<boolean> {
+    const { maxRetries, retryDelayMs } = this.imageUploadConfig.headCheck;
+
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      const exists = await this.checkExists(key);
+
+      if (exists) {
+        if (attempt > 1) {
+          this.logger.log(`Object found after ${attempt} attempts: ${key}`);
+        }
+        return true;
+      }
+
+      // 마지막 시도가 아니면 대기
+      if (attempt < maxRetries) {
+        this.logger.debug(
+          `Object not found, retrying (${attempt}/${maxRetries}): ${key}`,
+        );
+        await new Promise((resolve) => setTimeout(resolve, retryDelayMs));
+      }
+    }
+
+    this.logger.warn(`Object not found after ${maxRetries} attempts: ${key}`);
+    return false;
   }
 
   /**
