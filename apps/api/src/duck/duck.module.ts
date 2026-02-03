@@ -3,10 +3,11 @@ import { RecordsModule } from '@/records/records.module';
 import { DuckController } from './duck.controller';
 import { DuckService } from './duck.service';
 import { JwtModule } from '@/jwt/jwt.module';
+import { DuckConsumer } from './duck.consumer';
 
 @Module({
   imports: [RecordsModule, JwtModule],
-  controllers: [DuckController],
+  controllers: [DuckController, DuckConsumer],
   providers: [DuckService],
   exports: [DuckService],
 })
