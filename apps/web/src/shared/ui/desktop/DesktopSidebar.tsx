@@ -634,8 +634,17 @@ function RecordSummaryPanel({
   }
 
   const tags = recordDetail.tags?.map((tag) => tag.name) ?? [];
-  const imageUrls =
-    recordDetail.images?.map((img) => img.medium?.url).filter(Boolean) ?? [];
+  // 이미지 URL 목록 (medium → thumbnail → original 순으로 fallback)
+  const list = recordDetail.images ?? [];
+  const imageUrls = list
+    .map(
+      (img: {
+        medium?: { url?: string };
+        thumbnail?: { url?: string };
+        original?: { url?: string };
+      }) => img.medium?.url ?? img.thumbnail?.url ?? img.original?.url,
+    )
+    .filter((url): url is string => Boolean(url));
   const imageUrl =
     imageUrls.length > 0 ? imageUrls[0] : RECORD_PLACEHOLDER_IMAGE;
 
@@ -669,9 +678,9 @@ function RecordSummaryPanel({
       </div>
 
       {/* 스크롤 영역 */}
-      <div className="flex-1 overflow-y-auto no-scrollbar">
-        {/* 이미지 - 여러 장이면 슬라이더, 한 장이면 단일 이미지 */}
-        <div className="w-full aspect-video relative group overflow-hidden">
+      <div className="flex-1 overflow-y-auto no-scrollbar min-h-0">
+        {/* 이미지 - 1장 이상이면 슬라이더(이전/다음 버튼·인디케이터), 0장이면 플레이스홀더 */}
+        <div className="w-full aspect-video min-h-[200px] relative shrink-0 overflow-hidden bg-gray-100">
           {imageUrls.length > 0 ? (
             <RecordImageSlider
               urls={imageUrls}
