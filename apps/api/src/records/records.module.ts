@@ -19,6 +19,7 @@ import { RecordGraphService } from './services/records-graph.service';
 import { RecordLocationService } from './services/records-location.service';
 import { RecordQueryService } from './services/records-query.service';
 import { RecordImageService } from './services/records-image.service';
+import { ImageUploadConfigProvider } from './config/image-upload.config';
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { RecordImageService } from './services/records-image.service';
   ],
   controllers: [RecordsController, WebhooksController, RecordSyncConsumer],
   providers: [
+    ImageUploadConfigProvider,
     RecordsService,
     RecordSearchService,
     RecordTagsService,
