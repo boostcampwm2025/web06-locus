@@ -444,9 +444,8 @@ export function MainMapPageDesktop() {
             setRecordWriteLocation(null);
             setRecordWriteCoordinates(undefined);
 
-            // 저장된 기록을 상태로 설정하여 바텀시트 표시
-            setSavedRecord(record);
-            setIsDetailSheetOpen(true);
+            // 데스크톱: 사이드바 기록 요약 패널로 전환
+            setSelectedRecordId(record.id);
 
             // 생성된 기록 핀 추가
             setCreatedRecordPins((prev) => [...prev, { record, coordinates }]);
