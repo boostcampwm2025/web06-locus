@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ImageProcessingService } from './image-processing.service';
 import { ObjectStorageService } from './object-storage.service';
 import { PrismaService } from '@/prisma/prisma.service';
@@ -6,6 +6,12 @@ import { ProcessedImage, UploadedImage } from './object-storage.types';
 import { nanoid } from 'nanoid';
 import { Prisma, ImageStatus } from '@prisma/client';
 import { ImageModel } from '../records.types';
+import { RedisService } from '@/redis/redis.service';
+import { REDIS_KEY_PREFIX } from '@/redis/redis.constants';
+import {
+  IMAGE_UPLOAD_CONFIG,
+  ImageUploadConfig,
+} from '../config/image-upload.config';
 
 @Injectable()
 export class RecordImageService {
@@ -14,6 +20,9 @@ export class RecordImageService {
     private readonly imageProcessingService: ImageProcessingService,
     private readonly objectStorageService: ObjectStorageService,
     private readonly prisma: PrismaService,
+    private readonly redis: RedisService,
+    @Inject(IMAGE_UPLOAD_CONFIG)
+    private readonly imageUploadConfig: ImageUploadConfig,
   ) {}
 
   async processAndUploadImages(
@@ -154,10 +163,23 @@ export class RecordImageService {
       });
 
       if (!image) {
-        // 웹훅이 먼저 도착한 경우 (클라이언트가 아직 createRecordWithPresignedImages 호출 안 함)
-        this.logger.warn(
-          `Image not found for webhook: imageId=${imageId}. Webhook arrived before record creation.`,
-        );
+        // 웹훅이 먼저 도착한 경우 - Redis에 캐시 저장
+        const cacheKey = `${REDIS_KEY_PREFIX.WEBHOOK_PENDING}${imageId}`;
+        const cacheValue = JSON.stringify({ urls, metadata });
+        const ttl = this.imageUploadConfig.webhook.cacheTtlSec;
+
+        try {
+          await this.redis.set(cacheKey, cacheValue, ttl);
+          this.logger.warn(
+            `Image not found for webhook: imageId=${imageId}. Cached for ${ttl}s.`,
+          );
+        } catch (redisError) {
+          // Redis 실패해도 웹훅 처리는 계속 (로그만 기록)
+          this.logger.error(
+            `Failed to cache webhook data: imageId=${imageId}`,
+            redisError instanceof Error ? redisError.stack : String(redisError),
+          );
+        }
         return;
       }
 
@@ -190,6 +212,69 @@ export class RecordImageService {
         );
       }
       throw error;
+    }
+  }
+
+  /**
+   * Image 생성 후 캐시된 웹훅 데이터 확인 및 적용
+   *
+   * 웹훅이 Image 레코드보다 먼저 도착한 경우,
+   * Redis에 캐시된 데이터를 확인하고 즉시 Image를 업데이트합니다.
+   *
+   * @param imageId - Image publicId
+   * @returns 캐시 적용 여부
+   */
+  async checkPendingWebhook(imageId: string): Promise<boolean> {
+    const cacheKey = `${REDIS_KEY_PREFIX.WEBHOOK_PENDING}${imageId}`;
+
+    try {
+      const cached = await this.redis.get(cacheKey);
+
+      if (!cached) {
+        return false;
+      }
+
+      const { urls, metadata } = JSON.parse(cached) as {
+        urls: { original: string; thumbnail: string; medium: string };
+        metadata: {
+          original: { width: number; height: number; size: number };
+          thumbnail: { width: number; height: number; size: number };
+          medium: { width: number; height: number; size: number };
+        };
+      };
+
+      // 즉시 COMPLETED 상태로 업데이트
+      await this.prisma.image.update({
+        where: { publicId: imageId },
+        data: {
+          originalUrl: urls.original,
+          originalWidth: metadata.original.width,
+          originalHeight: metadata.original.height,
+          originalSize: metadata.original.size,
+          thumbnailUrl: urls.thumbnail,
+          thumbnailWidth: metadata.thumbnail.width,
+          thumbnailHeight: metadata.thumbnail.height,
+          thumbnailSize: metadata.thumbnail.size,
+          mediumUrl: urls.medium,
+          mediumWidth: metadata.medium.width,
+          mediumHeight: metadata.medium.height,
+          mediumSize: metadata.medium.size,
+          status: ImageStatus.COMPLETED,
+        },
+      });
+
+      // 캐시 삭제
+      await this.redis.del(cacheKey);
+
+      this.logger.log(`Applied pending webhook: imageId=${imageId}`);
+      return true;
+    } catch (error) {
+      // Redis 에러나 JSON 파싱 에러는 로그만 기록
+      this.logger.error(
+        `Failed to check/apply pending webhook: imageId=${imageId}`,
+        error instanceof Error ? error.stack : String(error),
+      );
+      return false;
     }
   }
 
