@@ -265,8 +265,31 @@ export function MainMapPageDesktop() {
     setEndDate('');
   };
 
-  const handleRecordPinClick = (recordId: string) => {
-    setPinSelectedRecordIds([recordId]);
+  const handleRecordPinClick = (
+    recordId: string,
+    meta?: {
+      clusterRecordIds?: string[];
+      clusterRecords?: Record[];
+    },
+  ) => {
+    const ids = meta?.clusterRecordIds ?? [recordId];
+    setPinSelectedRecordIds(ids);
+
+    if (meta?.clusterRecords && meta.clusterRecords.length > 0) {
+      setPinSelectedRecordsOverride(
+        meta.clusterRecords.map((r) => ({
+          id: r.id,
+          title: r.text,
+          location: r.location,
+          date: r.createdAt,
+          tags: r.tags,
+          imageUrl: undefined,
+          connectionCount: 0,
+        })),
+      );
+      return;
+    }
+
     const pin = createdRecordPins.find((p) => p.record.id === recordId);
     setPinSelectedRecordsOverride(
       pin

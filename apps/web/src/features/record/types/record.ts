@@ -82,6 +82,20 @@ export interface RecordSummaryBottomSheetProps {
 }
 
 /**
+ * 클러스터(그리드) 기록 바텀시트 Props
+ * 대표 1개 기록 요약 + 슬라이드업 시 해당 그리드 전체 기록 목록
+ */
+export interface ClusterRecordBottomSheetProps {
+  isOpen: boolean;
+  onClose: () => void;
+  topRecord: Record /** 대표 기록 (가장 최상단, 예: 최신) */;
+  clusterRecords: Record[] /** 해당 그리드의 전체 기록 (topRecord 포함, 최소 1개) */;
+  onRecordClick?: (
+    recordId: string,
+  ) => void /** 목록에서 기록 클릭 시 (상세 페이지 이동 등) */;
+}
+
+/**
  * 기록 요약 헤더 Props
  */
 export interface RecordSummaryHeaderProps {
