@@ -1015,9 +1015,24 @@ export default function MapViewport({
           </div>
         ) : null}
 
-        {/* 현재 위치 파란 핀 */}
+        {/* 파란 핀: 지도 클릭으로 위치를 선택했으면 그 위치에만 표시, 아니면 현재 위치에 표시 */}
         {isMapLoaded &&
           mapInstanceRef.current &&
+          selectedLocation?.coordinates && (
+            <PinOverlay
+              key="selected-location"
+              map={mapInstanceRef.current}
+              pin={{
+                id: 'selected-location',
+                position: selectedLocation.coordinates,
+                variant: 'current',
+              }}
+              isSelected={false}
+            />
+          )}
+        {isMapLoaded &&
+          mapInstanceRef.current &&
+          !selectedLocation &&
           latitude !== null &&
           longitude !== null && (
             <PinOverlay
