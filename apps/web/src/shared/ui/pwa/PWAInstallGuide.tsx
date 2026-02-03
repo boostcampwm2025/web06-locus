@@ -1,9 +1,8 @@
 import * as React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ShareIcon } from '@/shared/ui/icons/ShareIcon';
 import { PlusIcon } from '@/shared/ui/icons/PlusIcon';
 import { MoreVerticalIcon } from '@/shared/ui/icons/MoreVerticalIcon';
-import { DownloadIcon } from '@/shared/ui/icons/DownloadIcon';
+import { IPhoneShareIcon } from '@/shared/ui/icons/IPhoneShareIcon';
 import { XIcon } from '@/shared/ui/icons/XIcon';
 import { LocusPinIcon } from '@/shared/ui/icons/LocusPinIcon';
 
@@ -13,16 +12,17 @@ export interface PWAInstallGuideProps {
   onClose: () => void;
 }
 
-type PWAOS = 'ios' | 'android' | 'other';
+type PWAOS = 'ios' | 'android';
 
-interface StepProps {
+interface GuideStep {
   step: number;
-  title: string;
+  text: string;
+  highlight: string;
   icon: React.ReactNode;
 }
 
 export function PWAInstallGuide({ isOpen, onClose }: PWAInstallGuideProps) {
-  const [os, setOs] = React.useState<PWAOS>('other');
+  const [os, setOs] = React.useState<PWAOS>('ios');
 
   React.useEffect(() => {
     const userAgent = window.navigator.userAgent.toLowerCase();
@@ -32,6 +32,39 @@ export function PWAInstallGuide({ isOpen, onClose }: PWAInstallGuideProps) {
       setOs('android');
     }
   }, []);
+
+  const guideContent: Record<'ios' | 'android', GuideStep[]> = {
+    ios: [
+      {
+        step: 1,
+        text: "브라우저 하단의 '공유하기' 버튼을 누르세요",
+        highlight: '공유하기',
+        icon: <IPhoneShareIcon className="size-5 text-[#2563eb]" />,
+      },
+      {
+        step: 2,
+        text: "메뉴에서 '홈 화면에 추가'를 선택하세요",
+        highlight: '홈 화면에 추가',
+        icon: <PlusIcon className="size-5 text-[#2563eb]" />,
+      },
+    ],
+    android: [
+      {
+        step: 1,
+        text: '우측 상단 세로 점 3개 메뉴를 클릭하세요',
+        highlight: '세로 점 3개',
+        icon: <MoreVerticalIcon className="size-5 text-[#2563eb]" />,
+      },
+      {
+        step: 2,
+        text: "'앱 설치' 또는 '홈 화면에 추가'를 선택하세요",
+        highlight: '앱 설치',
+        icon: <PlusIcon className="size-5 text-[#2563eb]" />,
+      },
+    ],
+  };
+
+  const steps = guideContent[os];
 
   return (
     <AnimatePresence>
@@ -63,17 +96,22 @@ export function PWAInstallGuide({ isOpen, onClose }: PWAInstallGuideProps) {
           >
             <div className="pt-10 pb-6 px-6">
               {/* Brand Header */}
-              <div className="flex items-center justify-between mb-8">
+              <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-3">
                   <div className="size-9 bg-[#2563eb] rounded-xl flex items-center justify-center">
                     <LocusPinIcon className="size-5 text-white" />
                   </div>
-                  <p
-                    id="pwa-install-title"
-                    className="text-[17px] font-bold text-[#1e293b] tracking-tight"
-                  >
-                    Locus 앱 설치안내
-                  </p>
+                  <div>
+                    <p
+                      id="pwa-install-title"
+                      className="text-[17px] font-bold text-[#1e293b] tracking-tight"
+                    >
+                      앱 설치 가이드
+                    </p>
+                    <p className="text-[12px] text-[#2563eb] font-medium">
+                      Locus를 앱으로 더 편하게
+                    </p>
+                  </div>
                 </div>
                 <button
                   type="button"
@@ -85,10 +123,59 @@ export function PWAInstallGuide({ isOpen, onClose }: PWAInstallGuideProps) {
                 </button>
               </div>
 
-              {/* Guide Content: OS에 따라 가이드 교체 */}
-              <div className="min-h-[120px]">
-                {os === 'ios' ? <IOSGuide /> : <AndroidGuide />}
+              {/* OS Switch */}
+              <div className="flex gap-2 mb-6 p-1 bg-slate-50 rounded-2xl">
+                <button
+                  type="button"
+                  onClick={() => setOs('ios')}
+                  className={`flex-1 py-2 text-[13px] font-bold rounded-xl transition-all ${os === 'ios' ? 'bg-white text-[#2563eb] shadow-sm' : 'text-slate-400'}`}
+                >
+                  iOS (Safari)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setOs('android')}
+                  className={`flex-1 py-2 text-[13px] font-bold rounded-xl transition-all ${os === 'android' ? 'bg-white text-[#2563eb] shadow-sm' : 'text-slate-400'}`}
+                >
+                  Android (Chrome)
+                </button>
               </div>
+
+              {/* Guide Steps */}
+              <div className="space-y-3">
+                {steps.map((item) => (
+                  <div
+                    key={item.step}
+                    className="flex items-start gap-4 p-4 bg-slate-50/50 rounded-2xl border border-slate-100/50"
+                  >
+                    <div className="size-10 shrink-0 bg-white rounded-xl flex items-center justify-center text-[#2563eb] shadow-sm border border-slate-100">
+                      {item.icon}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[11px] font-bold text-[#2563eb] uppercase tracking-wider mb-0.5">
+                        Step 0{item.step}
+                      </p>
+                      <p className="text-[14px] font-medium text-slate-700 leading-snug">
+                        {item.text.split(item.highlight).map((part, i, arr) => (
+                          <span key={i}>
+                            {part}
+                            {i < arr.length - 1 && (
+                              <span className="text-slate-900 font-bold underline underline-offset-4 decoration-blue-200">
+                                {item.highlight}
+                              </span>
+                            )}
+                          </span>
+                        ))}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Bottom Tip */}
+              <p className="mt-6 text-center text-[11px] text-slate-400">
+                설치 후 홈 화면에서 바로 접속할 수 있습니다.
+              </p>
             </div>
 
             {/* Bottom Accent Decor */}
@@ -99,47 +186,3 @@ export function PWAInstallGuide({ isOpen, onClose }: PWAInstallGuideProps) {
     </AnimatePresence>
   );
 }
-
-const InstallStep = ({ step, title, icon }: StepProps) => (
-  <div className="flex items-center gap-4 group">
-    <div className="size-10 rounded-2xl bg-slate-50 flex items-center justify-center border border-slate-100 group-hover:border-[#2563eb]/20 transition-colors">
-      {icon}
-    </div>
-    <div className="flex-1">
-      <p className="text-[14px] text-slate-500 leading-tight mb-0.5">
-        Step {step}
-      </p>
-      <p className="text-[15px] font-semibold text-slate-800">{title}</p>
-    </div>
-  </div>
-);
-
-const IOSGuide = () => (
-  <div className="space-y-4">
-    <InstallStep
-      step={1}
-      title="브라우저 하단 공유하기 버튼 클릭"
-      icon={<ShareIcon className="size-5 text-slate-600" />}
-    />
-    <InstallStep
-      step={2}
-      title="홈 화면에 추가 메뉴 선택"
-      icon={<PlusIcon className="size-5 text-slate-600" />}
-    />
-  </div>
-);
-
-const AndroidGuide = () => (
-  <div className="space-y-4">
-    <InstallStep
-      step={1}
-      title="브라우저 메뉴(세로 점 3개) 클릭"
-      icon={<MoreVerticalIcon className="size-5 text-slate-600" />}
-    />
-    <InstallStep
-      step={2}
-      title="앱 설치 또는 홈 화면에 추가 선택"
-      icon={<DownloadIcon className="size-5 text-slate-600" />}
-    />
-  </div>
-);
