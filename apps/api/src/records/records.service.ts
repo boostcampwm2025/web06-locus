@@ -122,7 +122,7 @@ export class RecordsService {
   ): Promise<RecordResponseDto> {
     const user = await this.usersService.findById(userId);
 
-    // S3 HEAD로 각 imageId의 pre-resizing.jpg 존재 확인 (병렬)
+    // S3 HEAD로 각 imageId의 pre-resizing.jpg 존재 확인 (병렬, 재시도 포함)
     await Promise.all(
       dto.imageIds.map(async (imageId) => {
         const key = this.objectStorageService.buildKey(
@@ -131,7 +131,8 @@ export class RecordsService {
           imageId,
           TEMP_UPLOAD_KEY,
         );
-        const exists = await this.objectStorageService.checkExists(key);
+        const exists =
+          await this.objectStorageService.checkExistsWithRetry(key);
         if (!exists) {
           throw new ImageNotFoundException(imageId);
         }
@@ -747,6 +748,13 @@ export class RecordsService {
 
         return { record: updated, tags, images };
       });
+
+      // 트랜잭션 완료 후, 캐시된 웹훅 확인 및 적용 (병렬)
+      await Promise.all(
+        imageIds.map((imageId) =>
+          this.recordImageService.checkPendingWebhook(imageId),
+        ),
+      );
 
       this.logger.log(
         `Record created with presigned images: publicId=${result.record.publicId}, userId=${userId}`,
