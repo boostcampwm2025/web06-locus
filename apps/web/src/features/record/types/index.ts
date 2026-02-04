@@ -1,5 +1,6 @@
 export type {
   Location,
+  LocationWithCoordinates,
   Record,
   RecordFormData,
   Coordinates,

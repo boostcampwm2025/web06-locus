@@ -24,6 +24,8 @@ export interface Record {
   tags: string[];
   location: Location;
   createdAt: Date;
+  /** 이미지 URL 목록 (medium 등). 클러스터 바텀시트 갤러리 등에서 사용 */
+  images?: string[];
 }
 
 /**
@@ -68,6 +70,15 @@ export interface ImageSelectBottomSheetProps {
 }
 
 /**
+ * 장소에 기록 추가 시 전달할 위치 정보 (위도/경도 필수)
+ */
+export interface LocationWithCoordinates {
+  name: string;
+  address: string;
+  coordinates: { lat: number; lng: number };
+}
+
+/**
  * 기록 요약 바텀시트 Props
  * record는 Record 객체 또는 publicId 문자열을 받을 수 있음
  * publicId인 경우 내부에서 API로 상세 정보를 조회함
@@ -79,6 +90,10 @@ export interface RecordSummaryBottomSheetProps {
   isDeleting?: boolean;
   onEdit?: () => void;
   onDelete?: () => void;
+  /** 장소에 기록 추가 시 (record에 좌표가 있을 때만 + 버튼 표시) */
+  onAddRecord?: (location: LocationWithCoordinates) => void;
+  /** record가 객체일 때 좌표 전달 (savedRecord.coordinates 등) */
+  recordCoordinates?: Coordinates;
 }
 
 /**
@@ -108,7 +123,9 @@ export interface RecordSummaryHeaderProps {
  * 기록 위치 카드 Props
  */
 export interface RecordLocationCardProps {
-  location: Location;
+  location: Location & { coordinates?: { lat: number; lng: number } };
+  /** 장소에 기록 추가 시 (coordinates 있을 때만 + 버튼 표시) */
+  onAddRecord?: (location: LocationWithCoordinates) => void;
 }
 
 /**
@@ -128,6 +145,8 @@ export interface RecordSummaryContentProps
   title: string;
   date: Date | string;
   content: string;
+  /** 이미지 URL 목록. 있으면 갤러리 영역 표시 */
+  images?: string[];
   isDeleting: boolean;
   onEdit?: () => void;
   onDelete?: () => void;
@@ -230,7 +249,10 @@ export interface RecordDetailPageProps {
   location: Location;
   tags: string[];
   description: string;
+  /** 단일 이미지 (하위 호환). imageUrls가 있으면 슬라이더로 모두 표시 */
   imageUrl?: string;
+  /** 기록에 올라온 이미지 URL 목록. 있으면 슬라이더로 표시 */
+  imageUrls?: string[];
   connectionCount: number;
   connectedRecords?: ConnectedRecord[];
   /** GET /records/{publicId}/graph 응답의 nodes (데스크톱 사이드패널 D3 뷰용) */

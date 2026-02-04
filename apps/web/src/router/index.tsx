@@ -197,11 +197,11 @@ function RecordDetailPageRoute() {
       : 0;
 
   // API 응답을 RecordDetailPageProps로 변환
-  // 이미지가 있는 경우 첫 번째 이미지의 썸네일 URL 사용, 없으면 기본 이미지
+  // 이미지 URL 목록 (슬라이더용). medium 사이즈 사용
+  const imageUrls =
+    detail.images?.map((img) => img.medium?.url).filter(Boolean) ?? [];
   const thumbnailImageUrl =
-    detail.images && detail.images.length > 0
-      ? detail.images[0]?.medium.url
-      : RECORD_PLACEHOLDER_IMAGE;
+    imageUrls.length > 0 ? imageUrls[0] : RECORD_PLACEHOLDER_IMAGE;
 
   // 태그를 문자열 배열로 변환 (기존 타입 호환)
   const tags = (detail.tags ?? []).map((tag) => tag.name);
@@ -216,6 +216,7 @@ function RecordDetailPageRoute() {
     tags,
     description: detail.content ?? '',
     imageUrl: thumbnailImageUrl,
+    imageUrls: imageUrls.length > 0 ? imageUrls : undefined,
     connectionCount,
     isFavorite: detail.isFavorite,
   };

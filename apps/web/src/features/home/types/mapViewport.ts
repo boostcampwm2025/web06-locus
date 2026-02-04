@@ -24,6 +24,10 @@ export interface MapViewportProps {
     meta?: {
       clusterRecordIds?: string[];
       clusterRecords?: Record[];
+      /** 단일 핀 클릭 시 해당 기록 (이미지 등 지도 API 데이터로 카드 표시용) */
+      singleRecord?: Record;
+      /** 단일 핀 클릭 시 위도/경도 (특정 장소에 새 기록 남기기용) */
+      coordinates?: { lat: number; lng: number };
     },
   ) => void;
   /**

@@ -3,8 +3,6 @@ import * as d3 from 'd3';
 import type { GraphNode } from '@locus/shared';
 import type { GraphEdgeResponse } from '@/infra/types/connection';
 
-const NODE_COLORS = ['#FE8916', '#ec4899', '#10b981', '#f59e0b', '#8b5cf6'];
-
 export interface ConnectionNetworkViewProps {
   nodes: GraphNode[];
   edges: GraphEdgeResponse[];
@@ -13,6 +11,7 @@ export interface ConnectionNetworkViewProps {
   height?: number;
   onNodeClick?: (publicId: string) => void;
   className?: string;
+  theme?: 'tech-blueprint' | 'default';
 }
 
 interface SimulationNode extends d3.SimulationNodeDatum {
@@ -30,6 +29,7 @@ export default function ConnectionNetworkView({
   height: initialHeight,
   onNodeClick,
   className = '',
+  theme = 'tech-blueprint',
 }: ConnectionNetworkViewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [actualWidth, setActualWidth] = useState(initialWidth ?? 400);
@@ -129,9 +129,9 @@ export default function ConnectionNetworkView({
       .selectAll('line')
       .data(simulationLinks)
       .join('line')
-      .attr('stroke', '#64748b')
-      .attr('stroke-opacity', 0.5)
-      .attr('stroke-width', 2);
+      .attr('stroke', theme === 'tech-blueprint' ? '#E2E8F0' : '#FE891622')
+      .attr('stroke-width', 1.5)
+      .attr('stroke-dasharray', theme === 'tech-blueprint' ? '4,4' : 'none');
 
     const nodeGroup = graphContainer
       .append('g')
@@ -193,30 +193,25 @@ export default function ConnectionNetworkView({
 
     nodeGroup
       .append('circle')
-      .attr('r', (d) => (d.id === baseRecordPublicId ? 28 : 18))
-      .attr('fill', (d, idx) =>
-        d.id === baseRecordPublicId
-          ? NODE_COLORS[0]
-          : NODE_COLORS[(idx % 4) + 1],
-      )
+      .attr('r', 6)
+      .attr('fill', '#FFFFFF')
       .attr('stroke', (d) =>
-        d.id === baseRecordPublicId ? '#FE8916' : 'transparent',
+        d.id === baseRecordPublicId ? '#FE8916' : '#94A3B8',
       )
-      .attr('stroke-width', 2);
+      .attr('stroke-width', 3);
 
     nodeGroup
       .append('text')
-      .attr('dy', (d) => (d.id === baseRecordPublicId ? 46 : 32))
-      .attr('text-anchor', 'middle')
+      .attr('x', 15)
+      .attr('dy', 4)
+      .attr('fill', '#475569')
+      .attr('font-size', '12px')
+      .attr('font-weight', '500')
       .text((d) =>
         d.displayTitle.length > 8
           ? d.displayTitle.slice(0, 7) + '…'
           : d.displayTitle,
-      )
-      .attr('fill', '#f1f5f9')
-      .attr('font-size', (d) => (d.id === baseRecordPublicId ? '13px' : '11px'))
-      .attr('font-weight', '600')
-      .style('text-shadow', '0 2px 4px rgba(0,0,0,0.5)');
+      );
 
     simulation.on('tick', () => {
       link
@@ -234,6 +229,7 @@ export default function ConnectionNetworkView({
     nodes,
     edges,
     baseRecordPublicId,
+    theme,
     initialWidth,
     actualWidth,
     initialHeight,
@@ -249,9 +245,21 @@ export default function ConnectionNetworkView({
 
   return (
     <div
-      className={`relative overflow-hidden rounded-[32px] border border-slate-800 bg-slate-950 shadow-inner ${className}`}
+      className={`relative overflow-hidden rounded-[32px] border border-slate-200 bg-white shadow-inner ${className}`}
       style={wrapperStyle}
     >
+      <div
+        className="absolute inset-0 -z-10 pointer-events-none overflow-hidden opacity-30"
+        aria-hidden
+      >
+        <div
+          className="absolute inset-0"
+          style={{
+            backgroundImage: 'radial-gradient(#E2E8F0 1px, transparent 1px)',
+            backgroundSize: '32px 32px',
+          }}
+        />
+      </div>
       <div ref={containerRef} className="h-full w-full" />
     </div>
   );

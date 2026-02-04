@@ -10,7 +10,10 @@ import RecordSummaryBottomSheet from '@/features/record/ui/RecordSummaryBottomSh
 import ClusterRecordBottomSheet from '@/features/record/ui/ClusterRecordBottomSheet';
 import { ROUTES } from '@/router/routes';
 import { useMapInstance } from '@/shared/hooks/useMapInstance';
-import type { Record as RecordType } from '@/features/record/types';
+import type {
+  Record as RecordType,
+  LocationWithCoordinates,
+} from '@/features/record/types';
 import { useRecordGraph } from '@/features/connection/hooks/useRecordGraph';
 import { buildGraphFromStoredConnections } from '@/infra/storage/connectionStorage';
 import type { Coordinates } from '@/features/record/types';
@@ -304,13 +307,31 @@ export default function MapViewport({
     return pins;
   }, [apiPins, clusterDataMap, createdRecordPins]);
 
-  // 필터링된 기록을 RecordType으로 변환
+  // 필터링된 기록을 RecordType으로 변환 (이미지 URL 목록 포함)
   const apiRecords = useMemo<Record<string | number, RecordType>>(() => {
     const records: Record<string | number, RecordType> = {} as Record<
       string | number,
       RecordType
     >;
     visibleApiRecords.forEach((record: ApiRecord) => {
+      const rawImages =
+        'images' in record
+          ? (
+              record as {
+                images?: {
+                  medium?: { url?: string };
+                  thumbnail?: { url?: string };
+                  original?: { url?: string };
+                }[];
+              }
+            ).images
+          : undefined;
+      const images =
+        rawImages
+          ?.map(
+            (img) => img.medium?.url ?? img.thumbnail?.url ?? img.original?.url,
+          )
+          .filter((url): url is string => Boolean(url)) ?? [];
       records[record.publicId] = {
         id: record.publicId,
         text: record.title,
@@ -320,6 +341,7 @@ export default function MapViewport({
           address: record.location.address ?? '',
         },
         createdAt: new Date(record.createdAt),
+        ...(images.length > 0 ? { images } : {}),
       };
     });
     return records;
@@ -334,6 +356,24 @@ export default function MapViewport({
     });
     return records;
   }, [apiRecords, createdRecordPins]);
+
+  const recordCoordinatesMap = useMemo<
+    Record<string | number, Coordinates>
+  >(() => {
+    const map: Record<string | number, Coordinates> = {};
+    visibleApiRecords.forEach((record) => {
+      map[record.publicId] = {
+        lat: record.location.latitude,
+        lng: record.location.longitude,
+      };
+    });
+    createdRecordPins.forEach((pinData) => {
+      if (pinData.coordinates) {
+        map[pinData.record.id] = pinData.coordinates;
+      }
+    });
+    return map;
+  }, [visibleApiRecords, createdRecordPins]);
 
   // 선택된 기록의 그래프 조회
   const isGraphQueryEnabled = !!selectedRecordPublicId && isMapLoaded;
@@ -895,9 +935,24 @@ export default function MapViewport({
 
       const onPinClick = onRecordPinClick;
       if (onPinClick) {
+        let sharedCoordinates: Coordinates | undefined;
+        const coordinateList = clusterRecordIds
+          .map((id) => recordCoordinatesMap[id])
+          .filter((coord): coord is Coordinates => coord != null);
+        if (
+          coordinateList.length === clusterRecordIds.length &&
+          coordinateList.every(
+            (coord) =>
+              coord.lat === coordinateList[0]?.lat &&
+              coord.lng === coordinateList[0]?.lng,
+          )
+        ) {
+          sharedCoordinates = coordinateList[0];
+        }
         onPinClick(topRecordId, {
           clusterRecordIds,
           clusterRecords: clusterRecordsList,
+          ...(sharedCoordinates ? { coordinates: sharedCoordinates } : {}),
         });
         return;
       }
@@ -911,7 +966,11 @@ export default function MapViewport({
     setSelectedRecordPublicId(publicId);
     const onPinClick = onRecordPinClick;
     if (onPinClick) {
-      onPinClick(publicId);
+      const singleRecord = allRecords[publicId];
+      const coordinates = recordCoordinatesMap[publicId];
+      const meta =
+        singleRecord || coordinates ? { singleRecord, coordinates } : undefined;
+      onPinClick(publicId, meta);
       return;
     }
     const record = allRecords[pinId];
@@ -1015,9 +1074,24 @@ export default function MapViewport({
           </div>
         ) : null}
 
-        {/* 현재 위치 파란 핀 */}
+        {/* 파란 핀: 지도 클릭으로 위치를 선택했으면 그 위치에만 표시, 아니면 현재 위치에 표시 */}
         {isMapLoaded &&
           mapInstanceRef.current &&
+          selectedLocation?.coordinates && (
+            <PinOverlay
+              key="selected-location"
+              map={mapInstanceRef.current}
+              pin={{
+                id: 'selected-location',
+                position: selectedLocation.coordinates,
+                variant: 'current',
+              }}
+              isSelected={false}
+            />
+          )}
+        {isMapLoaded &&
+          mapInstanceRef.current &&
+          !selectedLocation &&
           latitude !== null &&
           longitude !== null && (
             <PinOverlay
@@ -1155,8 +1229,8 @@ export default function MapViewport({
           />
         ))}
 
-      {/* 기록 Summary Bottom Sheet (onRecordPinClick 제공 시 미표시) */}
-      {selectedRecord && !onRecordPinClick && (
+      {/* 기록 Summary Bottom Sheet (onRecordPinClick 제공 시 미표시). publicId로 넘겨 상세 API GET /records/{publicId} 호출 → 이미지 등 전체 데이터 표시 */}
+      {selectedRecord && selectedRecordPublicId && !onRecordPinClick && (
         <RecordSummaryBottomSheet
           isOpen={isSummaryOpen}
           onClose={() => {
@@ -1168,7 +1242,25 @@ export default function MapViewport({
             });
             polylinesRef.current = [];
           }}
-          record={selectedRecord}
+          record={selectedRecordPublicId}
+          onAddRecord={(loc: LocationWithCoordinates) => {
+            setIsSummaryOpen(false);
+            setSelectedRecord(null);
+            setSelectedRecordPublicId(null);
+            polylinesRef.current.forEach((polyline) => {
+              polyline.setMap(null);
+            });
+            polylinesRef.current = [];
+            void navigate(ROUTES.RECORD, {
+              state: {
+                location: {
+                  name: loc.name,
+                  address: loc.address,
+                  coordinates: loc.coordinates,
+                },
+              },
+            });
+          }}
         />
       )}
 
