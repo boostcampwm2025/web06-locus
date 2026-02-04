@@ -137,7 +137,7 @@ export default function RecordConnectionPage({
       };
       const thumbnailUrl =
         recordWithImages.images && recordWithImages.images.length > 0
-          ? recordWithImages.images[0].thumbnail.url
+          ? recordWithImages.images[0].thumbnail?.url
           : RECORD_PLACEHOLDER_IMAGE;
 
       return {
