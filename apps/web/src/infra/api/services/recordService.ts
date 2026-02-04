@@ -13,6 +13,7 @@ import {
 } from '@locus/shared';
 import type {
   CreateRecordRequest,
+  CreateRecordWithPresignedRequest,
   RecordWithImages,
   GetRecordsByBoundsRequest,
   GetAllRecordsRequest,
@@ -438,4 +439,38 @@ export async function uploadImageToObjectStorage(
     );
     throw error;
   }
+}
+
+/**
+ * Presigned URL 방식으로 기록 생성 API 호출
+ * @param params recordPublicId, imageIds, title, content, location, tags
+ * @returns 생성된 기록 정보
+ */
+export async function createRecordWithPresignedImages(
+  params: CreateRecordWithPresignedRequest,
+): Promise<RecordWithImages> {
+  logger.info('Presigned 방식 기록 생성 시작', {
+    recordPublicId: params.recordPublicId,
+    imageCount: params.imageIds.length,
+  });
+
+  const response = await apiClient<unknown>(
+    API_ENDPOINTS.RECORDS_WITH_PRESIGNED,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(params),
+    },
+  );
+
+  // 응답 검증 (기존 CreateRecordResponseSchema 재사용)
+  const validated = validateApiResponse(CreateRecordResponseSchema, response);
+
+  logger.info('Presigned 방식 기록 생성 성공', {
+    recordPublicId: validated.data.publicId,
+  });
+
+  return validated.data;
 }
