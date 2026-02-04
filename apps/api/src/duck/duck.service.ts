@@ -2,12 +2,25 @@ import { REDIS_KEY_PREFIX } from '@/redis/redis.constants';
 import { RedisService } from '@/redis/redis.service';
 import { Injectable, Logger } from '@nestjs/common';
 import { DuckCommentResponseDto } from './dto/duck-comment-response.dto';
+import { RecordSyncPayload } from '@/records/type/record-sync.types';
+import { RecordsService } from '@/records/records.service';
+import { NcpAiService } from './ncp-ai.service';
+import { UsersService } from '@/users/users.service';
+import {
+  DUCK_DEFAULT_COMMENTS,
+  DUCK_POLICY,
+} from './constants/duck.policy.constants';
 
 @Injectable()
 export class DuckService {
   private readonly logger = new Logger(DuckService.name);
 
-  constructor(private readonly redisService: RedisService) {}
+  constructor(
+    private readonly redisService: RedisService,
+    private readonly recordsService: RecordsService,
+    private readonly ncpAiService: NcpAiService,
+    private readonly usersService: UsersService,
+  ) {}
 
   async getComments(userId: bigint): Promise<DuckCommentResponseDto> {
     const key = `${REDIS_KEY_PREFIX.DUCK_POOL}${userId}`;
@@ -23,21 +36,80 @@ export class DuckService {
     }
 
     // 데이터가 없거나 에러 시 기본 멘트 반환
-    return DuckCommentResponseDto.of(this.getDefaultComments());
+    return DuckCommentResponseDto.of(DUCK_DEFAULT_COMMENTS);
   }
 
-  getDefaultComments(): string[] {
-    return [
-      '오늘도 기록은 네가 해야지, 내가 할 순 없다.',
-      '이렇게 가만히 있다가, 기록 다 놓친다.',
-      '기록도 습관이다, 오늘이 딱 시작할 타이밍.',
-      '오래 쉬면 둔해져. 다시 한 번 써보자!',
-      '별거 안 해도 괜찮아, 시작한 것만으로 반이나 왔다.',
-      '누군가와 비교하지 마. 네 리듬대로 가는 거야!',
-      '기록이 쌓이면, 언젠가 너도 놀랄 거다.',
-      '주저 말고 남겨. 완벽하려다 시작도 못한단다.',
-      '오늘 한 줄, 내일을 바꾼다. 안 믿기지? 해봐. 아자아!',
-      '끈기가 답이다. 어제보다 한 줄 더 쓰면 이긴 거지.',
-    ];
+  async handleRecordCreated(payload: RecordSyncPayload) {
+    const userId = BigInt(payload.userId);
+
+    const countKey = `${REDIS_KEY_PREFIX.DUCK_COUNT}${userId}`;
+    const poolKey = `${REDIS_KEY_PREFIX.DUCK_POOL}${userId}`;
+
+    const currentCount = await this.redisService.incr(countKey);
+    const poolExists = await this.redisService.isExists(poolKey);
+
+    this.logger.log(
+      `🐥 유저 ${userId} 기록 생성 감지! 현재 카운트: ${currentCount}`,
+    );
+
+    if (currentCount >= DUCK_POLICY.UPDATE_THRESHOLD || !poolExists) {
+      this.logger.log(`🚀 유저 ${userId}의 오리 멘트 갱신을 트리거합니다.`);
+
+      await this.refreshComments(userId);
+      await this.redisService.del(countKey);
+    }
+  }
+
+  private async refreshComments(userId: bigint): Promise<string[]> {
+    const nickname = await this.usersService.findNickNameById(userId);
+
+    const recentRecordsResult = await this.recordsService.getAllRecords(
+      userId,
+      {
+        page: 1,
+        limit: DUCK_POLICY.RECENT_RECORD_LIMIT,
+        sortOrder: 'desc',
+      },
+    );
+
+    // 기록이 0개인 경우 AI 호출 없이 기본 멘트 반환
+    if (recentRecordsResult.totalCount === 0) {
+      return this.saveAndReturnDefaultComments(userId);
+    }
+
+    const recordsForAi = recentRecordsResult.records.map((r) => ({
+      title: r.title,
+      location: r.location.name,
+      tags: r.tags.map((t) => t.name),
+    }));
+
+    try {
+      const newComments = await this.ncpAiService.generateDuckComments(
+        nickname,
+        recordsForAi,
+      );
+
+      await this.saveCommentsToRedis(userId, newComments);
+      return newComments;
+    } catch (e) {
+      this.logger.error(`AI 갱신 실패로 기본 멘트를 사용합니다.`, e);
+      return this.saveAndReturnDefaultComments(userId);
+    }
+  }
+
+  private async saveCommentsToRedis(userId: bigint, comments: string[]) {
+    const key = `${REDIS_KEY_PREFIX.DUCK_POOL}${userId}`;
+    await this.redisService.set(
+      key,
+      JSON.stringify(comments),
+      DUCK_POLICY.POOL_TTL,
+    );
+  }
+
+  private async saveAndReturnDefaultComments(
+    userId: bigint,
+  ): Promise<string[]> {
+    await this.saveCommentsToRedis(userId, DUCK_DEFAULT_COMMENTS);
+    return DUCK_DEFAULT_COMMENTS;
   }
 }
