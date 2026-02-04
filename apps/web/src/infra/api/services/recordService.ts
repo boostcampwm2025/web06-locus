@@ -394,3 +394,48 @@ export async function generateUploadUrls(count: number): Promise<{
 
   return validated;
 }
+
+/**
+ * Presigned URL을 사용하여 이미지를 Object Storage에 직접 업로드
+ * @param presignedUrl Object Storage Presigned URL
+ * @param file 업로드할 파일
+ */
+export async function uploadImageToObjectStorage(
+  presignedUrl: string,
+  file: File,
+): Promise<void> {
+  logger.info('Object Storage 이미지 업로드 시작', {
+    fileName: file.name,
+    fileSize: file.size,
+    fileType: file.type,
+  });
+
+  try {
+    const response = await fetch(presignedUrl, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': file.type,
+      },
+      body: file,
+    });
+
+    if (!response.ok) {
+      throw new Error(
+        `Object Storage 업로드 실패: ${response.status} ${response.statusText}`,
+      );
+    }
+
+    logger.info('Object Storage 이미지 업로드 성공', {
+      fileName: file.name,
+    });
+  } catch (error) {
+    logger.error(
+      error instanceof Error ? error : new Error('Object Storage 업로드 실패'),
+      {
+        fileName: file.name,
+        error: String(error),
+      },
+    );
+    throw error;
+  }
+}
