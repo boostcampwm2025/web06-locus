@@ -10,6 +10,7 @@ import {
   DUCK_DEFAULT_COMMENTS,
   DUCK_POLICY,
 } from './constants/duck.policy.constants';
+import { AiRecordContext } from './types/ncp-ai.types';
 
 @Injectable()
 export class DuckService {
@@ -77,11 +78,13 @@ export class DuckService {
       return this.saveAndReturnDefaultComments(userId);
     }
 
-    const recordsForAi = recentRecordsResult.records.map((r) => ({
-      title: r.title,
-      location: r.location.name,
-      tags: r.tags.map((t) => t.name),
-    }));
+    const recordsForAi: AiRecordContext[] = recentRecordsResult.records.map(
+      (r) => ({
+        title: r.title,
+        location: r.location.name ?? '',
+        tags: r.tags.map((t) => t.name),
+      }),
+    );
 
     try {
       const newComments = await this.ncpAiService.generateDuckComments(
