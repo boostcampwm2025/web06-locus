@@ -68,10 +68,9 @@ export default function RecordConnectionDrawer({
         },
         date: new Date(fromRecordDetail.createdAt),
         tags: fromRecordDetail.tags?.map((tag) => tag.name) ?? [],
-        imageUrl:
-          fromRecordDetail.images && fromRecordDetail.images.length > 0
-            ? fromRecordDetail.images[0].medium.url
-            : undefined,
+        imageUrl: fromRecordDetail.images?.length
+          ? fromRecordDetail.images[0].medium?.url
+          : undefined,
       });
     }
   }, [fromRecordDetail, departure, selectDeparture]);
@@ -266,7 +265,7 @@ export default function RecordConnectionDrawer({
             // 출발 기록은 records에서 제외되어 있으므로, fromRecordDetail에서 이미지 사용
             imageUrl:
               departure.id === fromRecordId && fromRecordDetail?.images?.length
-                ? fromRecordDetail.images[0].medium.url
+                ? fromRecordDetail.images[0].medium?.url
                 : records.find((r) => r.id === departure.id)?.imageUrl,
           }}
           arrival={{

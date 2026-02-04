@@ -187,9 +187,8 @@ export function RecordListPageMobile({
     return sortedRecords.map((record: RecordWithoutCoords) => {
       // 이미지가 있는 경우 첫 번째 이미지의 thumbnail URL, 없으면 기본 이미지
       const thumbnailUrl =
-        record.images && record.images.length > 0
-          ? record.images[0].thumbnail.url
-          : RECORD_PLACEHOLDER_IMAGE;
+        (record.images?.length ? record.images[0].thumbnail?.url : null) ??
+        RECORD_PLACEHOLDER_IMAGE;
 
       return {
         id: record.publicId,
