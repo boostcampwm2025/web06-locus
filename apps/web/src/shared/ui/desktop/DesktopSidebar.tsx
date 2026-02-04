@@ -12,6 +12,7 @@ import { ChevronRightIcon } from '@/shared/ui/icons/ChevronRightIcon';
 import { LinkIcon } from '@/shared/ui/icons/LinkIcon';
 import { RECORD_PLACEHOLDER_IMAGE } from '@/shared/constants/record';
 import { ImageSkeleton } from '@/shared/ui/skeleton';
+import { RecordImageSlider } from '@/shared/ui/record';
 import { useScrollPosition } from '@/shared/hooks/useScrollPosition';
 import { useIntersectionObserver } from '@/shared/hooks/useIntersectionObserver';
 import { ROUTES } from '@/router/routes';
@@ -36,7 +37,8 @@ export function DesktopSidebar({
   selectedCategory = 'all',
   onCategoryChange,
   onRecordClick,
-  onCreateRecordClick,
+  onCreateRecordAtLocation,
+  pinSelectedLocationWithCoords,
   onSettingsClick,
   sortOrder = 'newest',
   startDate = '',
@@ -266,9 +268,17 @@ export function DesktopSidebar({
   };
 
   const handleCreateRecord = () => {
-    onCreateRecordClick?.();
-    // MainMapPage에서 상태로 관리됨
+    if (!pinSelectedLocationWithCoords || !onCreateRecordAtLocation) return;
+    onCreateRecordAtLocation(
+      pinSelectedLocationWithCoords.location,
+      pinSelectedLocationWithCoords.coordinates,
+    );
   };
+
+  // 단일 장소 핀 선택 시에만 버튼 표시 (클러스터 핀 X)
+  const showAddRecordButton = Boolean(
+    pinSelectedLocationWithCoords && onCreateRecordAtLocation,
+  );
 
   return (
     <aside className="flex flex-col w-[420px] h-full bg-white border-r border-gray-100 shadow-2xl relative z-20">
@@ -444,17 +454,19 @@ export function DesktopSidebar({
                 )}
               </div>
 
-              {/* 하단 새 기록 버튼 */}
-              <div className="p-8 border-t border-gray-50">
-                <button
-                  type="button"
-                  onClick={handleCreateRecord}
-                  className="w-full py-5 rounded-[24px] bg-[#FE8916] hover:bg-[#E67800] text-white font-black shadow-xl shadow-orange-100 flex items-center justify-center gap-3 active:scale-95 transition-all"
-                >
-                  <PlusIcon className="w-6 h-6" />
-                  <span>새로운 기록 남기기</span>
-                </button>
-              </div>
+              {/* 하단 새 기록 버튼 (단일 장소 핀 선택 시에만 표시) */}
+              {showAddRecordButton && (
+                <div className="p-8 border-t border-gray-50">
+                  <button
+                    type="button"
+                    onClick={handleCreateRecord}
+                    className="w-full py-5 rounded-[24px] bg-[#FE8916] hover:bg-[#E67800] text-white font-black shadow-xl shadow-orange-100 flex items-center justify-center gap-3 active:scale-95 transition-all"
+                  >
+                    <PlusIcon className="w-6 h-6" />
+                    <span>새로운 기록 남기기</span>
+                  </button>
+                </div>
+              )}
             </motion.div>
           ) : (
             <RecordSummaryPanel
@@ -575,6 +587,12 @@ function RecordCard({
             <CalendarIcon className="w-[14px] h-[14px]" />
             {formatDateShort(record.date)}
           </p>
+          {(record.connectionCount ?? 0) > 0 && (
+            <p className="text-xs text-gray-500 flex items-center gap-1.5 mt-0.5">
+              <LinkIcon className="w-[14px] h-[14px]" />
+              연결 {record.connectionCount ?? 0}개
+            </p>
+          )}
           {isConnectionMode && !isSource && (
             <motion.button
               type="button"
@@ -633,10 +651,19 @@ function RecordSummaryPanel({
   }
 
   const tags = recordDetail.tags?.map((tag) => tag.name) ?? [];
+  // 이미지 URL 목록 (medium → thumbnail → original 순으로 fallback)
+  const list = recordDetail.images ?? [];
+  const imageUrls = list
+    .map(
+      (img: {
+        medium?: { url?: string };
+        thumbnail?: { url?: string };
+        original?: { url?: string };
+      }) => img.medium?.url ?? img.thumbnail?.url ?? img.original?.url,
+    )
+    .filter((url): url is string => Boolean(url));
   const imageUrl =
-    recordDetail.images && recordDetail.images.length > 0
-      ? recordDetail.images[0].medium.url
-      : RECORD_PLACEHOLDER_IMAGE;
+    imageUrls.length > 0 ? imageUrls[0] : RECORD_PLACEHOLDER_IMAGE;
 
   return (
     <motion.div
@@ -668,33 +695,36 @@ function RecordSummaryPanel({
       </div>
 
       {/* 스크롤 영역 */}
-      <div className="flex-1 overflow-y-auto no-scrollbar">
-        {/* 이미지 - 없으면 기본 이미지 */}
-        <div className="w-full aspect-video relative group overflow-hidden">
-          <>
-            <ImageSkeleton className="absolute inset-0 z-0" />
-            <img
-              src={imageUrl}
+      <div className="flex-1 overflow-y-auto no-scrollbar min-h-0">
+        {/* 이미지 - 1장 이상이면 슬라이더(이전/다음 버튼·인디케이터), 0장이면 플레이스홀더 */}
+        <div className="w-full aspect-video min-h-[200px] relative shrink-0 overflow-hidden bg-gray-100">
+          {imageUrls.length > 0 ? (
+            <RecordImageSlider
+              urls={imageUrls}
               alt={recordDetail.title}
-              className="w-full h-full object-cover group-hover:scale-105 transition-all duration-700 relative z-10"
-              onLoad={(e) => {
-                // 이미지 로드 완료 시 스켈레톤 숨김
-                const img = e.currentTarget;
-                const skeleton = img.previousElementSibling as HTMLElement;
-                if (skeleton) {
-                  skeleton.style.opacity = '0';
-                  setTimeout(() => {
-                    skeleton.remove();
-                  }, 300);
-                }
-              }}
-              onError={(e) => {
-                // 이미지 로드 실패 시 스켈레톤 유지
-                const img = e.currentTarget;
-                img.style.opacity = '0';
-              }}
+              className="rounded-none"
             />
-          </>
+          ) : (
+            <>
+              <ImageSkeleton className="absolute inset-0 z-0" />
+              <img
+                src={imageUrl}
+                alt={recordDetail.title}
+                className="w-full h-full object-cover group-hover:scale-105 transition-all duration-700 relative z-10"
+                onLoad={(e) => {
+                  const img = e.currentTarget;
+                  const skeleton = img.previousElementSibling as HTMLElement;
+                  if (skeleton) {
+                    skeleton.style.opacity = '0';
+                    setTimeout(() => skeleton.remove(), 300);
+                  }
+                }}
+                onError={(e) => {
+                  e.currentTarget.style.opacity = '0';
+                }}
+              />
+            </>
+          )}
         </div>
 
         {/* 콘텐츠 */}

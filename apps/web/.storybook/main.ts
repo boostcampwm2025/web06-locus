@@ -1,6 +1,7 @@
 import type { StorybookConfig } from '@storybook/react-vite';
 import { dirname, resolve } from 'path';
 import { fileURLToPath } from 'url';
+import { mergeConfig } from 'vite';
 
 /**
  * This function is used to resolve the absolute path of a package.
@@ -24,16 +25,22 @@ const config: StorybookConfig = {
   viteFinal(config) {
     // Path alias 설정 (vite.config.ts와 동일하게)
     const rootDir = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-    config.resolve = config.resolve ?? {};
-    config.resolve.alias = {
-      ...config.resolve.alias,
+    const alias = {
       '@': resolve(rootDir, 'src'),
       '@public': resolve(rootDir, 'public'),
       '@locus/shared': resolve(rootDir, '../../packages/shared/src'),
       '@features/home': resolve(rootDir, 'src/features/home'),
       '@features/settings': resolve(rootDir, 'src/features/settings'),
     };
-    return config;
+    // React Fast Refresh 비활성화: Storybook HTML에는 refresh 런타임이 주입되지 않아
+    // $RefreshSig$ is not defined 오류가 나므로, HMR을 끄면 플러그인이 refresh 코드를 넣지 않음.
+    return mergeConfig(config, {
+      resolve: {
+        ...config.resolve,
+        alias: { ...config.resolve?.alias, ...alias },
+      },
+      server: { ...config.server, hmr: false },
+    });
   },
 };
 export default config;

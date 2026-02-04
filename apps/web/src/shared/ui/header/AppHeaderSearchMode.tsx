@@ -31,7 +31,7 @@ export default function AppHeaderSearchMode({
           onChange={onChange}
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
-          className="flex-1 bg-transparent border-none outline-none text-sm text-gray-900 placeholder:text-gray-400"
+          className="flex-1 bg-transparent border-none outline-none text-base text-gray-900 placeholder:text-gray-400 min-w-0"
           autoFocus
         />
       </div>

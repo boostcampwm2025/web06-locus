@@ -66,7 +66,7 @@ export default function SettingsPageDesktop(props: SettingsPageProps) {
       />
 
       <main className="flex-1 overflow-y-auto bg-white flex justify-center">
-        <div className="w-full max-w-3xl p-20 pt-24">
+        <div className="w-full max-w-3xl p-20 pt-24 pb-8">
           <AnimatePresence mode="wait">
             {activeTab === 'profile' && (
               <ProfileTab

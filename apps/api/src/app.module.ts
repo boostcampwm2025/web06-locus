@@ -20,6 +20,7 @@ import { MapsModule } from './maps/maps.module';
 import { NotificationModule } from './notification/notification.module';
 import { ImagesModule } from './images/images.module';
 import { PrometheusModule } from './infra/monitoring/prometheus.module';
+import { DuckModule } from './duck/duck.module';
 
 @Module({
   imports: [
@@ -39,6 +40,7 @@ import { PrometheusModule } from './infra/monitoring/prometheus.module';
     MapsModule,
     NotificationModule,
     ImagesModule,
+    DuckModule,
   ],
   controllers: [AppController],
   providers: [
