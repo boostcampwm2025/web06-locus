@@ -84,7 +84,11 @@ export default function EmailVerifyPage() {
           <button
             type="submit"
             disabled={isLoading || code.join('').length !== 6}
-            className="w-full px-4 py-3 bg-gray-200 text-gray-600 rounded-lg hover:bg-gray-300 transition-colors font-extralight disabled:opacity-50 disabled:cursor-not-allowed"
+            className={`w-full px-4 py-3 rounded-lg transition-colors font-normal disabled:cursor-not-allowed ${
+              code.join('').length === 6
+                ? 'bg-gray-900 text-white hover:bg-gray-800 disabled:opacity-50'
+                : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
+            }`}
           >
             {isLoading ? '인증 중...' : '인증하기'}
           </button>

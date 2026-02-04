@@ -75,7 +75,7 @@ export default function RecordCard({
           )}
           <div className="flex items-center gap-1.5 text-sm text-gray-500 shrink-0">
             <LinkIcon className="w-3.5 h-3.5" />
-            <span>연결 {connectionCount}</span>
+            <span>연결 {connectionCount}개</span>
           </div>
         </div>
       </div>

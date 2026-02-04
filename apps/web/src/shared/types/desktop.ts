@@ -33,6 +33,11 @@ export interface DesktopSidebarProps {
   onCategoryChange?: (category: string) => void;
   onRecordClick?: (recordId: string) => void;
   onCreateRecordClick?: () => void;
+  /** 단일 장소 핀 선택 시, 해당 장소로 기록 작성 */
+  onCreateRecordAtLocation?: (
+    location: { name: string; address: string },
+    coordinates: { lat: number; lng: number },
+  ) => void;
   onSettingsClick?: () => void;
   sortOrder?: SortOrder;
   startDate?: string;
@@ -47,6 +52,11 @@ export interface DesktopSidebarProps {
   onStartConnection?: (recordId: string) => void;
   /** 지도 핀 클릭 시 해당 위치 기록 ID 목록 (데스크톱: 바텀시트 대신 사이드바에 목록 표시) */
   pinSelectedRecordIds?: string[] | null;
+  /** 단일 장소 핀 선택 시 location+coordinates (새로운 기록 남기기 버튼 노출용) */
+  pinSelectedLocationWithCoords?: {
+    location: { name: string; address: string };
+    coordinates: { lat: number; lng: number };
+  } | null;
   /** 핀 선택 시 표시할 기록 목록 (API 반영 전 생성 기록 등, 없으면 allRecords에서 pinSelectedRecordIds로 필터) */
   pinSelectedRecordsOverride?:
     | (UIRecord & {

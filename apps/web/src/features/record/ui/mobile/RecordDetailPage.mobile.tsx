@@ -7,6 +7,7 @@ import { LocationIcon } from '@/shared/ui/icons/LocationIcon';
 import { ActionSheet, ConfirmDialog } from '@/shared/ui/dialog';
 import type { RecordDetailPageProps } from '@/features/record/types';
 import { formatDateShort } from '@/shared/utils/dateUtils';
+import { RecordImageSlider } from '@/shared/ui/record';
 import { getDisplayTags } from '@/shared/utils/tagUtils';
 
 export function RecordDetailPageMobile({
@@ -16,6 +17,7 @@ export function RecordDetailPageMobile({
   tags,
   description,
   imageUrl,
+  imageUrls,
   connectionCount,
   isFavorite = false,
   onBack,
@@ -62,6 +64,7 @@ export function RecordDetailPageMobile({
 
         <RecordContent
           imageUrl={imageUrl}
+          imageUrls={imageUrls}
           description={description}
           title={title}
         />
@@ -235,16 +238,29 @@ function RecordMetaInfo({
  */
 function RecordContent({
   imageUrl,
+  imageUrls,
   description,
   title,
 }: {
   imageUrl?: string;
+  imageUrls?: string[];
   description: string;
   title: string;
 }) {
+  const hasSlider = (imageUrls?.length ?? 0) > 0;
+  const hasSingleImage = !hasSlider && imageUrl;
+
   return (
     <div className="pb-10">
-      {imageUrl && (
+      {hasSlider ? (
+        <div className="w-full aspect-4/3 mb-6 px-4 rounded-lg overflow-hidden">
+          <RecordImageSlider
+            urls={imageUrls!}
+            alt={title}
+            className="rounded-lg"
+          />
+        </div>
+      ) : hasSingleImage ? (
         <div className="w-full mb-6 px-4">
           <div className="w-full aspect-4/3 rounded-lg overflow-hidden">
             <img
@@ -254,7 +270,7 @@ function RecordContent({
             />
           </div>
         </div>
-      )}
+      ) : null}
       <div className="px-4">
         <p className="text-base text-gray-700 leading-relaxed whitespace-pre-line">
           {description}

@@ -3,71 +3,129 @@ import { motion } from 'motion/react';
 import { UserIcon } from '@/shared/ui/icons/UserIcon';
 import { CheckIcon } from '@/shared/ui/icons/CheckIcon';
 import { MaximizeIcon } from '@/shared/ui/icons/MaximizeIcon';
+import { IPhoneShareIcon } from '@/shared/ui/icons/IPhoneShareIcon';
+import { MoreVerticalIcon } from '@/shared/ui/icons/MoreVerticalIcon';
+import { SmartphoneIcon } from '@/shared/ui/icons/SmartphoneIcon';
 import { useDeviceType } from '@/shared/hooks/useDeviceType';
 import { Logo } from '@/shared/ui/icons/Logo';
 import type { ProfileTabProps } from '../../../types';
 
+type PwaOS = 'android' | 'ios';
+
 /**
- * PWA 설치 안내 카드 (기존과 동일)
+ * PWA 설치 안내 카드 (OS별 스텝 가이드 + 공유/더보기 SVG 아이콘)
  */
-const PWAInstallGuide = () => (
-  <motion.div
-    initial={{ opacity: 0, y: 10 }}
-    animate={{ opacity: 1, y: 0 }}
-    className="relative overflow-hidden bg-[#FDFCFB] border border-orange-100 rounded-[32px] p-6 group shadow-sm"
-  >
-    <div className="absolute top-0 right-0 w-32 h-32 bg-orange-100/20 blur-3xl rounded-full -mr-16 -mt-16" />
-    <div className="relative z-10 flex flex-col md:flex-row items-center gap-8">
-      <div className="flex-1 space-y-3">
-        <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-[#FE8916] text-white rounded-xl shadow-md shadow-orange-100">
-          <MaximizeIcon className="size-3" />
-          <span className="text-[9px] font-black uppercase tracking-widest">
-            Install App
-          </span>
-        </div>
-        <h4 className="text-xl font-black text-gray-900 tracking-tight">
-          앱으로 설치해서 더 편리하게 쓰세요
-        </h4>
-        <p className="text-[13px] text-gray-500 font-medium leading-relaxed">
-          브라우저 메뉴에서{' '}
-          <span className="text-[#FE8916] font-black">'홈 화면에 추가'</span>를
-          눌러보세요. 전용 앱 모드로 오직 기록에만 몰입할 수 있는 환경이
-          구성됩니다.
-        </p>
-      </div>
-      <div className="bg-white rounded-[24px] p-5 shadow-sm border border-orange-50 space-y-2.5 shrink-0 w-full md:w-auto min-w-[210px]">
-        {[
-          {
-            icon: <CheckIcon className="size-3" />,
-            text: '푸시 알림 리마인더 제공',
-            color: 'bg-orange-50 text-[#FE8916]',
-          },
-          {
-            icon: <CheckIcon className="size-3" />,
-            text: '더 빠른 로딩 속도',
-            color: 'bg-green-50 text-[#73C92E]',
-          },
-          {
-            icon: <CheckIcon className="size-3" />,
-            text: '전체 화면 몰입 모드 지원',
-            color: 'bg-gray-50 text-gray-300',
-          },
-        ].map((item, idx) => (
-          <div key={idx} className="flex items-center gap-3">
-            <div
-              className={`w-6 h-6 ${item.color} rounded-lg flex items-center justify-center shrink-0`}
-            >
-              {item.icon}
+const PWAInstallGuide = () => {
+  const [pwaOS, setPwaOS] = useState<PwaOS>('android');
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="flex flex-col gap-4 min-h-0 mb-16 md:mb-24"
+    >
+      <div className="relative bg-white border border-orange-100 rounded-[40px] p-6 md:p-8 group shadow-[0_20px_50px_rgba(254,137,22,0.05)]">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-orange-50/50 blur-3xl rounded-full -mr-32 -mt-32 pointer-events-none" />
+        <div className="relative z-10 flex flex-col gap-6 md:gap-8">
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 md:gap-6">
+            <div className="space-y-3 md:space-y-4">
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-[#FE8916] text-white rounded-xl shadow-md shadow-orange-100">
+                <MaximizeIcon className="size-3.5" strokeWidth={3} />
+                <span className="text-[9px] font-black uppercase tracking-widest">
+                  Install App
+                </span>
+              </div>
+              <h4 className="text-xl md:text-2xl font-black text-gray-900 tracking-tight">
+                데스크톱 & 모바일 앱으로 더 넓게 보세요
+              </h4>
+              <p className="text-sm text-gray-500 font-medium max-w-xl">
+                브라우저의 주소창이나 메뉴를 통해 앱을 설치할 수 있습니다.
+              </p>
             </div>
-            <span className="text-[11px] font-bold text-gray-600">
-              {item.text}
-            </span>
+            <div className="flex bg-gray-50 p-1.5 rounded-2xl self-start md:self-auto shrink-0">
+              <button
+                type="button"
+                onClick={() => setPwaOS('android')}
+                className={`px-4 md:px-6 py-2.5 md:py-3 rounded-xl text-xs font-black transition-all flex items-center gap-2 ${pwaOS === 'android' ? 'bg-white text-[#FE8916] shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
+              >
+                <SmartphoneIcon className="size-3.5" /> Android / Chrome
+              </button>
+              <button
+                type="button"
+                onClick={() => setPwaOS('ios')}
+                className={`px-4 md:px-6 py-2.5 md:py-3 rounded-xl text-xs font-black transition-all flex items-center gap-2 ${pwaOS === 'ios' ? 'bg-white text-[#FE8916] shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
+              >
+                <SmartphoneIcon className="size-3.5" /> iOS / Safari
+              </button>
+            </div>
           </div>
-        ))}
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+            <div className="bg-orange-50/30 rounded-3xl p-6 md:p-8 border border-orange-50/50 relative overflow-hidden group/item">
+              <div className="absolute -right-4 -bottom-4 opacity-10 text-[#FE8916] group-hover/item:scale-110 transition-transform duration-500 pointer-events-none">
+                {pwaOS === 'android' ? (
+                  <div className="flex flex-col gap-2 scale-[5]">
+                    <div className="w-1 h-1 bg-current rounded-full" />
+                    <div className="w-1 h-1 bg-current rounded-full" />
+                    <div className="w-1 h-1 bg-current rounded-full" />
+                  </div>
+                ) : (
+                  <div className="scale-[4] origin-bottom-right">
+                    <div className="w-6 h-6 border-2 border-current border-t-0 rounded-sm relative">
+                      <div className="absolute -top-3 left-1/2 -translate-x-1/2 flex flex-col items-center">
+                        <div className="w-0.5 h-6 bg-current" />
+                        <div className="w-2.5 h-2.5 border-t-2 border-l-2 border-current -rotate-45 -mt-6" />
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+              <span className="text-[10px] font-black text-[#FE8916] uppercase tracking-widest mb-3 block">
+                Step 01
+              </span>
+              <div className="flex items-center gap-2 mb-2">
+                <span className="flex items-center justify-center w-9 h-9 rounded-xl bg-white/80 border border-orange-100 text-gray-700">
+                  {pwaOS === 'android' ? (
+                    <MoreVerticalIcon className="size-5" />
+                  ) : (
+                    <IPhoneShareIcon className="size-5" />
+                  )}
+                </span>
+                <h5 className="text-base md:text-lg font-black text-gray-900">
+                  {pwaOS === 'android'
+                    ? '브라우저 메뉴 열기'
+                    : '공유 버튼 탭하기'}
+                </h5>
+              </div>
+              <p className="text-sm text-gray-500 font-medium leading-relaxed">
+                {pwaOS === 'android'
+                  ? '크롬 브라우저 우측 상단의 세로 점 3개 [︙] 버튼을 누르세요.'
+                  : '사파리 브라우저 하단 중앙의 공유(내보내기) 아이콘을 누르세요.'}
+              </p>
+            </div>
+
+            <div className="bg-white rounded-3xl p-6 md:p-8 border border-gray-100 shadow-sm relative overflow-hidden group/item">
+              <div className="absolute -right-4 -bottom-4 opacity-10 text-[#73C92E] group-hover/item:scale-110 transition-transform duration-500 pointer-events-none">
+                <CheckIcon className="size-24 md:size-[120px]" />
+              </div>
+              <span className="text-[10px] font-black text-[#73C92E] uppercase tracking-widest mb-3 block">
+                Step 02
+              </span>
+              <h5 className="text-base md:text-lg font-black text-gray-900 mb-2">
+                {pwaOS === 'android' ? '앱 설치 또는 추가' : '홈 화면에 추가'}
+              </h5>
+              <p className="text-sm text-gray-500 font-medium leading-relaxed">
+                {pwaOS === 'android'
+                  ? "메뉴 항목 중 '앱 설치' 또는 '홈 화면에 추가'를 클릭하여 설치를 완료하세요."
+                  : "리스트를 아래로 내려 '홈 화면에 추가' 버튼을 찾아 클릭하세요."}
+              </p>
+            </div>
+          </div>
+        </div>
       </div>
-    </div>
-  </motion.div>
-);
+    </motion.div>
+  );
+};
 
 const PROFILE_IMAGE_OPTIONS = [
   { bgGradient: 'from-orange-50 to-orange-100', iconColor: 'text-orange-500' },
@@ -80,12 +138,7 @@ const PROFILE_IMAGE_OPTIONS = [
   { bgGradient: 'from-teal-50 to-teal-100', iconColor: 'text-teal-500' },
 ];
 
-export function ProfileTab({
-  onSave,
-  user,
-  userLoading,
-  userError,
-}: ProfileTabProps) {
+export function ProfileTab({ user, userLoading, userError }: ProfileTabProps) {
   // PWA 접속 여부 확인
   const { isPWA } = useDeviceType();
 
@@ -110,7 +163,7 @@ export function ProfileTab({
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -20 }}
-      className="space-y-12"
+      className="space-y-12 pb-8"
     >
       <header>
         <h1 className="text-4xl font-black text-gray-900 mb-4">프로필 정보</h1>
@@ -158,13 +211,6 @@ export function ProfileTab({
                   <Logo className="size-5" />
                 </span>
               </div>
-              <button
-                onClick={onSave}
-                disabled={userLoading}
-                className="px-6 py-3 bg-[#FE8916] text-white rounded-2xl font-black text-sm shadow-md hover:shadow-lg transition-all disabled:opacity-50"
-              >
-                설정 저장하기
-              </button>
             </div>
           </div>
         </section>
@@ -205,7 +251,7 @@ export function ProfileTab({
 
       {/* PWA가 아닐 때만 설치 안내 표시 */}
       {!isPWA && (
-        <div className="mt-4">
+        <div className="mt-4 min-h-0">
           <PWAInstallGuide />
         </div>
       )}

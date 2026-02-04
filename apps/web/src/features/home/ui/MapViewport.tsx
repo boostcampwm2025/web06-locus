@@ -7,9 +7,13 @@ import { PinOverlay } from '@/infra/map/marker';
 import DraggablePinOverlay from '@/infra/map/marker/DraggablePinOverlay';
 import RecordCreateBottomSheet from './RecordCreateBottomSheet';
 import RecordSummaryBottomSheet from '@/features/record/ui/RecordSummaryBottomSheet';
+import ClusterRecordBottomSheet from '@/features/record/ui/ClusterRecordBottomSheet';
 import { ROUTES } from '@/router/routes';
 import { useMapInstance } from '@/shared/hooks/useMapInstance';
-import type { Record as RecordType } from '@/features/record/types';
+import type {
+  Record as RecordType,
+  LocationWithCoordinates,
+} from '@/features/record/types';
 import { useRecordGraph } from '@/features/connection/hooks/useRecordGraph';
 import { buildGraphFromStoredConnections } from '@/infra/storage/connectionStorage';
 import type { Coordinates } from '@/features/record/types';
@@ -21,6 +25,7 @@ import {
   isNearBoundary,
   isSameGrid as isSameGridBounds,
   isSameGridCenter,
+  getGridCellKey,
   type Bounds,
 } from '@/features/home/utils/boundsUtils';
 import {
@@ -29,6 +34,8 @@ import {
   type MapState,
 } from '@/infra/storage/mapStateStorage';
 import { extractTagNames } from '@/shared/utils/tagUtils';
+import { useDuckScenario } from '@/shared/hooks/useDuckScenario';
+import { DuckMapSceneCrossing } from '@/shared/ui/duck';
 
 export default function MapViewport({
   className = '',
@@ -52,6 +59,9 @@ export default function MapViewport({
   } | null>(null);
   const [selectedRecord, setSelectedRecord] = useState<RecordType | null>(null);
   const [isSummaryOpen, setIsSummaryOpen] = useState(false);
+  const [selectedClusterRecords, setSelectedClusterRecords] = useState<
+    RecordType[] | null
+  >(null);
   const [selectedRecordPublicId, setSelectedRecordPublicId] = useState<
     string | null
   >(null);
@@ -74,10 +84,21 @@ export default function MapViewport({
   const polylinesRef = useRef<naver.maps.Polyline[]>([]);
   // 연결된 기록 표시용 연결선 관리
   const connectionPolylineRef = useRef<naver.maps.Polyline | null>(null);
+  // 지도 영역 크기 측정 (오리 레이어 초기 위치·높이용)
+  const mapAreaRef = useRef<HTMLDivElement>(null);
+  const [duckContainerSize, setDuckContainerSize] = useState<{
+    width: number;
+    height: number;
+  } | null>(null);
 
   // 저장된 지도 상태 불러오기
   const savedMapState = useMemo(() => loadMapState(), []);
   const hasRestoredMapStateRef = useRef(false);
+
+  // 오리 시나리오: 노출 여부 (시나리오 조건·확률은 별도 로직에서 설정)
+  const isDuckVisible = useDuckScenario((s) => s.isVisible);
+  const setDuckScenario = useDuckScenario((s) => s.setScenario);
+  const hasTriggeredDuckRef = useRef(false);
 
   // 지도 인스턴스 관리
   const {
@@ -197,27 +218,84 @@ export default function MapViewport({
     return visible;
   }, [currentViewBounds, allFetchedRecords]);
 
-  // 필터링된 기록을 핀 데이터로 변환
-  const apiPins = useMemo<PinMarkerData[]>(() => {
-    return visibleApiRecords.map((record: ApiRecord) => ({
-      id: record.publicId,
-      position: {
-        lat: record.location.latitude,
-        lng: record.location.longitude,
-      },
-      variant: 'record' as const,
-    }));
-  }, [visibleApiRecords]);
+  // 그리드 클러스터링: visibleApiRecords를 줌 기반 그리드로 묶어 단일/클러스터 핀 생성
+  const { apiPins, clusterDataMap } = useMemo(() => {
+    const map = new Map<string, string[]>();
+    const pins: PinMarkerData[] = [];
+
+    if (visibleApiRecords.length === 0) {
+      return { apiPins: pins, clusterDataMap: map };
+    }
+
+    // 그리드 셀별로 기록 그룹화 (셀 키 -> ApiRecord[])
+    const groups = new Map<string, ApiRecord[]>();
+    for (const record of visibleApiRecords) {
+      const key = getGridCellKey(
+        record.location.latitude,
+        record.location.longitude,
+        currentZoom,
+      );
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key)!.push(record);
+    }
+
+    // 셀별로 정렬: 최신순(대표 기록 = 첫 번째)
+    groups.forEach((arr) => {
+      arr.sort(
+        (a, b) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+      );
+    });
+
+    for (const [cellKey, records] of groups) {
+      if (records.length === 1) {
+        const r = records[0];
+        pins.push({
+          id: r.publicId,
+          position: {
+            lat: r.location.latitude,
+            lng: r.location.longitude,
+          },
+          variant: 'record',
+        });
+      } else {
+        const clusterId = `cluster_${cellKey}`;
+        const latSum = records.reduce((s, r) => s + r.location.latitude, 0);
+        const lngSum = records.reduce((s, r) => s + r.location.longitude, 0);
+        map.set(
+          clusterId,
+          records.map((r) => r.publicId),
+        );
+        pins.push({
+          id: clusterId,
+          position: {
+            lat: latSum / records.length,
+            lng: lngSum / records.length,
+          },
+          variant: 'cluster',
+          count: records.length,
+        });
+      }
+    }
+
+    return { apiPins: pins, clusterDataMap: map };
+  }, [visibleApiRecords, currentZoom]);
 
   const allPins = useMemo<PinMarkerData[]>(() => {
-    const pins = [...apiPins];
+    const allRecordIds = new Set<string>();
+    apiPins.forEach((pin) => {
+      if (pin.variant === 'record') allRecordIds.add(String(pin.id));
+      if (pin.variant === 'cluster') {
+        const ids = clusterDataMap.get(String(pin.id));
+        ids?.forEach((id) => allRecordIds.add(id));
+      }
+    });
 
-    const serverIds = new Set(pins.map((pin) => String(pin.id)));
+    const pins = [...apiPins];
 
     createdRecordPins.forEach((pinData) => {
       const recordId = String(pinData.record.id);
-
-      if (pinData.coordinates && !serverIds.has(recordId)) {
+      if (pinData.coordinates && !allRecordIds.has(recordId)) {
         pins.push({
           id: pinData.record.id,
           position: pinData.coordinates,
@@ -227,15 +305,33 @@ export default function MapViewport({
     });
 
     return pins;
-  }, [apiPins, createdRecordPins]);
+  }, [apiPins, clusterDataMap, createdRecordPins]);
 
-  // 필터링된 기록을 RecordType으로 변환
+  // 필터링된 기록을 RecordType으로 변환 (이미지 URL 목록 포함)
   const apiRecords = useMemo<Record<string | number, RecordType>>(() => {
     const records: Record<string | number, RecordType> = {} as Record<
       string | number,
       RecordType
     >;
     visibleApiRecords.forEach((record: ApiRecord) => {
+      const rawImages =
+        'images' in record
+          ? (
+              record as {
+                images?: {
+                  medium?: { url?: string };
+                  thumbnail?: { url?: string };
+                  original?: { url?: string };
+                }[];
+              }
+            ).images
+          : undefined;
+      const images =
+        rawImages
+          ?.map(
+            (img) => img.medium?.url ?? img.thumbnail?.url ?? img.original?.url,
+          )
+          .filter((url): url is string => Boolean(url)) ?? [];
       records[record.publicId] = {
         id: record.publicId,
         text: record.title,
@@ -245,6 +341,7 @@ export default function MapViewport({
           address: record.location.address ?? '',
         },
         createdAt: new Date(record.createdAt),
+        ...(images.length > 0 ? { images } : {}),
       };
     });
     return records;
@@ -259,6 +356,24 @@ export default function MapViewport({
     });
     return records;
   }, [apiRecords, createdRecordPins]);
+
+  const recordCoordinatesMap = useMemo<
+    Record<string | number, Coordinates>
+  >(() => {
+    const map: Record<string | number, Coordinates> = {};
+    visibleApiRecords.forEach((record) => {
+      map[record.publicId] = {
+        lat: record.location.latitude,
+        lng: record.location.longitude,
+      };
+    });
+    createdRecordPins.forEach((pinData) => {
+      if (pinData.coordinates) {
+        map[pinData.record.id] = pinData.coordinates;
+      }
+    });
+    return map;
+  }, [visibleApiRecords, createdRecordPins]);
 
   // 선택된 기록의 그래프 조회
   const isGraphQueryEnabled = !!selectedRecordPublicId && isMapLoaded;
@@ -435,6 +550,33 @@ export default function MapViewport({
     // ref는 변경되어도 재렌더링을 트리거하지 않으므로 dependency에서 제외
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isMapLoaded, selectedRecordPublicId, renderLocationConfirmation]);
+
+  // 지도 로드 후 한 번만 오리 노출 트리거 (시나리오·확률 로직은 별도에서 확장 가능)
+  useEffect(() => {
+    if (!isMapLoaded || hasTriggeredDuckRef.current) return;
+    hasTriggeredDuckRef.current = true;
+    const t = setTimeout(() => {
+      setDuckScenario('IDLE', true);
+    }, 800);
+    return () => clearTimeout(t);
+  }, [isMapLoaded, setDuckScenario]);
+
+  // 오리 레이어용 지도 영역 크기 측정 (isDuckVisible일 때만, 리사이즈 대응)
+  useEffect(() => {
+    if (!isMapLoaded || !isDuckVisible || !mapAreaRef.current) return;
+    const el = mapAreaRef.current;
+    const update = () => {
+      if (el)
+        setDuckContainerSize({
+          width: el.clientWidth,
+          height: el.clientHeight,
+        });
+    };
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [isMapLoaded, isDuckVisible]);
 
   // 좌표를 소수점 4째 자리로 반올림하는 헬퍼 함수
   const roundTo4Decimals = (value: number): number => {
@@ -776,19 +918,65 @@ export default function MapViewport({
     };
   }, [connectedRecords, isMapLoaded, mapInstanceRef, allPins, allRecords]);
 
-  // 보라 핀(기록 핀) 클릭 핸들러 - summary 표시 및 그래프(연결선) 조회 (또는 onRecordPinClick 위임)
+  // 보라 핀(기록/클러스터) 클릭 핸들러 - summary 또는 클러스터 바텀시트, onRecordPinClick 위임
   const handleRecordPinClick = (pinId: string | number) => {
-    const publicId = String(pinId);
-    // 연결된 기록(그래프/연결선)은 항상 표시
+    const idStr = String(pinId);
     setSelectedPinId(pinId);
+
+    const clusterRecordIds = clusterDataMap.get(idStr);
+    if (clusterRecordIds && clusterRecordIds.length > 0) {
+      const clusterRecordsList = clusterRecordIds
+        .map((id) => allRecords[id])
+        .filter((r): r is RecordType => r != null);
+      const topRecordId = clusterRecordIds[0];
+      if (!topRecordId) return;
+
+      setSelectedRecordPublicId(topRecordId);
+
+      const onPinClick = onRecordPinClick;
+      if (onPinClick) {
+        let sharedCoordinates: Coordinates | undefined;
+        const coordinateList = clusterRecordIds
+          .map((id) => recordCoordinatesMap[id])
+          .filter((coord): coord is Coordinates => coord != null);
+        if (
+          coordinateList.length === clusterRecordIds.length &&
+          coordinateList.every(
+            (coord) =>
+              coord.lat === coordinateList[0]?.lat &&
+              coord.lng === coordinateList[0]?.lng,
+          )
+        ) {
+          sharedCoordinates = coordinateList[0];
+        }
+        onPinClick(topRecordId, {
+          clusterRecordIds,
+          clusterRecords: clusterRecordsList,
+          ...(sharedCoordinates ? { coordinates: sharedCoordinates } : {}),
+        });
+        return;
+      }
+      setSelectedClusterRecords(clusterRecordsList);
+      setSelectedRecord(null);
+      setIsSummaryOpen(false);
+      return;
+    }
+
+    const publicId = idStr;
     setSelectedRecordPublicId(publicId);
-    if (onRecordPinClick) {
-      onRecordPinClick(publicId);
+    const onPinClick = onRecordPinClick;
+    if (onPinClick) {
+      const singleRecord = allRecords[publicId];
+      const coordinates = recordCoordinatesMap[publicId];
+      const meta =
+        singleRecord || coordinates ? { singleRecord, coordinates } : undefined;
+      onPinClick(publicId, meta);
       return;
     }
     const record = allRecords[pinId];
     if (record) {
       setSelectedRecord(record);
+      setSelectedClusterRecords(null);
       setIsSummaryOpen(true);
     }
   };
@@ -828,29 +1016,32 @@ export default function MapViewport({
   const handleConfirmRecord = () => {
     if (!selectedLocation) return;
 
+    const locationToUse = selectedLocation;
     setIsBottomSheetOpen(false);
+    setSelectedLocation(null);
+    setSelectedPinId(null);
 
     if (onCreateRecord) {
-      // MainMapPage의 상태 관리 사용
+      // MainMapPage의 상태 관리 사용 (사이드패널 오픈) — 모달은 이미 닫힘
       onCreateRecord(
         {
-          name: selectedLocation.name,
-          address: selectedLocation.address,
+          name: locationToUse.name,
+          address: locationToUse.address,
         },
-        selectedLocation.coordinates,
+        locationToUse.coordinates,
       );
     } else {
       // 하위 호환성: onCreateRecord가 없으면 기존 방식 사용
       if (selectedPinId) {
         void navigate(`${ROUTES.RECORD}?locationId=${selectedPinId}`, {
           state: {
-            location: selectedLocation,
+            location: locationToUse,
           },
         });
       } else {
         void navigate(ROUTES.RECORD, {
           state: {
-            location: selectedLocation,
+            location: locationToUse,
           },
         });
       }
@@ -860,6 +1051,7 @@ export default function MapViewport({
   return (
     <>
       <div
+        ref={mapAreaRef}
         className={`relative flex-1 bg-gray-100 min-h-0 h-full w-full ${className || ''}`}
         style={{ minHeight: '500px' }}
         aria-label="지도 영역"
@@ -882,9 +1074,24 @@ export default function MapViewport({
           </div>
         ) : null}
 
-        {/* 현재 위치 파란 핀 */}
+        {/* 파란 핀: 지도 클릭으로 위치를 선택했으면 그 위치에만 표시, 아니면 현재 위치에 표시 */}
         {isMapLoaded &&
           mapInstanceRef.current &&
+          selectedLocation?.coordinates && (
+            <PinOverlay
+              key="selected-location"
+              map={mapInstanceRef.current}
+              pin={{
+                id: 'selected-location',
+                position: selectedLocation.coordinates,
+                variant: 'current',
+              }}
+              isSelected={false}
+            />
+          )}
+        {isMapLoaded &&
+          mapInstanceRef.current &&
+          !selectedLocation &&
           latitude !== null &&
           longitude !== null && (
             <PinOverlay
@@ -965,6 +1172,21 @@ export default function MapViewport({
             />
           ))}
 
+        {/* 오리 마스코트 레이어: 끝→끝 연속 이동, 레이어는 클릭 통과(지도/마커 클릭 가능) */}
+        {isMapLoaded && isDuckVisible && duckContainerSize && (
+          <div
+            className="absolute inset-0 z-5 pointer-events-none"
+            aria-hidden="true"
+          >
+            <DuckMapSceneCrossing
+              containerSize={duckContainerSize}
+              duration={25}
+              bounce
+              height="100%"
+            />
+          </div>
+        )}
+
         {/* 연결 모드 FAB (데스크톱에서는 미표시) */}
         {!onRecordPinClick && (
           <button
@@ -981,15 +1203,20 @@ export default function MapViewport({
       {selectedLocation &&
         (renderLocationConfirmation ? (
           <AnimatePresence>
-            {renderLocationConfirmation({
-              location: {
-                name: selectedLocation.name,
-                address: selectedLocation.address,
-                coordinates: selectedLocation.coordinates,
-              },
-              onConfirm: handleConfirmRecord,
-              onCancel: handleCloseBottomSheet,
-            })}
+            {(() => {
+              const render = renderLocationConfirmation;
+              return typeof render === 'function'
+                ? render({
+                    location: {
+                      name: selectedLocation.name,
+                      address: selectedLocation.address,
+                      coordinates: selectedLocation.coordinates,
+                    },
+                    onConfirm: handleConfirmRecord,
+                    onCancel: handleCloseBottomSheet,
+                  })
+                : null;
+            })()}
           </AnimatePresence>
         ) : (
           <RecordCreateBottomSheet
@@ -1002,23 +1229,63 @@ export default function MapViewport({
           />
         ))}
 
-      {/* 기록 Summary Bottom Sheet (onRecordPinClick 제공 시 미표시) */}
-      {selectedRecord && !onRecordPinClick && (
+      {/* 기록 Summary Bottom Sheet (onRecordPinClick 제공 시 미표시). publicId로 넘겨 상세 API GET /records/{publicId} 호출 → 이미지 등 전체 데이터 표시 */}
+      {selectedRecord && selectedRecordPublicId && !onRecordPinClick && (
         <RecordSummaryBottomSheet
           isOpen={isSummaryOpen}
           onClose={() => {
             setIsSummaryOpen(false);
             setSelectedRecord(null);
             setSelectedRecordPublicId(null);
-            // 연결선 제거
             polylinesRef.current.forEach((polyline) => {
               polyline.setMap(null);
             });
             polylinesRef.current = [];
           }}
-          record={selectedRecord}
+          record={selectedRecordPublicId}
+          onAddRecord={(loc: LocationWithCoordinates) => {
+            setIsSummaryOpen(false);
+            setSelectedRecord(null);
+            setSelectedRecordPublicId(null);
+            polylinesRef.current.forEach((polyline) => {
+              polyline.setMap(null);
+            });
+            polylinesRef.current = [];
+            void navigate(ROUTES.RECORD, {
+              state: {
+                location: {
+                  name: loc.name,
+                  address: loc.address,
+                  coordinates: loc.coordinates,
+                },
+              },
+            });
+          }}
         />
       )}
+
+      {/* 클러스터 기록 Bottom Sheet: 대표 1개 + 슬라이드업 시 전체 목록 */}
+      {selectedClusterRecords &&
+        selectedClusterRecords.length > 0 &&
+        !onRecordPinClick && (
+          <ClusterRecordBottomSheet
+            isOpen={true}
+            onClose={() => {
+              setSelectedClusterRecords(null);
+              setSelectedRecordPublicId(null);
+              setSelectedPinId(null);
+              polylinesRef.current.forEach((polyline) => {
+                polyline.setMap(null);
+              });
+              polylinesRef.current = [];
+            }}
+            topRecord={selectedClusterRecords[0]}
+            clusterRecords={selectedClusterRecords}
+            onRecordClick={(recordId: string) => {
+              void navigate(ROUTES.RECORD_DETAIL.replace(':id', recordId));
+            }}
+          />
+        )}
     </>
   );
 }

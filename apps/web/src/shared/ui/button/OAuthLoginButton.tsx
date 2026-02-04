@@ -52,7 +52,7 @@ export default function OAuthLoginButton({
                 ${config.textColor}
                 ${config.hoverBgColor}
                 transition-colors
-                font-extralight
+                font-normal
                 ${className}
             `}
     >
