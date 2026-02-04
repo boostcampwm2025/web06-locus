@@ -15,7 +15,7 @@ export default function AppHeaderTitle({
         className={`flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity ${String(className)}`}
       >
         <div className={`w-2 h-2 rounded-full ${statusColor}`} />
-        <span className="text-gray-900 font-medium">Locus</span>
+        <span className="text-base text-gray-900 font-medium">Locus</span>
       </button>
     );
   }
@@ -23,7 +23,7 @@ export default function AppHeaderTitle({
   return (
     <div className={`flex items-center gap-2 ${String(className)}`}>
       <div className={`w-2 h-2 rounded-full ${statusColor}`} />
-      <span className="text-gray-900 font-medium">Locus</span>
+      <span className="text-base text-gray-900 font-medium">Locus</span>
     </div>
   );
 }

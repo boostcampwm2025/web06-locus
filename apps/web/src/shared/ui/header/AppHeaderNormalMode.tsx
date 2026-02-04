@@ -38,7 +38,7 @@ export default function AppHeaderNormalMode({
 
   return (
     <header
-      className={`fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-4 py-3 bg-white min-h-[72px] ${className}`}
+      className={`fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-4 py-3 bg-white min-h-[72px] text-base ${className}`}
     >
       <button
         type="button"

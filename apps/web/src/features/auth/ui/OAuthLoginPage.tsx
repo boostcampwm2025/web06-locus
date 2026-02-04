@@ -38,7 +38,7 @@ export default function OAuthLoginPage() {
           <button
             type="button"
             onClick={handleTestLogin}
-            className="w-full flex items-center justify-center gap-3 px-4 py-3 rounded-lg bg-yellow-500 text-white hover:bg-yellow-600 transition-colors font-extralight"
+            className="w-full flex items-center justify-center gap-3 px-4 py-3 rounded-lg bg-yellow-500 text-white hover:bg-yellow-600 transition-colors font-normal"
           >
             <span>개발용 로그인</span>
           </button>
@@ -50,7 +50,7 @@ export default function OAuthLoginPage() {
           onClick={() => {
             void navigate(ROUTES.EMAIL_LOGIN);
           }}
-          className="w-full flex items-center justify-center gap-3 px-4 py-3 rounded-lg bg-gray-900 text-white hover:bg-gray-800 transition-colors font-extralight"
+          className="w-full flex items-center justify-center gap-3 px-4 py-3 rounded-lg bg-gray-900 text-white hover:bg-gray-800 transition-colors font-normal"
         >
           <span>이메일로 시작하기</span>
         </button>
