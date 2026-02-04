@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { PrometheusModule as NestPrometheusModule } from '@willsoto/nestjs-prometheus';
-import { metricsProviders } from './metrics.prodiver';
+import { metricsProviders } from './metrics.provider';
 import { ApiMetricsInterceptor } from '@/infra/monitoring/interceptor/api-metrics.interceptor';
 import { APP_INTERCEPTOR } from '@nestjs/core';
 import { ApiMetricsService } from './api-metrics.service';
