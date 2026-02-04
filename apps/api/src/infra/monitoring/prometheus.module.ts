@@ -1,9 +1,12 @@
 import { Module } from '@nestjs/common';
 import { PrometheusModule as NestPrometheusModule } from '@willsoto/nestjs-prometheus';
-import { metricsProviders } from './metrics.provider';
+import { allMetricsProviders } from './metrics.provider';
 import { ApiMetricsInterceptor } from '@/infra/monitoring/interceptor/api-metrics.interceptor';
 import { APP_INTERCEPTOR } from '@nestjs/core';
-import { ApiMetricsService } from './api-metrics.service';
+import { ApiMetricsService } from './services/api-metrics.service';
+import { OutboxMetricsService } from './services/outbox-metrics.service';
+import { RabbitMQMetricsService } from './services/rabbitmq-metrics.service';
+import { ElasticsearchMetricsService } from './services/elasticsearch-metrics.service';
 
 @Module({
   imports: [
@@ -14,13 +17,21 @@ import { ApiMetricsService } from './api-metrics.service';
     }),
   ],
   providers: [
-    ...metricsProviders,
+    ...allMetricsProviders,
     ApiMetricsService,
+    OutboxMetricsService,
+    RabbitMQMetricsService,
+    ElasticsearchMetricsService,
     {
       provide: APP_INTERCEPTOR,
       useClass: ApiMetricsInterceptor,
     },
   ],
-  exports: [NestPrometheusModule],
+  exports: [
+    NestPrometheusModule,
+    OutboxMetricsService,
+    RabbitMQMetricsService,
+    ElasticsearchMetricsService,
+  ],
 })
 export class PrometheusModule {}
