@@ -28,25 +28,30 @@ export const LocationWithoutCoordsSchema = z.object({
  * 이미지 크기 정보 스키마 (Response용 - camelCase)
  *
  * @usedIn ImageResponseSchema의 thumbnail, medium, original 필드에서 사용
- * @api POST /records, PATCH /records/{public_id} - 응답의 images 배열 아이템
+ * @api POST /records, POST /records/with-presigned-images, PATCH /records/{public_id}
+ *
+ * @note Presigned 방식에서는 Cloud Function이 메타데이터를 추출하기 전까지 width/height/size가 null
  */
 export const ImageSizeResponseSchema = z.object({
   url: z.string().url(),
-  width: z.number(),
-  height: z.number(),
-  size: z.number(),
+  width: z.number().nullable(),
+  height: z.number().nullable(),
+  size: z.number().nullable(),
 });
 
 /**
  * 이미지 스키마 (Response용 - camelCase)
  *
  * @usedIn RecordWithImagesResponseSchema의 images 필드에서 사용
- * @api POST /records, PATCH /records/{public_id} - 응답의 record.images 배열 아이템
+ * @api POST /records, POST /records/with-presigned-images, PATCH /records/{public_id}
+ *
+ * @note Presigned 방식에서는 리사이징 완료 전까지 thumbnail/medium이 null
+ * @note 백엔드는 status 필드를 반환하지만, 프론트엔드에서는 사용하지 않으므로 스키마에서 제외
  */
 export const ImageResponseSchema = z.object({
   publicId: z.string(),
-  thumbnail: ImageSizeResponseSchema,
-  medium: ImageSizeResponseSchema,
+  thumbnail: ImageSizeResponseSchema.nullable(),
+  medium: ImageSizeResponseSchema.nullable(),
   original: ImageSizeResponseSchema,
   order: z.number(),
 });
