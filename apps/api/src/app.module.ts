@@ -19,6 +19,7 @@ import { TagsModule } from './tags/tags.module';
 import { MapsModule } from './maps/maps.module';
 import { NotificationModule } from './notification/notification.module';
 import { ImagesModule } from './images/images.module';
+import { DuckModule } from './duck/duck.module';
 
 @Module({
   imports: [
@@ -37,6 +38,7 @@ import { ImagesModule } from './images/images.module';
     MapsModule,
     NotificationModule,
     ImagesModule,
+    DuckModule,
   ],
   controllers: [AppController],
   providers: [
