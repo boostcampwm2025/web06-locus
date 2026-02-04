@@ -32,6 +32,8 @@ export function MainMapPageMobile() {
   const queryClient = useQueryClient();
 
   const [savedRecord, setSavedRecord] = useState<Record | null>(null);
+  const [savedRecordCoordinates, setSavedRecordCoordinates] =
+    useState<Coordinates | null>(null);
   const [isDetailSheetOpen, setIsDetailSheetOpen] = useState(false);
   const [isSearchActive, setIsSearchActive] = useState(false);
   const [isActionSheetOpen, setIsActionSheetOpen] = useState(false);
@@ -131,6 +133,7 @@ export function MainMapPageMobile() {
       };
 
       setSavedRecord(newRecord);
+      setSavedRecordCoordinates(state.savedRecord.coordinates ?? null);
       setIsDetailSheetOpen(true);
 
       setCreatedRecordPins((prev) => [
@@ -169,6 +172,7 @@ export function MainMapPageMobile() {
     if (deleteRecordMutation.isPending) return; // 삭제 중엔 닫기 방지
     setIsDetailSheetOpen(false);
     setSavedRecord(null);
+    setSavedRecordCoordinates(null);
   };
 
   const handleSearchClick = () => setIsSearchActive(true);
@@ -271,6 +275,7 @@ export function MainMapPageMobile() {
           isOpen={isDetailSheetOpen}
           onClose={handleDetailSheetClose}
           record={savedRecord}
+          recordCoordinates={savedRecordCoordinates ?? undefined}
           isDeleting={deleteRecordMutation.isPending}
           onEdit={() => setIsDetailSheetOpen(false)}
           onDelete={() => {
@@ -282,6 +287,7 @@ export function MainMapPageMobile() {
                   );
                   setIsDetailSheetOpen(false);
                   setSavedRecord(null);
+                  setSavedRecordCoordinates(null);
                 },
                 onError: () => {
                   setShowDeleteErrorToast(true);
@@ -289,6 +295,18 @@ export function MainMapPageMobile() {
                 },
               });
             }
+          }}
+          onAddRecord={(locationWithCoords) => {
+            handleDetailSheetClose();
+            void navigate(ROUTES.RECORD, {
+              state: {
+                location: {
+                  name: locationWithCoords.name,
+                  address: locationWithCoords.address,
+                  coordinates: locationWithCoords.coordinates,
+                },
+              },
+            });
           }}
         />
       )}

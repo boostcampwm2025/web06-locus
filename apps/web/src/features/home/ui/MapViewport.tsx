@@ -10,7 +10,10 @@ import RecordSummaryBottomSheet from '@/features/record/ui/RecordSummaryBottomSh
 import ClusterRecordBottomSheet from '@/features/record/ui/ClusterRecordBottomSheet';
 import { ROUTES } from '@/router/routes';
 import { useMapInstance } from '@/shared/hooks/useMapInstance';
-import type { Record as RecordType } from '@/features/record/types';
+import type {
+  Record as RecordType,
+  LocationWithCoordinates,
+} from '@/features/record/types';
 import { useRecordGraph } from '@/features/connection/hooks/useRecordGraph';
 import { buildGraphFromStoredConnections } from '@/infra/storage/connectionStorage';
 import type { Coordinates } from '@/features/record/types';
@@ -353,6 +356,24 @@ export default function MapViewport({
     });
     return records;
   }, [apiRecords, createdRecordPins]);
+
+  const recordCoordinatesMap = useMemo<
+    Record<string | number, Coordinates>
+  >(() => {
+    const map: Record<string | number, Coordinates> = {};
+    visibleApiRecords.forEach((record) => {
+      map[record.publicId] = {
+        lat: record.location.latitude,
+        lng: record.location.longitude,
+      };
+    });
+    createdRecordPins.forEach((pinData) => {
+      if (pinData.coordinates) {
+        map[pinData.record.id] = pinData.coordinates;
+      }
+    });
+    return map;
+  }, [visibleApiRecords, createdRecordPins]);
 
   // 선택된 기록의 그래프 조회
   const isGraphQueryEnabled = !!selectedRecordPublicId && isMapLoaded;
@@ -914,9 +935,24 @@ export default function MapViewport({
 
       const onPinClick = onRecordPinClick;
       if (onPinClick) {
+        let sharedCoordinates: Coordinates | undefined;
+        const coordinateList = clusterRecordIds
+          .map((id) => recordCoordinatesMap[id])
+          .filter((coord): coord is Coordinates => coord != null);
+        if (
+          coordinateList.length === clusterRecordIds.length &&
+          coordinateList.every(
+            (coord) =>
+              coord.lat === coordinateList[0]?.lat &&
+              coord.lng === coordinateList[0]?.lng,
+          )
+        ) {
+          sharedCoordinates = coordinateList[0];
+        }
         onPinClick(topRecordId, {
           clusterRecordIds,
           clusterRecords: clusterRecordsList,
+          ...(sharedCoordinates ? { coordinates: sharedCoordinates } : {}),
         });
         return;
       }
@@ -931,7 +967,10 @@ export default function MapViewport({
     const onPinClick = onRecordPinClick;
     if (onPinClick) {
       const singleRecord = allRecords[publicId];
-      onPinClick(publicId, singleRecord ? { singleRecord } : undefined);
+      const coordinates = recordCoordinatesMap[publicId];
+      const meta =
+        singleRecord || coordinates ? { singleRecord, coordinates } : undefined;
+      onPinClick(publicId, meta);
       return;
     }
     const record = allRecords[pinId];
@@ -1204,6 +1243,24 @@ export default function MapViewport({
             polylinesRef.current = [];
           }}
           record={selectedRecordPublicId}
+          onAddRecord={(loc: LocationWithCoordinates) => {
+            setIsSummaryOpen(false);
+            setSelectedRecord(null);
+            setSelectedRecordPublicId(null);
+            polylinesRef.current.forEach((polyline) => {
+              polyline.setMap(null);
+            });
+            polylinesRef.current = [];
+            void navigate(ROUTES.RECORD, {
+              state: {
+                location: {
+                  name: loc.name,
+                  address: loc.address,
+                  coordinates: loc.coordinates,
+                },
+              },
+            });
+          }}
         />
       )}
 

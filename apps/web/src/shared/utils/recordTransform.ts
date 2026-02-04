@@ -15,6 +15,8 @@ export interface UIRecord {
   date: Date;
   tags: string[];
   imageUrl?: string;
+  /** 연결된 기록 개수 (all/검색 API 등에서 제공) */
+  connectionCount?: number;
 }
 
 /**

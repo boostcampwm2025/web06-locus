@@ -5,6 +5,7 @@ import { TagIcon } from '@/shared/ui/icons/TagIcon';
 import { EditIcon } from '@/shared/ui/icons/EditIcon';
 import { TrashIcon } from '@/shared/ui/icons/TrashIcon';
 import { LocationIcon } from '@/shared/ui/icons/LocationIcon';
+import { PlusIcon } from '@/shared/ui/icons/PlusIcon';
 import { XIcon } from '@/shared/ui/icons/XIcon';
 import { ImageIcon } from '@/shared/ui/icons/ImageIcon';
 import ActionButton from '@/shared/ui/button/ActionButton';
@@ -21,6 +22,7 @@ import type {
   RecordSummaryContentProps,
 } from '../types';
 import { extractTagNames } from '@/shared/utils/tagUtils';
+import type { Coordinates } from '../types';
 
 export default function RecordSummaryBottomSheet({
   isOpen,
@@ -29,6 +31,8 @@ export default function RecordSummaryBottomSheet({
   isDeleting = false,
   onEdit,
   onDelete,
+  onAddRecord,
+  recordCoordinates,
 }: RecordSummaryBottomSheetProps) {
   const publicId = typeof record === 'string' ? record : record.id;
 
@@ -84,13 +88,28 @@ export default function RecordSummaryBottomSheet({
       .filter((url): url is string => Boolean(url));
   };
 
+  // 좌표 추출 (Record 객체: recordCoordinates 우선, API: recordDetail.location)
+  const coords: Coordinates | undefined =
+    typeof record !== 'string'
+      ? (recordCoordinates ??
+        (record as { coordinates?: Coordinates }).coordinates)
+      : recordDetail
+        ? {
+            lat: recordDetail.location.latitude,
+            lng: recordDetail.location.longitude,
+          }
+        : undefined;
+
   // 데이터 가공 (직접 전달받은 경우 vs API에서 가져온 경우)
   const displayData =
     typeof record !== 'string'
       ? {
           title: extractTitle(record.text),
           date: record.createdAt,
-          location: record.location,
+          location: {
+            ...record.location,
+            coordinates: coords,
+          },
           tags: Array.isArray(record.tags) ? extractTagNames(record.tags) : [],
           content: record.text,
           images: record.images,
@@ -102,6 +121,7 @@ export default function RecordSummaryBottomSheet({
             location: {
               name: recordDetail.location.name ?? '',
               address: recordDetail.location.address ?? '',
+              coordinates: coords,
             },
             tags: recordDetail.tags?.map((tag) => tag.name) ?? [],
             content: recordDetail.content ?? '',
@@ -110,7 +130,7 @@ export default function RecordSummaryBottomSheet({
         : {
             title: '',
             date: new Date(),
-            location: { name: '', address: '' },
+            location: { name: '', address: '', coordinates: undefined },
             tags: [],
             content: '',
             images: undefined,
@@ -124,6 +144,7 @@ export default function RecordSummaryBottomSheet({
         onEdit={onEdit}
         onDelete={onDelete}
         onClose={onClose}
+        onAddRecord={onAddRecord}
       />
     </BaseBottomSheet>
   );
@@ -167,13 +188,14 @@ function RecordSummaryContent({
   onEdit,
   onDelete,
   onClose,
+  onAddRecord,
 }: RecordSummaryContentProps) {
   return (
     <div className="flex flex-col h-full">
       {/* 1. 고정 헤더 영역 */}
       <div className="shrink-0 px-6 pt-6">
         <RecordSummaryHeader title={title} date={date} onClose={onClose} />
-        <RecordLocationCard location={location} />
+        <RecordLocationCard location={location} onAddRecord={onAddRecord} />
       </div>
 
       {/* 2. 스크롤 영역 (이미지 갤러리 + 태그 + 본문) */}
@@ -274,12 +296,36 @@ function RecordSummaryHeader({
   );
 }
 
-function RecordLocationCard({ location }: RecordLocationCardProps) {
+function RecordLocationCard({
+  location,
+  onAddRecord,
+}: RecordLocationCardProps) {
+  const hasLocation = Boolean(
+    location.name?.trim() || location.address?.trim(),
+  );
   const primary =
-    location.name?.trim() || location.address?.trim() || '장소 없음';
+    location.name?.trim() || location.address?.trim() || '알 수 없는 장소';
   const secondary =
-    location.name?.trim() && location.address?.trim() ? location.address : null;
-  if (!location.name?.trim() && !location.address?.trim()) return null;
+    hasLocation && location.name?.trim() && location.address?.trim()
+      ? location.address
+      : null;
+  const coords = location.coordinates;
+  const canAddRecord =
+    Boolean(onAddRecord) &&
+    coords &&
+    Number.isFinite(coords.lat) &&
+    Number.isFinite(coords.lng);
+
+  const handleAddRecord = () => {
+    if (onAddRecord && coords) {
+      onAddRecord({
+        name: location.name ?? '',
+        address: location.address ?? '',
+        coordinates: { lat: coords.lat, lng: coords.lng },
+      });
+    }
+  };
+
   return (
     <div className="mb-6 p-4 bg-blue-50/50 rounded-2xl border border-blue-100/50">
       <div className="flex items-start gap-3">
@@ -296,6 +342,17 @@ function RecordLocationCard({ location }: RecordLocationCardProps) {
             </p>
           )}
         </div>
+        {canAddRecord && (
+          <button
+            type="button"
+            onClick={handleAddRecord}
+            className="w-10 h-10 bg-white rounded-2xl flex items-center justify-center text-blue-600 shadow-sm border border-transparent hover:border-blue-200 active:scale-90 transition-all shrink-0"
+            title="이 장소에 추가"
+            aria-label="이 장소에 추가"
+          >
+            <PlusIcon className="w-5 h-5" />
+          </button>
+        )}
       </div>
     </div>
   );

@@ -5,12 +5,10 @@ import { DesktopSidebar } from '@/shared/ui/desktop';
 import { LocationConfirmation } from '@/shared/ui/location';
 import MapLoadingSkeleton from '@/shared/ui/loading/MapLoadingSkeleton';
 import ToastErrorMessage from '@/shared/ui/alert/ToastErrorMessage';
-import RecordSummaryBottomSheet from '@/features/record/ui/RecordSummaryBottomSheet';
 import TagManagementModal from '@/features/record/ui/TagManagementModal';
 import RecordConnectionDrawer from '@/features/connection/ui/desktop/RecordConnectionDrawer';
 import { RecordWritePageDesktop } from '@/features/record/ui/desktop/RecordWritePage.desktop';
 import { useConnectionStore } from '@/features/connection/domain/connectionStore';
-import { useDeleteRecord } from '@/features/record/hooks/useDeleteRecord';
 import { useGeocodeSearch } from '@/features/home/hooks/useGeocodeSearch';
 import { ROUTES } from '@/router/routes';
 import {
@@ -27,10 +25,7 @@ export function MainMapPageDesktop() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  const [savedRecord, setSavedRecord] = useState<Record | null>(null);
-  const [isDetailSheetOpen, setIsDetailSheetOpen] = useState(false);
   const [showSuccessToast, setShowSuccessToast] = useState(false);
-  const [showDeleteErrorToast, setShowDeleteErrorToast] = useState(false);
   const [isTagManagementModalOpen, setIsTagManagementModalOpen] =
     useState(false);
   const [searchValue, setSearchValue] = useState('');
@@ -42,6 +37,11 @@ export function MainMapPageDesktop() {
   const [pinSelectedRecordIds, setPinSelectedRecordIds] = useState<
     string[] | null
   >(null);
+  const [pinSelectedLocationWithCoords, setPinSelectedLocationWithCoords] =
+    useState<{
+      location: Location;
+      coordinates: Coordinates;
+    } | null>(null);
   const [pinSelectedRecordsOverride, setPinSelectedRecordsOverride] = useState<
     | {
         id: string;
@@ -116,12 +116,7 @@ export function MainMapPageDesktop() {
   }, [geocodeData]);
 
   /**
-   * 3. 기록 삭제 훅
-   */
-  const deleteRecordMutation = useDeleteRecord();
-
-  /**
-   * 4. 캐시 및 로컬 스토리지 동기화
+   * 3. 캐시 및 로컬 스토리지 동기화
    */
   useEffect(() => {
     const updateCreatedRecordPins = () => {
@@ -153,41 +148,10 @@ export function MainMapPageDesktop() {
   }, [queryClient]);
 
   /**
-   * 5. 생성 직후 데이터 수신 (Navigation State)
+   * 4. 연결 기록 수신 (Navigation State)
    */
   useEffect(() => {
     const state = location.state as MainMapPageLocationState | null;
-
-    if (state?.savedRecord) {
-      const newRecord: Record = {
-        id: state.savedRecord.id,
-        text: state.savedRecord.text,
-        tags: state.savedRecord.tags,
-        location: state.savedRecord.location,
-        createdAt: state.savedRecord.createdAt,
-      };
-
-      setSavedRecord(newRecord);
-      setIsDetailSheetOpen(true);
-
-      setCreatedRecordPins((prev) => [
-        ...prev,
-        { record: newRecord, coordinates: state.savedRecord?.coordinates },
-      ]);
-
-      const storedPin: StoredRecordPin = {
-        record: newRecord,
-        coordinates: state.savedRecord.coordinates,
-        publicId: newRecord.id,
-      };
-      addStoredRecordPin(storedPin);
-
-      setShowSuccessToast(true);
-      void navigate(location.pathname, { replace: true, state: {} });
-
-      const timer = setTimeout(() => setShowSuccessToast(false), 3000);
-      return () => clearTimeout(timer);
-    }
 
     if (state?.connectedRecords) {
       setConnectedRecords({
@@ -202,12 +166,6 @@ export function MainMapPageDesktop() {
   }, [location.state, navigate, location.pathname]);
 
   /** 핸들러 */
-  const handleDetailSheetClose = () => {
-    if (deleteRecordMutation.isPending) return; // 삭제 중엔 닫기 방지
-    setIsDetailSheetOpen(false);
-    setSavedRecord(null);
-  };
-
   const handleRecordClick = (recordId: string) => {
     void navigate(ROUTES.RECORD_DETAIL.replace(':id', recordId));
   };
@@ -243,18 +201,6 @@ export function MainMapPageDesktop() {
     cancelConnection();
   };
 
-  const handleCreateRecordClick = () => {
-    // 지도 중심 좌표를 기본값으로 사용
-    // TODO: 실제 지도 중심 좌표를 가져오도록 개선
-    const defaultLocation: Location = {
-      name: '현재 위치',
-      address: '',
-    };
-    setRecordWriteLocation(defaultLocation);
-    setRecordWriteCoordinates(targetLocation ?? undefined);
-    setIsRecordWriteOpen(true);
-  };
-
   const handleSettingsClick = () => {
     void navigate(ROUTES.SETTINGS);
   };
@@ -271,16 +217,41 @@ export function MainMapPageDesktop() {
       clusterRecordIds?: string[];
       clusterRecords?: Record[];
       singleRecord?: Record;
+      coordinates?: { lat: number; lng: number };
     },
   ) => {
     const ids = meta?.clusterRecordIds ?? [recordId];
     setPinSelectedRecordIds(ids);
     // 카드 리스트는 항상 all API 결과만 사용
     setPinSelectedRecordsOverride(null);
+
+    if (ids.length === 1 && meta?.singleRecord?.location && meta?.coordinates) {
+      setPinSelectedLocationWithCoords({
+        location: meta.singleRecord.location,
+        coordinates: meta.coordinates,
+      });
+      return;
+    }
+
+    // 클러스터지만 같은 장소(좌표 공유)인 경우 허용
+    if (
+      ids.length > 1 &&
+      meta?.coordinates &&
+      meta?.clusterRecords &&
+      meta.clusterRecords.length > 0
+    ) {
+      setPinSelectedLocationWithCoords({
+        location: meta.clusterRecords[0].location,
+        coordinates: meta.coordinates,
+      });
+    } else {
+      setPinSelectedLocationWithCoords(null);
+    }
   };
 
   const handleClearPinSelection = () => {
     setPinSelectedRecordIds(null);
+    setPinSelectedLocationWithCoords(null);
     setPinSelectedRecordsOverride(null);
   };
 
@@ -293,7 +264,12 @@ export function MainMapPageDesktop() {
         selectedCategory={selectedCategory}
         onCategoryChange={setSelectedCategory}
         onRecordClick={handleRecordClick}
-        onCreateRecordClick={handleCreateRecordClick}
+        onCreateRecordAtLocation={(loc: Location, coords: Coordinates) => {
+          setRecordWriteLocation(loc);
+          setRecordWriteCoordinates(coords);
+          setIsRecordWriteOpen(true);
+        }}
+        pinSelectedLocationWithCoords={pinSelectedLocationWithCoords}
         onSettingsClick={handleSettingsClick}
         sortOrder={sortOrder}
         startDate={startDate}
@@ -373,12 +349,6 @@ export function MainMapPageDesktop() {
             variant="success"
           />
         )}
-        {showDeleteErrorToast && (
-          <ToastErrorMessage
-            message="기록 삭제에 실패했습니다."
-            variant="error"
-          />
-        )}
         {isGeocoding && (
           <ToastErrorMessage message="주소를 검색하는 중..." variant="info" />
         )}
@@ -389,34 +359,6 @@ export function MainMapPageDesktop() {
           />
         )}
       </div>
-
-      {/* 기록 요약 바텀시트 */}
-      {savedRecord && (
-        <RecordSummaryBottomSheet
-          isOpen={isDetailSheetOpen}
-          onClose={handleDetailSheetClose}
-          record={savedRecord}
-          isDeleting={deleteRecordMutation.isPending}
-          onEdit={() => setIsDetailSheetOpen(false)}
-          onDelete={() => {
-            if (savedRecord?.id) {
-              deleteRecordMutation.mutate(savedRecord.id, {
-                onSuccess: () => {
-                  setCreatedRecordPins((prev) =>
-                    prev.filter((pin) => pin.record.id !== savedRecord.id),
-                  );
-                  setIsDetailSheetOpen(false);
-                  setSavedRecord(null);
-                },
-                onError: () => {
-                  setShowDeleteErrorToast(true);
-                  setTimeout(() => setShowDeleteErrorToast(false), 3000);
-                },
-              });
-            }
-          }}
-        />
-      )}
 
       {/* 태그 관리 모달 */}
       <TagManagementModal

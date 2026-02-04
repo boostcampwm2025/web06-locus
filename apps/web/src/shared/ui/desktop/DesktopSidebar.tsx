@@ -37,7 +37,8 @@ export function DesktopSidebar({
   selectedCategory = 'all',
   onCategoryChange,
   onRecordClick,
-  onCreateRecordClick,
+  onCreateRecordAtLocation,
+  pinSelectedLocationWithCoords,
   onSettingsClick,
   sortOrder = 'newest',
   startDate = '',
@@ -267,9 +268,17 @@ export function DesktopSidebar({
   };
 
   const handleCreateRecord = () => {
-    onCreateRecordClick?.();
-    // MainMapPage에서 상태로 관리됨
+    if (!pinSelectedLocationWithCoords || !onCreateRecordAtLocation) return;
+    onCreateRecordAtLocation(
+      pinSelectedLocationWithCoords.location,
+      pinSelectedLocationWithCoords.coordinates,
+    );
   };
+
+  // 단일 장소 핀 선택 시에만 버튼 표시 (클러스터 핀 X)
+  const showAddRecordButton = Boolean(
+    pinSelectedLocationWithCoords && onCreateRecordAtLocation,
+  );
 
   return (
     <aside className="flex flex-col w-[420px] h-full bg-white border-r border-gray-100 shadow-2xl relative z-20">
@@ -445,17 +454,19 @@ export function DesktopSidebar({
                 )}
               </div>
 
-              {/* 하단 새 기록 버튼 */}
-              <div className="p-8 border-t border-gray-50">
-                <button
-                  type="button"
-                  onClick={handleCreateRecord}
-                  className="w-full py-5 rounded-[24px] bg-[#FE8916] hover:bg-[#E67800] text-white font-black shadow-xl shadow-orange-100 flex items-center justify-center gap-3 active:scale-95 transition-all"
-                >
-                  <PlusIcon className="w-6 h-6" />
-                  <span>새로운 기록 남기기</span>
-                </button>
-              </div>
+              {/* 하단 새 기록 버튼 (단일 장소 핀 선택 시에만 표시) */}
+              {showAddRecordButton && (
+                <div className="p-8 border-t border-gray-50">
+                  <button
+                    type="button"
+                    onClick={handleCreateRecord}
+                    className="w-full py-5 rounded-[24px] bg-[#FE8916] hover:bg-[#E67800] text-white font-black shadow-xl shadow-orange-100 flex items-center justify-center gap-3 active:scale-95 transition-all"
+                  >
+                    <PlusIcon className="w-6 h-6" />
+                    <span>새로운 기록 남기기</span>
+                  </button>
+                </div>
+              )}
             </motion.div>
           ) : (
             <RecordSummaryPanel
@@ -576,6 +587,12 @@ function RecordCard({
             <CalendarIcon className="w-[14px] h-[14px]" />
             {formatDateShort(record.date)}
           </p>
+          {(record.connectionCount ?? 0) > 0 && (
+            <p className="text-xs text-gray-500 flex items-center gap-1.5 mt-0.5">
+              <LinkIcon className="w-[14px] h-[14px]" />
+              연결 {record.connectionCount ?? 0}개
+            </p>
+          )}
           {isConnectionMode && !isSource && (
             <motion.button
               type="button"
