@@ -119,3 +119,69 @@ export function isNetworkError(error: unknown): boolean {
   }
   return false;
 }
+
+/**
+ * Presigned URL 생성 실패 에러
+ */
+export class PresignedUrlGenerationError extends Error {
+  originalError?: unknown;
+
+  constructor(message: string, originalError?: unknown) {
+    super(message);
+    this.name = 'PresignedUrlGenerationError';
+    this.originalError = originalError;
+  }
+}
+
+/**
+ * 이미지 업로드 실패 에러
+ */
+export class ImageUploadError extends Error {
+  fileName?: string;
+  originalError?: unknown;
+
+  constructor(message: string, fileName?: string, originalError?: unknown) {
+    super(message);
+    this.name = 'ImageUploadError';
+    this.fileName = fileName;
+    this.originalError = originalError;
+  }
+}
+
+/**
+ * Presigned 방식 기록 생성 실패 에러
+ */
+export class RecordCreationError extends Error {
+  originalError?: unknown;
+
+  constructor(message: string, originalError?: unknown) {
+    super(message);
+    this.name = 'RecordCreationError';
+    this.originalError = originalError;
+  }
+}
+
+/**
+ * 에러가 PresignedUrlGenerationError인지 확인
+ */
+export function isPresignedUrlGenerationError(
+  error: unknown,
+): error is PresignedUrlGenerationError {
+  return error instanceof PresignedUrlGenerationError;
+}
+
+/**
+ * 에러가 ImageUploadError인지 확인
+ */
+export function isImageUploadError(error: unknown): error is ImageUploadError {
+  return error instanceof ImageUploadError;
+}
+
+/**
+ * 에러가 RecordCreationError인지 확인
+ */
+export function isRecordCreationError(
+  error: unknown,
+): error is RecordCreationError {
+  return error instanceof RecordCreationError;
+}
