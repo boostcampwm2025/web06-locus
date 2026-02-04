@@ -10,6 +10,8 @@ import {
   OutboxEvent,
 } from '@/common/constants/event-types.constants';
 import { OutboxService } from './outbox.service';
+import { OutboxMetricsService } from '@/infra/monitoring/services/outbox-metrics.service';
+import { RabbitMQMetricsService } from '@/infra/monitoring/services/rabbitmq-metrics.service';
 
 @Injectable()
 export class OutboxPublisher implements OnModuleDestroy {
@@ -21,6 +23,8 @@ export class OutboxPublisher implements OnModuleDestroy {
     private readonly outboxService: OutboxService,
     @Inject(RABBITMQ_CONSTANTS.CLIENTS.RECORD_SYNC_PRODUCER)
     private readonly client: ClientProxy,
+    private readonly outboxMetricsService: OutboxMetricsService,
+    private readonly rabbitMQMetricsService: RabbitMQMetricsService,
   ) {}
 
   async onModuleInit() {
@@ -65,7 +69,21 @@ export class OutboxPublisher implements OnModuleDestroy {
       const outboxEvent = this.convertToOutboxEvent(event);
       await this.sendToRabbitMQ(outboxEvent);
       await this.outboxService.updateStatus(event.id, OutboxStatus.DONE);
+
+      this.outboxMetricsService.recordStatusTransition(
+        OutboxStatus.PENDING,
+        OutboxStatus.DONE,
+        event.eventType,
+      );
+
+      const processingTime = (Date.now() - event.createdAt.getTime()) / 1000;
+      this.outboxMetricsService.recordProcessingDuration(
+        event.eventType,
+        processingTime,
+      );
+      this.outboxMetricsService.recordPublishSuccess(event.eventType);
     } catch (_error) {
+      this.outboxMetricsService.recordPublishFailure(event.eventType);
       await this.handlePublishFailure(event);
     }
   }
@@ -82,28 +100,50 @@ export class OutboxPublisher implements OnModuleDestroy {
   }
 
   private async sendToRabbitMQ(event: OutboxEvent) {
-    await lastValueFrom(
-      this.client
-        .emit(RABBITMQ_CONSTANTS.PATTERNS.RECORD_SYNC, event)
-        .pipe(timeout(5000)),
-    );
-    this.logger.log(`✅ ${event.eventId} Event가 RabbitMQ에 publish`);
+    try {
+      await lastValueFrom(
+        this.client
+          .emit(RABBITMQ_CONSTANTS.PATTERNS.RECORD_SYNC, event)
+          .pipe(timeout(5000)),
+      );
+
+      this.rabbitMQMetricsService.recordPublishSuccess(
+        RABBITMQ_CONSTANTS.PATTERNS.RECORD_SYNC,
+      );
+      this.logger.log(`✅ ${event.eventId} Event가 RabbitMQ에 publish`);
+    } catch (error) {
+      this.rabbitMQMetricsService.recordPublishFailure(
+        RABBITMQ_CONSTANTS.PATTERNS.RECORD_SYNC,
+      );
+      throw error;
+    }
   }
 
   private async handlePublishFailure(outbox: Outbox): Promise<void> {
     const retryCount = outbox.retryCount + 1;
     const isDead = retryCount >= this.MAX_RETRY_COUNT;
 
-    await this.outboxService.updateStatus(
-      outbox.id,
-      isDead ? OutboxStatus.DEAD : OutboxStatus.RETRY,
-    );
-
     if (isDead) {
+      await this.outboxService.updateStatus(outbox.id, OutboxStatus.DEAD);
+
+      this.outboxMetricsService.recordStatusTransition(
+        OutboxStatus.PENDING,
+        OutboxStatus.DEAD,
+        outbox.eventType,
+      );
+      this.outboxMetricsService.recordDeadLetter(outbox.eventType);
       this.logger.error(
         `🚨 DLQ: Event ${outbox.id}가 최종 실패 처리되었습니다.`,
       );
     } else {
+      await this.outboxService.updateStatus(outbox.id, OutboxStatus.RETRY);
+
+      this.outboxMetricsService.recordStatusTransition(
+        OutboxStatus.PENDING,
+        OutboxStatus.RETRY,
+        outbox.eventType,
+      );
+
       this.logger.warn(
         `⚠️ Event ${outbox.id} 발행 실패 (재시도 ${retryCount} / 5)`,
       );
