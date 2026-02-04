@@ -199,7 +199,9 @@ function RecordDetailPageRoute() {
   // API 응답을 RecordDetailPageProps로 변환
   // 이미지 URL 목록 (슬라이더용). medium 사이즈 사용
   const imageUrls =
-    detail.images?.map((img) => img.medium?.url).filter(Boolean) ?? [];
+    detail.images
+      ?.map((img) => img.medium?.url)
+      .filter((url): url is string => Boolean(url)) ?? [];
   const thumbnailImageUrl =
     imageUrls.length > 0 ? imageUrls[0] : RECORD_PLACEHOLDER_IMAGE;
 
