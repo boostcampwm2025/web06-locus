@@ -78,13 +78,7 @@ export default function RecordSummaryBottomSheet({
   const getImageUrls = (detail: RecordDetail): string[] => {
     const list = detail.images ?? [];
     return list
-      .map(
-        (img: {
-          medium?: { url?: string };
-          thumbnail?: { url?: string };
-          original?: { url?: string };
-        }) => img.medium?.url ?? img.thumbnail?.url ?? img.original?.url,
-      )
+      .map((img) => img.medium?.url ?? img.thumbnail?.url ?? img.original?.url)
       .filter((url): url is string => Boolean(url));
   };
 

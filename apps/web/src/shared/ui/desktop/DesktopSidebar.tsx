@@ -654,13 +654,7 @@ function RecordSummaryPanel({
   // 이미지 URL 목록 (medium → thumbnail → original 순으로 fallback)
   const list = recordDetail.images ?? [];
   const imageUrls = list
-    .map(
-      (img: {
-        medium?: { url?: string };
-        thumbnail?: { url?: string };
-        original?: { url?: string };
-      }) => img.medium?.url ?? img.thumbnail?.url ?? img.original?.url,
-    )
+    .map((img) => img.medium?.url ?? img.thumbnail?.url ?? img.original?.url)
     .filter((url): url is string => Boolean(url));
   const imageUrl =
     imageUrls.length > 0 ? imageUrls[0] : RECORD_PLACEHOLDER_IMAGE;
