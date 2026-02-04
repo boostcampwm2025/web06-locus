@@ -6,6 +6,7 @@ import {
   AGGREGATE_TYPE,
   OUTBOX_EVENT_TYPE,
 } from '@/common/constants/event-types.constants';
+import { OutboxMetricsService } from '@/infra/monitoring/services/outbox-metrics.service';
 
 describe('OutboxService', () => {
   let service: OutboxService;
@@ -17,6 +18,14 @@ describe('OutboxService', () => {
     },
   };
 
+  const mockOutboxMetricsService = {
+    recordPublishSuccess: jest.fn(),
+    recordPublishFailure: jest.fn(),
+    recordProcessingDuration: jest.fn(),
+    recordDeadLetter: jest.fn(),
+    recordStatusTransition: jest.fn(),
+  };
+
   beforeEach(async () => {
     jest.clearAllMocks();
 
@@ -26,6 +35,10 @@ describe('OutboxService', () => {
         {
           provide: PrismaService,
           useValue: mockPrismaService,
+        },
+        {
+          provide: OutboxMetricsService,
+          useValue: mockOutboxMetricsService,
         },
       ],
     }).compile();

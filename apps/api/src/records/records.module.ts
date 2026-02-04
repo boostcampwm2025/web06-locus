@@ -18,6 +18,7 @@ import { RecordGraphService } from './services/records-graph.service';
 import { RecordLocationService } from './services/records-location.service';
 import { RecordQueryService } from './services/records-query.service';
 import { RecordImageService } from './services/records-image.service';
+import { PrometheusModule } from '@/infra/monitoring/prometheus.module';
 
 @Module({
   imports: [
@@ -27,6 +28,7 @@ import { RecordImageService } from './services/records-image.service';
     OutboxModule,
     TagsModule,
     ImagesModule,
+    PrometheusModule,
   ],
   controllers: [RecordsController, RecordSyncConsumer],
   providers: [

@@ -5,6 +5,8 @@ import { OutboxService } from '../../src/outbox/outbox.service';
 import { Outbox, OutboxStatus } from '@prisma/client';
 import { RABBITMQ_CONSTANTS } from '@/common/constants/rabbitmq.constants';
 import { of, throwError } from 'rxjs';
+import { OutboxMetricsService } from '@/infra/monitoring/services/outbox-metrics.service';
+import { RabbitMQMetricsService } from '@/infra/monitoring/services/rabbitmq-metrics.service';
 
 describe('OutboxPublisher', () => {
   let publisher: OutboxPublisher;
@@ -20,6 +22,19 @@ describe('OutboxPublisher', () => {
     emit: jest.fn(),
   };
 
+  const mockOutboxMetricsService = {
+    recordPublishSuccess: jest.fn(),
+    recordPublishFailure: jest.fn(),
+    recordProcessingDuration: jest.fn(),
+    recordDeadLetter: jest.fn(),
+    recordStatusTransition: jest.fn(),
+  };
+
+  const mockRabbitMQMetricsService = {
+    recordPublishSuccess: jest.fn(),
+    recordPublishFailure: jest.fn(),
+  };
+
   beforeEach(async () => {
     jest.clearAllMocks();
 
@@ -33,6 +48,14 @@ describe('OutboxPublisher', () => {
         {
           provide: RABBITMQ_CONSTANTS.CLIENTS.RECORD_SYNC_PRODUCER,
           useValue: mockClientProxy,
+        },
+        {
+          provide: OutboxMetricsService,
+          useValue: mockOutboxMetricsService,
+        },
+        {
+          provide: RabbitMQMetricsService,
+          useValue: mockRabbitMQMetricsService,
         },
       ],
     }).compile();

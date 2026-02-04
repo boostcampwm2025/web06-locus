@@ -2,15 +2,19 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { Outbox, OutboxStatus, Prisma } from '@prisma/client';
 import { OutboxEvent } from '@/common/constants/event-types.constants';
+import { OutboxMetricsService } from '@/infra/monitoring/services/outbox-metrics.service';
 
 @Injectable()
 export class OutboxService {
   private readonly MAX_RETRY_COUNT = 5;
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly outboxMetricsService: OutboxMetricsService,
+  ) {}
 
   async publish(tx: Prisma.TransactionClient, data: OutboxEvent) {
-    return tx.outbox.create({
+    const event = tx.outbox.create({
       data: {
         aggregateType: data.aggregateType,
         aggregateId: BigInt(data.aggregateId),
@@ -20,6 +24,12 @@ export class OutboxService {
         payload: data.payload as Prisma.InputJsonValue,
       },
     });
+    this.outboxMetricsService.recordStatusTransition(
+      '',
+      OutboxStatus.PENDING,
+      data.eventType,
+    );
+    return event;
   }
 
   async getPendingOutboxEvents(): Promise<Outbox[]> {

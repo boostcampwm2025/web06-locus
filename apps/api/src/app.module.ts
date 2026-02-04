@@ -19,6 +19,7 @@ import { TagsModule } from './tags/tags.module';
 import { MapsModule } from './maps/maps.module';
 import { NotificationModule } from './notification/notification.module';
 import { ImagesModule } from './images/images.module';
+import { PrometheusModule } from './infra/monitoring/prometheus.module';
 import { DuckModule } from './duck/duck.module';
 
 @Module({
@@ -26,6 +27,7 @@ import { DuckModule } from './duck/duck.module';
     ScheduleModule.forRoot(),
     ConfigModule.forRoot({ isGlobal: true }),
     PrismaModule,
+    PrometheusModule,
     RabbitMqModule,
     OutboxModule,
     RedisModule,
