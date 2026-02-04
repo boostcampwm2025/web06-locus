@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectMetric } from '@willsoto/nestjs-prometheus';
 import { Counter, Histogram } from 'prom-client';
-import { API_METRICS } from './constants/metrics.constants';
+import { API_METRICS } from '../constants/metrics.constants';
 
 @Injectable()
 export class ApiMetricsService {

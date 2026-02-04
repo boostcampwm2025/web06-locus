@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { Observable } from 'rxjs';
 import { tap } from 'rxjs/operators';
-import { ApiMetricsService } from '../api-metrics.service';
+import { ApiMetricsService } from '../services/api-metrics.service';
 import { Request, Response } from 'express';
 
 @Injectable()
