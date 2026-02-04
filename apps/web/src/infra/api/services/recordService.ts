@@ -375,25 +375,30 @@ export async function generateUploadUrls(count: number): Promise<{
   });
 
   // 응답 스키마 정의 (백엔드 GenerateUploadUrlsResponseDto와 일치)
-  const GenerateUploadUrlsResponseSchema = z.object({
-    recordPublicId: z.string(),
-    uploads: z.array(
-      z.object({
-        imageId: z.string(),
-        uploadUrl: z.string().url(),
-        key: z.string(),
-      }),
-    ),
+  const GenerateUploadUrlsResponseSchema = SuccessResponseSchema.extend({
+    data: z.object({
+      recordPublicId: z.string(),
+      uploads: z.array(
+        z.object({
+          imageId: z.string(),
+          uploadUrl: z.string().url(),
+          key: z.string(),
+        }),
+      ),
+    }),
   });
 
-  const validated = GenerateUploadUrlsResponseSchema.parse(response);
+  const validated = validateApiResponse(
+    GenerateUploadUrlsResponseSchema,
+    response,
+  );
 
   logger.info('Presigned URL 생성 성공', {
-    recordPublicId: validated.recordPublicId,
-    uploadCount: validated.uploads.length,
+    recordPublicId: validated.data.recordPublicId,
+    uploadCount: validated.data.uploads.length,
   });
 
-  return validated;
+  return validated.data;
 }
 
 /**
