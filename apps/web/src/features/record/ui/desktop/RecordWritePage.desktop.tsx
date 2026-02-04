@@ -7,6 +7,11 @@ import { useCreateRecord } from '../../hooks/useCreateRecord';
 import { useGetTags } from '../../hooks/useGetTags';
 import { useImageUpload } from '@/shared/hooks/useImageUpload';
 import { useToast } from '@/shared/ui/toast';
+import {
+  isPresignedUrlGenerationError,
+  isImageUploadError,
+  isRecordCreationError,
+} from '@/shared/errors';
 import type { RecordWritePageProps, Record } from '../../types';
 
 export function RecordWritePageDesktop({
@@ -124,9 +129,24 @@ export function RecordWritePageDesktop({
       onSave(record, initialCoordinates);
     } catch (error) {
       console.error('기록 생성 실패:', error);
+
+      let errorMessage = '기록 저장에 실패했습니다.';
+
+      if (isPresignedUrlGenerationError(error)) {
+        errorMessage =
+          '이미지 업로드 URL 생성에 실패했습니다. 잠시 후 다시 시도해주세요.';
+      } else if (isImageUploadError(error)) {
+        errorMessage =
+          '이미지 업로드에 실패했습니다. 네트워크 연결을 확인해주세요.';
+      } else if (isRecordCreationError(error)) {
+        errorMessage = '기록 생성에 실패했습니다. 다시 시도해주세요.';
+      } else if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+
       showToast({
         variant: 'error',
-        message: '기록 저장에 실패했습니다.',
+        message: errorMessage,
       });
     }
   };
