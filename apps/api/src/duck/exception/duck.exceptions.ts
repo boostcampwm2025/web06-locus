@@ -15,12 +15,11 @@ export class AiConfigMissingException extends BusinessException {
 
 // AI 호출 자체가 실패했을 때 (Axios 에러 등)
 export class AiGenerationFailedException extends BusinessException {
-  constructor(error: string) {
+  constructor() {
     super(
       HttpStatus.INTERNAL_SERVER_ERROR,
       DuckErrorCode.AI_GENERATION_FAILED,
       '오리 코멘트 생성에 실패했습니다.',
-      { error },
     );
   }
 }
