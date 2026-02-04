@@ -349,3 +349,48 @@ function parseCreateRecordResponse(response: unknown): RecordWithImages {
   const validated = validateApiResponse(CreateRecordResponseSchema, response);
   return validated.data;
 }
+
+/**
+ * Presigned URL 생성 API 호출
+ * @param count 업로드할 이미지 개수 (1-5)
+ * @returns recordPublicId와 각 이미지별 uploadUrl, imageId
+ */
+export async function generateUploadUrls(count: number): Promise<{
+  recordPublicId: string;
+  uploads: {
+    imageId: string;
+    uploadUrl: string;
+    key: string;
+  }[];
+}> {
+  logger.info('Presigned URL 생성 요청', { count });
+
+  const response = await apiClient<unknown>(API_ENDPOINTS.RECORDS_UPLOAD_URLS, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ count }),
+  });
+
+  // 응답 스키마 정의 (백엔드 GenerateUploadUrlsResponseDto와 일치)
+  const GenerateUploadUrlsResponseSchema = z.object({
+    recordPublicId: z.string(),
+    uploads: z.array(
+      z.object({
+        imageId: z.string(),
+        uploadUrl: z.string().url(),
+        key: z.string(),
+      }),
+    ),
+  });
+
+  const validated = GenerateUploadUrlsResponseSchema.parse(response);
+
+  logger.info('Presigned URL 생성 성공', {
+    recordPublicId: validated.recordPublicId,
+    uploadCount: validated.uploads.length,
+  });
+
+  return validated;
+}
