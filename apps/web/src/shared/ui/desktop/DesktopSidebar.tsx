@@ -31,6 +31,7 @@ import type {
   RecordSummaryPanelProps,
 } from '@/shared/types';
 import { formatDateShort } from '@/shared/utils/dateUtils';
+import { logger } from '@sentry/react';
 
 export function DesktopSidebar({
   searchValue = '',
@@ -664,10 +665,14 @@ function RecordSummaryPanel({
   const imageUrls = list
     .map((img, index) => {
       // 첫 번째 이미지는 Blob URL 우선
-      if (index === 0 && blobUrl) return blobUrl;
+      if (index === 0 && blobUrl) {
+        logger.warn('[RecordSummaryPanel] Using Blob URL for first image');
+        return blobUrl;
+      }
 
       // 나머지는 기존 로직
-      return img.medium?.url ?? img.thumbnail?.url ?? img.original?.url;
+      const url = img.medium?.url ?? img.thumbnail?.url ?? img.original?.url;
+      return url;
     })
     .filter((url): url is string => Boolean(url));
   const imageUrl =

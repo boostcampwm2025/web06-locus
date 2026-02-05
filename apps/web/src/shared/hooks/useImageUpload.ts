@@ -125,10 +125,26 @@ export function useImageUpload(
   // 컴포넌트 언마운트 시 자동 정리
   useEffect(() => {
     return () => {
-      // 최종적으로 남은 모든 URL 해제
+      // blobPreviewStore로 import하면 순환 의존성 발생 가능하므로 동적 import
+      // Store에 저장된 URL은 Store가 관리하므로 여기서 revoke하지 않음
       previewUrlsRef.current.forEach((url) => {
         if (url.startsWith('blob:')) {
-          URL.revokeObjectURL(url);
+          // 모든 Store URL을 확인하기 위해 동적으로 접근
+          // blobPreviewStore에 저장된 URL은 cleanup하지 않음
+          import('@/features/record/domain/blobPreviewStore')
+            .then(({ useBlobPreviewStore }) => {
+              const store = useBlobPreviewStore.getState();
+              const storeUrls = Array.from(store.blobUrls.values());
+
+              // Store에 없는 URL만 revoke (사용자가 기록 생성을 취소한 경우 등)
+              if (!storeUrls.includes(url)) {
+                URL.revokeObjectURL(url);
+              }
+            })
+            .catch(() => {
+              // Store import 실패 시 안전하게 revoke
+              URL.revokeObjectURL(url);
+            });
         }
       });
       previewUrlsRef.current = [];

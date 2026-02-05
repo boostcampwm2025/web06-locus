@@ -53,17 +53,15 @@ export function RecordImage({
     return RECORD_PLACEHOLDER_IMAGE;
   }, [cachedBlobUrl, image?.thumbnail?.url]);
 
-  // Cleanup: thumbnail 로드되면 Blob URL 해제
+  // Cleanup: thumbnail 로드되면 Store에서 정리
   useEffect(() => {
-    if (
-      cachedBlobUrl &&
-      image?.thumbnail?.url &&
-      cachedBlobUrl.startsWith('blob:')
-    ) {
-      // thumbnail이 로드되었으므로 Blob URL은 더 이상 필요 없음
-      URL.revokeObjectURL(cachedBlobUrl);
+    if (cachedBlobUrl && image?.thumbnail?.url) {
+      // thumbnail이 로드되었으므로 Store에서 Blob URL 정리
+      // 다른 컴포넌트도 사용할 수 있으므로 Store에서 중앙 관리
+      const cleanup = useBlobPreviewStore.getState().cleanup;
+      cleanup(recordId);
     }
-  }, [cachedBlobUrl, image?.thumbnail?.url]);
+  }, [cachedBlobUrl, image?.thumbnail?.url, recordId]);
 
   return <ImageWithFallback src={imgSrc} alt={alt} className={className} />;
 }
