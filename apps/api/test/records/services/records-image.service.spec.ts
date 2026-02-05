@@ -3,8 +3,9 @@ import { RecordImageService } from '@/records/services/records-image.service';
 import { ImageProcessingService } from '@/records/services/image-processing.service';
 import { ObjectStorageService } from '@/records/services/object-storage.service';
 import { PrismaService } from '@/prisma/prisma.service';
+import { RedisService } from '@/redis/redis.service';
+import { IMAGE_UPLOAD_CONFIG } from '@/records/config/image-upload.config';
 import {
-  ImageUrls,
   ProcessedImage,
   UploadedImage,
 } from '@/records/services/object-storage.types';
@@ -26,6 +27,20 @@ describe('RecordImageService', () => {
     image: {
       findMany: jest.fn(),
       createMany: jest.fn(),
+      findUnique: jest.fn(),
+      update: jest.fn(),
+    },
+  };
+
+  const mockRedisService = {
+    get: jest.fn(),
+    set: jest.fn(),
+    del: jest.fn(),
+  };
+
+  const mockImageUploadConfig = {
+    webhook: {
+      cacheTtlSec: 300,
     },
   };
 
@@ -46,6 +61,14 @@ describe('RecordImageService', () => {
         {
           provide: PrismaService,
           useValue: mockPrismaService,
+        },
+        {
+          provide: RedisService,
+          useValue: mockRedisService,
+        },
+        {
+          provide: IMAGE_UPLOAD_CONFIG,
+          useValue: mockImageUploadConfig,
         },
       ],
     }).compile();
@@ -541,22 +564,13 @@ describe('RecordImageService', () => {
   describe('deleteImagesFromStorage', () => {
     test('이미지 URL 목록에서 키를 추출하고 스토리지에서 삭제해야 한다', async () => {
       // given
-      const imageUrls: ImageUrls[] = [
-        {
-          thumbnail:
-            'https://cdn.example.com/users/user1/records/rec1/thumb.jpg',
-          medium: 'https://cdn.example.com/users/user1/records/rec1/medium.jpg',
-          original:
-            'https://cdn.example.com/users/user1/records/rec1/original.jpg',
-        },
-        {
-          thumbnail:
-            'https://cdn.example.com/users/user1/records/rec1/thumb2.jpg',
-          medium:
-            'https://cdn.example.com/users/user1/records/rec1/medium2.jpg',
-          original:
-            'https://cdn.example.com/users/user1/records/rec1/original2.jpg',
-        },
+      const imageUrls: string[] = [
+        'https://cdn.example.com/users/user1/records/rec1/thumb.jpg',
+        'https://cdn.example.com/users/user1/records/rec1/medium.jpg',
+        'https://cdn.example.com/users/user1/records/rec1/original.jpg',
+        'https://cdn.example.com/users/user1/records/rec1/thumb2.jpg',
+        'https://cdn.example.com/users/user1/records/rec1/medium2.jpg',
+        'https://cdn.example.com/users/user1/records/rec1/original2.jpg',
       ];
 
       mockObjectStorageService.extractKeyFromUrl
@@ -588,67 +602,13 @@ describe('RecordImageService', () => {
 
     test('빈 배열이 전달되면 스토리지 삭제를 호출하지 않아야 한다', async () => {
       // given
-      const imageUrls: ImageUrls[] = [];
+      const imageUrls: string[] = [];
 
       // when
       await service.deleteImagesFromStorage(imageUrls);
 
       // then
       expect(mockObjectStorageService.deleteImages).not.toHaveBeenCalled();
-      expect(mockObjectStorageService.extractKeyFromUrl).not.toHaveBeenCalled();
-    });
-  });
-
-  describe('extractImageKeys', () => {
-    test('이미지 URL 목록에서 모든 스토리지 키를 추출해야 한다', () => {
-      // given
-      const imageUrls: ImageUrls[] = [
-        {
-          thumbnail: 'https://cdn.example.com/thumb1.jpg',
-          medium: 'https://cdn.example.com/medium1.jpg',
-          original: 'https://cdn.example.com/original1.jpg',
-        },
-        {
-          thumbnail: 'https://cdn.example.com/thumb2.jpg',
-          medium: 'https://cdn.example.com/medium2.jpg',
-          original: 'https://cdn.example.com/original2.jpg',
-        },
-      ];
-
-      mockObjectStorageService.extractKeyFromUrl
-        .mockReturnValueOnce('thumb1.jpg')
-        .mockReturnValueOnce('medium1.jpg')
-        .mockReturnValueOnce('original1.jpg')
-        .mockReturnValueOnce('thumb2.jpg')
-        .mockReturnValueOnce('medium2.jpg')
-        .mockReturnValueOnce('original2.jpg');
-
-      // when
-      const result = service.extractImageKeys(imageUrls);
-
-      // then
-      expect(result).toEqual([
-        'thumb1.jpg',
-        'medium1.jpg',
-        'original1.jpg',
-        'thumb2.jpg',
-        'medium2.jpg',
-        'original2.jpg',
-      ]);
-      expect(mockObjectStorageService.extractKeyFromUrl).toHaveBeenCalledTimes(
-        6,
-      );
-    });
-
-    test('빈 배열이 전달되면 빈 배열을 반환해야 한다', () => {
-      // given
-      const imageUrls: ImageUrls[] = [];
-
-      // when
-      const result = service.extractImageKeys(imageUrls);
-
-      // then
-      expect(result).toEqual([]);
       expect(mockObjectStorageService.extractKeyFromUrl).not.toHaveBeenCalled();
     });
   });

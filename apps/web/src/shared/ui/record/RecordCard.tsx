@@ -1,19 +1,19 @@
 import { LinkIcon } from '@/shared/ui/icons/LinkIcon';
 import { LocationIcon } from '@/shared/ui/icons/LocationIcon';
 import { ChevronRightIcon } from '@/shared/ui/icons/ChevronRightIcon';
-import { RECORD_PLACEHOLDER_IMAGE } from '@/shared/constants/record';
-import { ImageWithFallback } from '@/shared/ui/image';
+import { RecordImage } from './RecordImage';
 import type { RecordCardProps } from './RecordCard.types';
 import { formatDateShort } from '@/shared/utils/dateUtils';
 import { getDisplayTags } from '@/shared/utils/tagUtils';
 
 export default function RecordCard({
+  recordId,
   title,
   location,
   date,
   tags,
   connectionCount,
-  imageUrl,
+  image,
   onClick,
   className = '',
 }: RecordCardProps) {
@@ -29,10 +29,11 @@ export default function RecordCard({
       onClick={onClick}
       className={`flex items-start gap-3 p-4 bg-white border-b border-gray-100 hover:bg-gray-50 transition-colors text-left w-full ${className}`}
     >
-      {/* 이미지 영역 - 없으면 기본 이미지 사용 */}
+      {/* 이미지 영역 */}
       <div className="shrink-0 w-20 h-20 rounded-lg overflow-hidden">
-        <ImageWithFallback
-          src={imageUrl ?? RECORD_PLACEHOLDER_IMAGE}
+        <RecordImage
+          recordId={recordId}
+          image={image}
           alt={title}
           className="w-full h-full object-cover"
         />

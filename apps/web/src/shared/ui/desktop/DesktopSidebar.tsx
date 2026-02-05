@@ -29,6 +29,7 @@ import { useToast } from '@/shared/ui/toast';
 import { useConnectionModeData } from '@/features/connection/hooks/useConnectionModeData';
 import { useRecordGraphDetails } from '@/features/connection/hooks/useRecordGraphDetails';
 import { ConfirmModal } from '@/features/settings/ui/desktop/modals/ConfirmModal';
+import { useBlobPreviewStore } from '@/features/record/domain/blobPreviewStore';
 import { DesktopFilterPanel } from './DesktopFilterPanel';
 import type {
   DesktopSidebarProps,
@@ -37,6 +38,7 @@ import type {
   RecordSummaryPanelProps,
 } from '@/shared/types';
 import { formatDateShort } from '@/shared/utils/dateUtils';
+import { logger } from '@sentry/react';
 
 export function DesktopSidebar({
   searchValue = '',
@@ -564,6 +566,13 @@ function RecordCard({
   const [imageLoading, setImageLoading] = useState(true);
   const [imageError, setImageError] = useState(false);
 
+  // 첫 번째 Blob URL 조회 (기록 생성 직후, 단일 썸네일용)
+  const getBlobUrls = useBlobPreviewStore((state) => state.getBlobUrls);
+  const blobUrls = getBlobUrls(record.id);
+
+  // 이미지 URL 우선순위: 첫 번째 Blob URL → imageUrl → Placeholder
+  const imageSrc = blobUrls[0] ?? record.imageUrl ?? RECORD_PLACEHOLDER_IMAGE;
+
   return (
     <button
       type="button"
@@ -580,14 +589,14 @@ function RecordCard({
     >
       <div className="flex gap-5 items-center">
         {/* 이미지 썸네일 - 없으면 기본 이미지 */}
-        <div className="w-24 h-24 rounded-[20px] overflow-hidden shrink-0 relative">
+        <div className="w-24 h-24 flex justify-center items-center rounded-[20px] overflow-hidden shrink-0 relative">
           {!imageError ? (
             <>
               {imageLoading && <ImageSkeleton className="absolute inset-0" />}
               <img
-                src={record.imageUrl ?? RECORD_PLACEHOLDER_IMAGE}
+                src={imageSrc}
                 alt={record.title}
-                className={`w-full h-full object-cover transition-opacity duration-300 ${
+                className={`max-w-full max-h-full object-cover transition-opacity duration-300 ${
                   imageLoading ? 'opacity-0' : 'opacity-100'
                 }`}
                 onLoad={() => setImageLoading(false)}
@@ -681,6 +690,9 @@ function RecordSummaryPanel({
   const deleteRecordMutation = useDeleteRecord();
   const { showToast } = useToast();
 
+  // 모든 Blob URL 조회 (기록 생성 직후 모든 이미지)
+  const getBlobUrl = useBlobPreviewStore((state) => state.getBlobUrls);
+
   if (isLoading) {
     return (
       <motion.div
@@ -706,16 +718,26 @@ function RecordSummaryPanel({
   }
 
   const tags = recordDetail.tags?.map((tag) => tag.name) ?? [];
-  // 이미지 URL 목록 (medium → thumbnail → original 순으로 fallback)
+
+  // 모든 Blob URL 사용 (기록 생성 직후 모든 이미지)
+  const blobUrls = getBlobUrl(recordDetail.publicId);
+
+  // 이미지 URL 목록 (Blob URL → medium → thumbnail → original 순으로 fallback)
   const list = recordDetail.images ?? [];
   const imageUrls = list
-    .map(
-      (img: {
-        medium?: { url?: string };
-        thumbnail?: { url?: string };
-        original?: { url?: string };
-      }) => img.medium?.url ?? img.thumbnail?.url ?? img.original?.url,
-    )
+    .map((img, index) => {
+      // 해당 인덱스에 Blob URL이 있으면 우선 사용
+      if (index < blobUrls.length && blobUrls[index]) {
+        logger.warn(
+          `[RecordSummaryPanel] Using Blob URL for image ${index + 1}`,
+        );
+        return blobUrls[index];
+      }
+
+      // 나머지는 기존 로직
+      const url = img.medium?.url ?? img.thumbnail?.url ?? img.original?.url;
+      return url;
+    })
     .filter((url): url is string => Boolean(url));
   const imageUrl =
     imageUrls.length > 0 ? imageUrls[0] : RECORD_PLACEHOLDER_IMAGE;
@@ -728,7 +750,7 @@ function RecordSummaryPanel({
       className="flex flex-col h-full relative"
     >
       {/* 헤더 */}
-      <div className="p-6 border-b border-gray-100 flex items-center gap-4 sticky top-0 bg-white z-10">
+      <div className="flex-none p-6 border-b border-gray-100 flex items-center gap-4 sticky top-0 bg-white z-10">
         <button
           type="button"
           onClick={onBack}
@@ -814,9 +836,9 @@ function RecordSummaryPanel({
       />
 
       {/* 스크롤 영역 */}
-      <div className="flex-1 overflow-y-auto no-scrollbar min-h-0">
+      <div className="flex-1 flex flex-col overflow-y-auto no-scrollbar min-h-0 h-full">
         {/* 이미지 - 1장 이상이면 슬라이더(이전/다음 버튼·인디케이터), 0장이면 플레이스홀더 */}
-        <div className="w-full aspect-video min-h-[200px] relative shrink-0 overflow-hidden bg-gray-100">
+        <div className="shrink-0 flex item-center justify-center w-full min-h-[200px] relative bg-gray-100">
           {imageUrls.length > 0 ? (
             <RecordImageSlider
               urls={imageUrls}
@@ -829,7 +851,7 @@ function RecordSummaryPanel({
               <img
                 src={imageUrl}
                 alt={recordDetail.title}
-                className="w-full h-full object-cover group-hover:scale-105 transition-all duration-700 relative z-10"
+                className="w-auto max-w-full h-auto max-h-[300px] object-cover group-hover:scale-105 transition-all duration-700 relative z-10"
                 onLoad={(e) => {
                   const img = e.currentTarget;
                   const skeleton = img.previousElementSibling as HTMLElement;
@@ -847,7 +869,7 @@ function RecordSummaryPanel({
         </div>
 
         {/* 콘텐츠 */}
-        <div className="p-8">
+        <div className="flex-1 p-8">
           <div className="mb-8">
             {/* 태그 */}
             <div className="flex flex-wrap gap-2 mb-4">
@@ -912,7 +934,7 @@ function RecordSummaryPanel({
       </div>
 
       {/* 하단 버튼 */}
-      <div className="p-8 border-t border-gray-100 flex flex-col gap-3 bg-white">
+      <div className="flex-none p-8 border-t border-gray-100 flex flex-col gap-3 bg-white">
         <button
           type="button"
           onClick={onOpenFullDetail}

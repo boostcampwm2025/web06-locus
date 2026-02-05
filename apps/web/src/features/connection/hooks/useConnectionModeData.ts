@@ -53,9 +53,9 @@ export function useConnectionModeData() {
         date: new Date(fromRecordDetail.createdAt),
         tags: fromRecordDetail.tags?.map((tag) => tag.name) ?? [],
         imageUrl:
-          fromRecordDetail.images && fromRecordDetail.images.length > 0
-            ? fromRecordDetail.images[0].medium.url
-            : RECORD_PLACEHOLDER_IMAGE,
+          (fromRecordDetail.images?.length
+            ? fromRecordDetail.images[0].medium?.url
+            : null) ?? RECORD_PLACEHOLDER_IMAGE,
       });
     }
   }, [fromRecordDetail, departure, selectDeparture, connectionFromRecordId]);
@@ -143,7 +143,7 @@ export function useConnectionModeData() {
         };
         const thumbnailUrl =
           recordWithImages.images && recordWithImages.images.length > 0
-            ? recordWithImages.images[0].thumbnail.url
+            ? recordWithImages.images[0].thumbnail?.url
             : RECORD_PLACEHOLDER_IMAGE;
 
         return {

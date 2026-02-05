@@ -25,6 +25,7 @@ import type {
 } from '../types';
 import { extractTagNames } from '@/shared/utils/tagUtils';
 import type { Coordinates } from '../types';
+import { useBlobPreviewStore } from '../domain/blobPreviewStore';
 
 export default function RecordSummaryBottomSheet({
   isOpen,
@@ -39,6 +40,9 @@ export default function RecordSummaryBottomSheet({
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const deleteRecordMutation = useDeleteRecord();
   const { showToast } = useToast();
+
+  // 모든 Blob URL 조회 (React Hook 규칙 - early return 이전에 호출)
+  const getBlobUrls = useBlobPreviewStore((state) => state.getBlobUrls);
 
   // 1. 상세 정보 조회 Hook (ID로 넘어왔을 때만 활성화)
   const {
@@ -78,17 +82,23 @@ export default function RecordSummaryBottomSheet({
     );
   }
 
-  // 이미지 URL 목록 추출 (API 응답: medium → thumbnail → original)
-  const getImageUrls = (detail: RecordDetail): string[] => {
+  // 이미지 URL 목록 추출 (Blob URL → API 응답: medium → thumbnail → original)
+  const getImageUrls = (
+    detail: RecordDetail,
+    recordPublicId: string,
+    getBlobUrlsFn: (id: string) => string[],
+  ): string[] => {
     const list = detail.images ?? [];
+    const blobUrls = getBlobUrlsFn(recordPublicId);
+
     return list
-      .map(
-        (img: {
-          medium?: { url?: string };
-          thumbnail?: { url?: string };
-          original?: { url?: string };
-        }) => img.medium?.url ?? img.thumbnail?.url ?? img.original?.url,
-      )
+      .map((img, index) => {
+        // 해당 인덱스에 Blob URL이 있으면 우선 사용
+        if (index < blobUrls.length && blobUrls[index]) {
+          return blobUrls[index];
+        }
+        return img.medium?.url ?? img.thumbnail?.url ?? img.original?.url;
+      })
       .filter((url): url is string => Boolean(url));
   };
 
@@ -107,17 +117,47 @@ export default function RecordSummaryBottomSheet({
   // 데이터 가공 (직접 전달받은 경우 vs API에서 가져온 경우)
   const displayData =
     typeof record !== 'string'
-      ? {
-          title: extractTitle(record.text),
-          date: record.createdAt,
-          location: {
-            ...record.location,
-            coordinates: coords,
-          },
-          tags: Array.isArray(record.tags) ? extractTagNames(record.tags) : [],
-          content: record.text,
-          images: record.images,
-        }
+      ? (() => {
+          // 직접 전달받은 경우: 모든 Blob URL 우선, 없으면 record.images 사용
+          const blobUrls = getBlobUrls(publicId);
+          const images = (() => {
+            const recordImages = record.images ?? [];
+
+            // Blob URL이 있으면 모두 사용
+            if (blobUrls.length > 0) {
+              // recordImages와 blobUrls를 병합 (각 인덱스마다 blobUrl 우선)
+              const maxLength = Math.max(blobUrls.length, recordImages.length);
+              const merged: string[] = [];
+
+              for (let i = 0; i < maxLength; i++) {
+                if (i < blobUrls.length && blobUrls[i]) {
+                  merged.push(blobUrls[i]);
+                } else if (i < recordImages.length && recordImages[i]) {
+                  merged.push(recordImages[i]);
+                }
+              }
+
+              return merged.length > 0 ? merged : undefined;
+            }
+
+            // Blob URL이 없으면 record.images 사용
+            return recordImages.length > 0 ? recordImages : undefined;
+          })();
+
+          return {
+            title: extractTitle(record.text),
+            date: record.createdAt,
+            location: {
+              ...record.location,
+              coordinates: coords,
+            },
+            tags: Array.isArray(record.tags)
+              ? extractTagNames(record.tags)
+              : [],
+            content: record.text,
+            images,
+          };
+        })()
       : recordDetail
         ? {
             title: extractTitle(recordDetail.title),
@@ -129,7 +169,7 @@ export default function RecordSummaryBottomSheet({
             },
             tags: recordDetail.tags?.map((tag) => tag.name) ?? [],
             content: recordDetail.content ?? '',
-            images: getImageUrls(recordDetail),
+            images: getImageUrls(recordDetail, publicId, getBlobUrls),
           }
         : {
             title: '',
@@ -256,12 +296,12 @@ function RecordSummaryContent({
                   <motion.div
                     key={`${img}-${idx}`}
                     whileTap={{ scale: 0.98 }}
-                    className="relative shrink-0 w-64 h-48 rounded-4xl overflow-hidden shadow-md snap-center border-4 border-white"
+                    className="relative flex justify-center items-center shrink-0 w-64 h-48 rounded-4xl overflow-hidden shadow-md snap-center border-4 border-white"
                   >
                     <ImageWithFallback
                       src={img}
                       alt={`Photo ${idx + 1}`}
-                      className="w-full h-full object-cover"
+                      className="max-w-full max-h-full object-cover"
                     />
                   </motion.div>
                 ))}

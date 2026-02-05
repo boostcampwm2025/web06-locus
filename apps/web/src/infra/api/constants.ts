@@ -30,6 +30,10 @@ export const API_ENDPOINTS = {
   RECORDS_GRAPH_RECORDS: (publicId: string) =>
     `/records/${publicId}/graph/records`,
 
+  // Records - Presigned URL 방식
+  RECORDS_UPLOAD_URLS: '/records/images/upload-urls',
+  RECORDS_WITH_PRESIGNED: '/records/with-presigned-images',
+
   // Connections
   CONNECTIONS: '/connections',
   CONNECTIONS_BY_ID: (publicId: string) => `/connections/${publicId}`,
