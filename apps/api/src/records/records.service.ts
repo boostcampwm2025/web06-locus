@@ -5,6 +5,11 @@ import { UsersService } from '@/users/users.service';
 import { CreateRecordDto } from './dto/create-record.dto';
 import { UpdateRecordDto } from './dto/update-record.dto';
 import { RecordResponseDto } from './dto/record-response.dto';
+import {
+  GenerateUploadUrlsResponseDto,
+  UploadUrlDto,
+} from './dto/generate-upload-urls.dto';
+import { CreateRecordWithPresignedDto } from './dto/create-record-with-presigned.dto';
 import { GetRecordsQueryDto } from './dto/get-records-query.dto';
 import { GetAllRecordsDto } from './dto/get-all-records.dto';
 import { GetRecordsByLocationDto } from './dto/get-records-by-location.dto';
@@ -23,8 +28,9 @@ import {
   RecordCreationFailedException,
   RecordDeletionFailedException,
   RecordNotFoundException,
+  ImageNotFoundException,
 } from './exceptions/record.exceptions';
-import { Prisma } from '@prisma/client';
+import { Prisma, ImageStatus } from '@prisma/client';
 import {
   createRecordFavoriteSyncPayload,
   createRecordConnectionsCountSyncPayload,
@@ -36,7 +42,8 @@ import {
 } from '@/common/constants/event-types.constants';
 import { nanoid } from 'nanoid';
 import {
-  ImageUrls,
+  IMAGE_SIZE,
+  TEMP_UPLOAD_KEY,
   ProcessedImage,
   UploadedImage,
 } from './services/object-storage.types';
@@ -47,7 +54,8 @@ import { RecordQueryService } from './services/records-query.service';
 import { RecordGraphService } from './services/records-graph.service';
 import { RecordLocationService } from './services/records-location.service';
 import { ObjectStorageService } from './services/object-storage.service';
-
+import { RedisService } from '@/redis/redis.service';
+import { GraphResponseDto } from './dto/graph.response.dto';
 @Injectable()
 export class RecordsService {
   private readonly logger = new Logger(RecordsService.name);
@@ -63,6 +71,7 @@ export class RecordsService {
     private readonly recordQueryService: RecordQueryService,
     private readonly recordGraphService: RecordGraphService,
     private readonly recordLocationService: RecordLocationService,
+    private readonly redisService: RedisService,
   ) {}
 
   async createRecord(
@@ -74,6 +83,77 @@ export class RecordsService {
       return this.createRecordWithImages(userId, dto, images);
     }
     return this.createRecordWithoutImages(userId, dto);
+  }
+
+  async generatePresignedUrls(
+    userId: bigint,
+    count: number,
+  ): Promise<GenerateUploadUrlsResponseDto> {
+    const user = await this.usersService.findById(userId);
+    const recordPublicId = nanoid(12);
+
+    const uploads: UploadUrlDto[] = await Promise.all(
+      Array.from({ length: count }, async () => {
+        const imageId = nanoid(12);
+        const key = this.objectStorageService.buildKey(
+          user.publicId,
+          recordPublicId,
+          imageId,
+          TEMP_UPLOAD_KEY,
+        );
+        const uploadUrl =
+          await this.objectStorageService.generatePresignedUrl(key);
+
+        return {
+          imageId,
+          uploadUrl,
+          key,
+        };
+      }),
+    );
+
+    return {
+      recordPublicId,
+      uploads,
+    };
+  }
+
+  async createRecordWithPresignedImages(
+    userId: bigint,
+    dto: CreateRecordWithPresignedDto,
+  ): Promise<RecordResponseDto> {
+    const user = await this.usersService.findById(userId);
+
+    // S3 HEAD로 각 imageId의 pre-resizing.jpg 존재 확인 (병렬, 재시도 포함)
+    await Promise.all(
+      dto.imageIds.map(async (imageId) => {
+        const key = this.objectStorageService.buildKey(
+          user.publicId,
+          dto.recordPublicId,
+          imageId,
+          TEMP_UPLOAD_KEY,
+        );
+        const exists =
+          await this.objectStorageService.checkExistsWithRetry(key);
+        if (!exists) {
+          throw new ImageNotFoundException(imageId);
+        }
+      }),
+    );
+
+    const locationInfo = await this.recordLocationService.getLocationInfo(
+      dto.location.latitude,
+      dto.location.longitude,
+    );
+
+    return this.executeCreateTransactionWithPresignedImages(
+      userId,
+      dto,
+      locationInfo,
+      dto.recordPublicId,
+      dto.imageIds,
+      user.publicId,
+    );
   }
 
   async updateRecord(
@@ -149,7 +229,7 @@ export class RecordsService {
             userId,
             updatedRecord,
             tagNames,
-            images[0]?.thumbnailUrl,
+            images[0]?.thumbnailUrl ?? undefined,
           ),
         });
 
@@ -243,11 +323,11 @@ export class RecordsService {
     if (record.userId !== userId)
       throw new RecordAccessDeniedException(publicId);
 
-    const imageUrls: ImageUrls[] = record.images.map((img) => ({
-      thumbnail: img.thumbnailUrl,
-      medium: img.mediumUrl,
-      original: img.originalUrl,
-    }));
+    const imageUrlsToDelete: string[] = record.images.flatMap((img) =>
+      [img.thumbnailUrl, img.mediumUrl, img.originalUrl].filter(
+        (url): url is string => url !== null,
+      ),
+    );
 
     try {
       await this.prisma.$transaction(async (tx) => {
@@ -260,7 +340,7 @@ export class RecordsService {
           payload: { publicId, userId: userId.toString() },
         });
       });
-      await this.recordImageService.deleteImagesFromStorage(imageUrls);
+      await this.recordImageService.deleteImagesFromStorage(imageUrlsToDelete);
     } catch (error) {
       if (error instanceof Error) {
         this.logger.error(
@@ -413,8 +493,35 @@ export class RecordsService {
     );
   }
 
-  async getGraph(startRecordPublicId: string, userId: bigint) {
-    return this.recordGraphService.getGraph(startRecordPublicId, userId);
+  async getGraph(
+    startRecordPublicId: string,
+    userId: bigint,
+  ): Promise<GraphResponseDto> {
+    const recordCachingId = this.redisService.makeCachingRecordKey(
+      userId,
+      startRecordPublicId,
+    );
+
+    // 캐시 확인
+    const cachedGraphId = await this.redisService.get(recordCachingId);
+
+    if (cachedGraphId !== null) {
+      const cachedGraph = await this.redisService.get(cachedGraphId);
+      //cache hit
+      if (cachedGraph !== null) {
+        return JSON.parse(cachedGraph) as GraphResponseDto;
+      }
+    }
+
+    //cache miss
+    const graph = await this.recordGraphService.getGraph(
+      startRecordPublicId,
+      userId,
+    );
+
+    await this.redisService.cacheGraph(userId, startRecordPublicId, graph);
+
+    return graph;
   }
 
   async getGraphNeighborDetail(startRecordPublicId: string, userId: bigint) {
@@ -422,6 +529,15 @@ export class RecordsService {
       startRecordPublicId,
       userId,
     );
+  }
+
+  async findOneById(id: bigint, userId: bigint) {
+    const record = await this.prisma.record.findUnique({
+      where: { id, userId },
+    });
+
+    if (!record) throw new RecordNotFoundException(`ID: ${id.toString()}`);
+    return record;
   }
 
   private async buildRecordListResponse(
@@ -572,6 +688,121 @@ export class RecordsService {
       if (error instanceof Error) {
         this.logger.error(
           `Failed to create record: userId=${userId}, error=${error.message}`,
+          error.stack,
+        );
+        throw new RecordCreationFailedException(error);
+      }
+      throw new Error('Unexpected non-Error exception thrown');
+    }
+  }
+
+  private async executeCreateTransactionWithPresignedImages(
+    userId: bigint,
+    dto: CreateRecordWithPresignedDto,
+    locationInfo: LocationInfo,
+    recordPublicId: string,
+    imageIds: string[],
+    userPublicId: string,
+  ): Promise<RecordResponseDto> {
+    try {
+      const result = await this.prisma.$transaction(async (tx) => {
+        const created = await tx.record.create({
+          data: {
+            publicId: recordPublicId,
+            userId,
+            title: dto.title,
+            content: dto.content ?? null,
+            locationName: locationInfo.name,
+            locationAddress: locationInfo.address,
+            isFavorite: false,
+          },
+        });
+
+        const [updated, tags] = await Promise.all([
+          this.recordLocationService.updateRecordLocation(
+            tx,
+            created.id,
+            dto.location.longitude,
+            dto.location.latitude,
+          ),
+          this.recordTagsService.createRecordTags(
+            tx,
+            userId,
+            created.id,
+            dto.tags,
+          ),
+        ]);
+
+        // Image 레코드 생성 (originalUrl만, 메타데이터 null, status: PROCESSING)
+        const imageData = imageIds.map((imageId, index) => {
+          const key = this.objectStorageService.buildKey(
+            userPublicId,
+            recordPublicId,
+            imageId,
+            IMAGE_SIZE.ORIGINAL,
+          );
+          const originalUrl = this.objectStorageService.buildUrl(key);
+
+          return {
+            publicId: imageId,
+            recordId: updated.id,
+            order: index,
+            originalUrl,
+            originalWidth: null,
+            originalHeight: null,
+            originalSize: null,
+            thumbnailUrl: null,
+            thumbnailWidth: null,
+            thumbnailHeight: null,
+            thumbnailSize: null,
+            mediumUrl: null,
+            mediumWidth: null,
+            mediumHeight: null,
+            mediumSize: null,
+            status: ImageStatus.PROCESSING,
+          };
+        });
+
+        await tx.image.createMany({ data: imageData });
+
+        const tagNames = tags.map((t) => t.name);
+        await this.outboxService.publish(tx, {
+          aggregateType: AGGREGATE_TYPE.RECORD,
+          aggregateId: updated.id.toString(),
+          eventType: OUTBOX_EVENT_TYPE.RECORD_CREATED,
+          payload: createRecordSyncPayload(
+            userId,
+            updated,
+            tagNames,
+            undefined, // thumbnail은 아직 없음
+          ),
+        });
+
+        const imagesMap = await this.recordImageService.getImagesByRecordIds({
+          recordIds: [updated.id],
+          tx,
+        });
+        const images = imagesMap.get(updated.id) ?? [];
+
+        return { record: updated, tags, images };
+      });
+
+      // 트랜잭션 완료 후, 캐시된 웹훅 확인 및 적용 (병렬)
+      await Promise.all(
+        imageIds.map((imageId) =>
+          this.recordImageService.checkPendingWebhook(imageId),
+        ),
+      );
+
+      this.logger.log(
+        `Record created with presigned images: publicId=${result.record.publicId}, userId=${userId}`,
+      );
+
+      return RecordResponseDto.of(result.record, result.tags, result.images);
+    } catch (error) {
+      if (error instanceof Error) {
+        this.logger.error(
+          `Failed to create record with presigned images: userId=${userId}, error=${error.message}`,
           error.stack,
         );
         throw new RecordCreationFailedException(error);

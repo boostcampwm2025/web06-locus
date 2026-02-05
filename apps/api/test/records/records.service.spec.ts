@@ -10,6 +10,7 @@ import { RecordImageService } from '@/records/services/records-image.service';
 import { RecordQueryService } from '@/records/services/records-query.service';
 import { RecordGraphService } from '@/records/services/records-graph.service';
 import { RecordLocationService } from '@/records/services/records-location.service';
+import { RedisService } from '@/redis/redis.service';
 import {
   RecordNotFoundException,
   RecordAccessDeniedException,
@@ -82,6 +83,13 @@ describe('RecordsService', () => {
     getRecordWithLocation: jest.fn(),
   };
 
+  const mockRedisService = {
+    deleteCachedGraph: jest.fn(),
+    makeCachingRecordKey: jest.fn(),
+    get: jest.fn(),
+    cacheGraph: jest.fn(),
+  };
+
   beforeEach(async () => {
     jest.clearAllMocks();
 
@@ -98,6 +106,7 @@ describe('RecordsService', () => {
         { provide: RecordQueryService, useValue: mockRecordQueryService },
         { provide: RecordGraphService, useValue: mockRecordGraphService },
         { provide: RecordLocationService, useValue: mockRecordLocationService },
+        { provide: RedisService, useValue: mockRedisService },
       ],
     }).compile();
 
@@ -544,6 +553,10 @@ describe('RecordsService', () => {
           truncated: false,
         },
       };
+
+      mockRedisService.makeCachingRecordKey.mockReturnValue('cache_key');
+      mockRedisService.get.mockResolvedValue(null);
+      mockRedisService.cacheGraph.mockResolvedValue(undefined);
 
       mockRecordGraphService.getGraph.mockResolvedValue(mockGraphResponse);
 

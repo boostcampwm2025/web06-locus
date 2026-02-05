@@ -126,6 +126,17 @@ export const CreateRecordRequestSchema = z.object({
 });
 
 /**
+ * Presigned URL 방식 기록 생성 Request
+ *
+ * @api POST /records/with-presigned-images
+ */
+export const CreateRecordWithPresignedRequestSchema =
+  CreateRecordRequestSchema.extend({
+    recordPublicId: z.string(),
+    imageIds: z.array(z.string()).min(1).max(5),
+  });
+
+/**
  * 기록 수정 Request (Multipart Form Data의 data 필드)
  *
  * @api PATCH /records/{public_id}

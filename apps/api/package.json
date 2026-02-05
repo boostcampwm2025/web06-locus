@@ -26,6 +26,7 @@
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.967.0",
+    "@aws-sdk/s3-request-presigner": "^3.980.0",
     "@elastic/elasticsearch": "^9.2.0",
     "@locus/shared": "workspace:*",
     "@nestjs-modules/mailer": "^2.0.2",

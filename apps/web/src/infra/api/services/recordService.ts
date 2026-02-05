@@ -13,6 +13,7 @@ import {
 } from '@locus/shared';
 import type {
   CreateRecordRequest,
+  CreateRecordWithPresignedRequest,
   RecordWithImages,
   GetRecordsByBoundsRequest,
   GetAllRecordsRequest,
@@ -347,5 +348,134 @@ async function postCreateRecordAsFormData(
  */
 function parseCreateRecordResponse(response: unknown): RecordWithImages {
   const validated = validateApiResponse(CreateRecordResponseSchema, response);
+  return validated.data;
+}
+
+/**
+ * Presigned URL 생성 API 호출
+ * @param count 업로드할 이미지 개수 (1-5)
+ * @returns recordPublicId와 각 이미지별 uploadUrl, imageId
+ */
+export async function generateUploadUrls(count: number): Promise<{
+  recordPublicId: string;
+  uploads: {
+    imageId: string;
+    uploadUrl: string;
+    key: string;
+  }[];
+}> {
+  logger.info('Presigned URL 생성 요청', { count });
+
+  const response = await apiClient<unknown>(API_ENDPOINTS.RECORDS_UPLOAD_URLS, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ count }),
+  });
+
+  // 응답 스키마 정의 (백엔드 GenerateUploadUrlsResponseDto와 일치)
+  const GenerateUploadUrlsResponseSchema = SuccessResponseSchema.extend({
+    data: z.object({
+      recordPublicId: z.string(),
+      uploads: z.array(
+        z.object({
+          imageId: z.string(),
+          uploadUrl: z.string().url(),
+          key: z.string(),
+        }),
+      ),
+    }),
+  });
+
+  const validated = validateApiResponse(
+    GenerateUploadUrlsResponseSchema,
+    response,
+  );
+
+  logger.info('Presigned URL 생성 성공', {
+    recordPublicId: validated.data.recordPublicId,
+    uploadCount: validated.data.uploads.length,
+  });
+
+  return validated.data;
+}
+
+/**
+ * Presigned URL을 사용하여 이미지를 Object Storage에 직접 업로드
+ * @param presignedUrl Object Storage Presigned URL
+ * @param file 업로드할 파일
+ */
+export async function uploadImageToObjectStorage(
+  presignedUrl: string,
+  file: File,
+): Promise<void> {
+  logger.info('Object Storage 이미지 업로드 시작', {
+    fileName: file.name,
+    fileSize: file.size,
+    fileType: file.type,
+  });
+
+  try {
+    const response = await fetch(presignedUrl, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': file.type,
+      },
+      body: file,
+    });
+
+    if (!response.ok) {
+      throw new Error(
+        `Object Storage 업로드 실패: ${response.status} ${response.statusText}`,
+      );
+    }
+
+    logger.info('Object Storage 이미지 업로드 성공', {
+      fileName: file.name,
+    });
+  } catch (error) {
+    logger.error(
+      error instanceof Error ? error : new Error('Object Storage 업로드 실패'),
+      {
+        fileName: file.name,
+        error: String(error),
+      },
+    );
+    throw error;
+  }
+}
+
+/**
+ * Presigned URL 방식으로 기록 생성 API 호출
+ * @param params recordPublicId, imageIds, title, content, location, tags
+ * @returns 생성된 기록 정보
+ */
+export async function createRecordWithPresignedImages(
+  params: CreateRecordWithPresignedRequest,
+): Promise<RecordWithImages> {
+  logger.info('Presigned 방식 기록 생성 시작', {
+    recordPublicId: params.recordPublicId,
+    imageCount: params.imageIds.length,
+  });
+
+  const response = await apiClient<unknown>(
+    API_ENDPOINTS.RECORDS_WITH_PRESIGNED,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(params),
+    },
+  );
+
+  // 응답 검증 (기존 CreateRecordResponseSchema 재사용)
+  const validated = validateApiResponse(CreateRecordResponseSchema, response);
+
+  logger.info('Presigned 방식 기록 생성 성공', {
+    recordPublicId: validated.data.publicId,
+  });
+
   return validated.data;
 }

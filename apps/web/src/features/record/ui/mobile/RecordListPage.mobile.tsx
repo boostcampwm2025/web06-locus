@@ -13,8 +13,7 @@ import { useAllRecords } from '@/features/record/hooks/useRecords';
 import { useSearchRecords } from '@/features/record/hooks/useSearchRecords';
 import { useGetTags } from '@/features/record/hooks/useGetTags';
 import { useIntersectionObserver } from '@/shared/hooks/useIntersectionObserver';
-import type { RecordWithoutCoords } from '@locus/shared';
-import { RECORD_PLACEHOLDER_IMAGE } from '@/shared/constants/record';
+import type { RecordWithoutCoords, Image } from '@locus/shared';
 import { extractTagNames } from '@/shared/utils/tagUtils';
 import { sortRecordsByFavorite } from '@/shared/utils/recordSortUtils';
 
@@ -25,7 +24,7 @@ export interface RecordListItem {
   date: Date;
   tags: string[];
   connectionCount: number;
-  imageUrl?: string;
+  image?: Image;
 }
 
 export interface RecordListPageProps {
@@ -138,7 +137,9 @@ export function RecordListPageMobile({
         date: new Date(record.createdAt),
         tags: record.tags,
         connectionCount: record.connectionCount,
-        imageUrl: record.thumbnailImage ?? RECORD_PLACEHOLDER_IMAGE,
+        image: record.thumbnailImage
+          ? ({ thumbnail: { url: record.thumbnailImage } } as Image)
+          : undefined,
       }),
     );
   }, [hasSearchKeyword, searchData]);
@@ -185,12 +186,6 @@ export function RecordListPageMobile({
     // 정렬된 API 응답을 RecordListItem으로 변환
     // RecordWithoutCoords는 좌표 없음 (name, address만), isFavorite와 connectionCount 포함
     return sortedRecords.map((record: RecordWithoutCoords) => {
-      // 이미지가 있는 경우 첫 번째 이미지의 thumbnail URL, 없으면 기본 이미지
-      const thumbnailUrl =
-        record.images && record.images.length > 0
-          ? record.images[0].thumbnail.url
-          : RECORD_PLACEHOLDER_IMAGE;
-
       return {
         id: record.publicId,
         title: record.title,
@@ -201,7 +196,7 @@ export function RecordListPageMobile({
         date: new Date(record.createdAt),
         tags: extractTagNames(record.tags),
         connectionCount: record.connectionCount,
-        imageUrl: thumbnailUrl,
+        image: record.images?.[0],
       };
     });
   }, [
@@ -333,12 +328,13 @@ export function RecordListPageMobile({
             {records.map((record) => (
               <RecordCard
                 key={record.id}
+                recordId={record.id}
                 title={record.title}
                 location={record.location}
                 date={record.date}
                 tags={record.tags}
                 connectionCount={record.connectionCount}
-                imageUrl={record.imageUrl}
+                image={record.image}
                 onClick={() => handleRecordClick(record.id)}
               />
             ))}

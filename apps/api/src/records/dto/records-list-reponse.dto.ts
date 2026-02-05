@@ -142,18 +142,22 @@ export class RecordListResponseDto {
           tags,
           images: images.map((img) => ({
             publicId: img.publicId,
-            thumbnail: {
-              url: img.thumbnailUrl,
-              width: img.thumbnailWidth,
-              height: img.thumbnailHeight,
-              size: img.thumbnailSize,
-            },
-            medium: {
-              url: img.mediumUrl,
-              width: img.mediumWidth,
-              height: img.mediumHeight,
-              size: img.mediumSize,
-            },
+            thumbnail: img.thumbnailUrl
+              ? {
+                  url: img.thumbnailUrl,
+                  width: img.thumbnailWidth!,
+                  height: img.thumbnailHeight!,
+                  size: img.thumbnailSize!,
+                }
+              : null,
+            medium: img.mediumUrl
+              ? {
+                  url: img.mediumUrl,
+                  width: img.mediumWidth!,
+                  height: img.mediumHeight!,
+                  size: img.mediumSize!,
+                }
+              : null,
             original: {
               url: img.originalUrl,
               width: img.originalWidth,
@@ -161,6 +165,7 @@ export class RecordListResponseDto {
               size: img.originalSize,
             },
             order: img.order,
+            status: img.status,
           })),
           createdAt: r.createdAt.toISOString(),
           updatedAt: r.updatedAt.toISOString(),

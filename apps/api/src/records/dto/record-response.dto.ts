@@ -5,31 +5,50 @@ export class ImageSizeDto {
   @ApiProperty({ description: 'URL', example: 'https://...' })
   url: string;
 
-  @ApiProperty({ description: '너비 (px)', example: 400 })
-  width: number;
+  @ApiProperty({ description: '너비 (px)', example: 400, nullable: true })
+  width: number | null;
 
-  @ApiProperty({ description: '높이 (px)', example: 300 })
-  height: number;
+  @ApiProperty({ description: '높이 (px)', example: 300, nullable: true })
+  height: number | null;
 
-  @ApiProperty({ description: '파일 크기 (bytes)', example: 48000 })
-  size: number;
+  @ApiProperty({
+    description: '파일 크기 (bytes)',
+    example: 48000,
+    nullable: true,
+  })
+  size: number | null;
 }
 
 export class ImageResponseDto {
   @ApiProperty({ description: '이미지 공개 ID', example: 'img_3Xk2P9nQ4mL' })
   publicId: string;
 
-  @ApiProperty({ description: '썸네일 정보', type: ImageSizeDto })
-  thumbnail: ImageSizeDto;
+  @ApiProperty({
+    description: '썸네일 정보',
+    type: ImageSizeDto,
+    nullable: true,
+  })
+  thumbnail: ImageSizeDto | null;
 
-  @ApiProperty({ description: '중간 크기 정보', type: ImageSizeDto })
-  medium: ImageSizeDto;
+  @ApiProperty({
+    description: '중간 크기 정보',
+    type: ImageSizeDto,
+    nullable: true,
+  })
+  medium: ImageSizeDto | null;
 
   @ApiProperty({ description: '원본 정보', type: ImageSizeDto })
   original: ImageSizeDto;
 
   @ApiProperty({ description: '이미지 순서', example: 0 })
   order: number;
+
+  @ApiProperty({
+    description: '이미지 처리 상태',
+    enum: ['PROCESSING', 'COMPLETED', 'FAILED'],
+    example: 'COMPLETED',
+  })
+  status: 'PROCESSING' | 'COMPLETED' | 'FAILED';
 }
 
 export class LocationResponseDto {
@@ -124,18 +143,22 @@ export class RecordResponseDto {
       tags,
       images: images.map((img) => ({
         publicId: img.publicId,
-        thumbnail: {
-          url: img.thumbnailUrl,
-          width: img.thumbnailWidth,
-          height: img.thumbnailHeight,
-          size: img.thumbnailSize,
-        },
-        medium: {
-          url: img.mediumUrl,
-          width: img.mediumWidth,
-          height: img.mediumHeight,
-          size: img.mediumSize,
-        },
+        thumbnail: img.thumbnailUrl
+          ? {
+              url: img.thumbnailUrl,
+              width: img.thumbnailWidth!,
+              height: img.thumbnailHeight!,
+              size: img.thumbnailSize!,
+            }
+          : null,
+        medium: img.mediumUrl
+          ? {
+              url: img.mediumUrl,
+              width: img.mediumWidth!,
+              height: img.mediumHeight!,
+              size: img.mediumSize!,
+            }
+          : null,
         original: {
           url: img.originalUrl,
           width: img.originalWidth,
@@ -143,6 +166,7 @@ export class RecordResponseDto {
           size: img.originalSize,
         },
         order: img.order,
+        status: img.status,
       })),
       isFavorite: record.isFavorite,
       createdAt: record.createdAt.toISOString(),
