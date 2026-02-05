@@ -134,7 +134,8 @@ export function useImageUpload(
           import('@/features/record/domain/blobPreviewStore')
             .then(({ useBlobPreviewStore }) => {
               const store = useBlobPreviewStore.getState();
-              const storeUrls = Array.from(store.blobUrls.values());
+              // Map의 모든 배열을 flat하게 펼쳐서 확인
+              const storeUrls = Array.from(store.blobUrls.values()).flat();
 
               // Store에 없는 URL만 revoke (사용자가 기록 생성을 취소한 경우 등)
               if (!storeUrls.includes(url)) {

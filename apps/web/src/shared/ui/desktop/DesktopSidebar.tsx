@@ -529,12 +529,12 @@ function RecordCard({
   const [imageLoading, setImageLoading] = useState(true);
   const [imageError, setImageError] = useState(false);
 
-  // Blob URL 조회 (기록 생성 직후 첫 번째 이미지)
-  const getBlobUrl = useBlobPreviewStore((state) => state.getBlobUrl);
-  const blobUrl = getBlobUrl(record.id);
+  // 첫 번째 Blob URL 조회 (기록 생성 직후, 단일 썸네일용)
+  const getBlobUrls = useBlobPreviewStore((state) => state.getBlobUrls);
+  const blobUrls = getBlobUrls(record.id);
 
-  // 이미지 URL 우선순위: Blob URL → imageUrl → Placeholder
-  const imageSrc = blobUrl ?? record.imageUrl ?? RECORD_PLACEHOLDER_IMAGE;
+  // 이미지 URL 우선순위: 첫 번째 Blob URL → imageUrl → Placeholder
+  const imageSrc = blobUrls[0] ?? record.imageUrl ?? RECORD_PLACEHOLDER_IMAGE;
 
   return (
     <button
@@ -635,8 +635,8 @@ function RecordSummaryPanel({
     isError,
   } = useGetRecordDetail(recordId, { enabled: !!recordId });
 
-  // Blob URL 조회 (기록 생성 직후 첫 번째 이미지)
-  const getBlobUrl = useBlobPreviewStore((state) => state.getBlobUrl);
+  // 모든 Blob URL 조회 (기록 생성 직후 모든 이미지)
+  const getBlobUrl = useBlobPreviewStore((state) => state.getBlobUrls);
 
   if (isLoading) {
     return (
@@ -664,17 +664,19 @@ function RecordSummaryPanel({
 
   const tags = recordDetail.tags?.map((tag) => tag.name) ?? [];
 
-  // Blob URL 사용
-  const blobUrl = getBlobUrl(recordDetail.publicId);
+  // 모든 Blob URL 사용 (기록 생성 직후 모든 이미지)
+  const blobUrls = getBlobUrl(recordDetail.publicId);
 
   // 이미지 URL 목록 (Blob URL → medium → thumbnail → original 순으로 fallback)
   const list = recordDetail.images ?? [];
   const imageUrls = list
     .map((img, index) => {
-      // 첫 번째 이미지는 Blob URL 우선
-      if (index === 0 && blobUrl) {
-        logger.warn('[RecordSummaryPanel] Using Blob URL for first image');
-        return blobUrl;
+      // 해당 인덱스에 Blob URL이 있으면 우선 사용
+      if (index < blobUrls.length && blobUrls[index]) {
+        logger.warn(
+          `[RecordSummaryPanel] Using Blob URL for image ${index + 1}`,
+        );
+        return blobUrls[index];
       }
 
       // 나머지는 기존 로직

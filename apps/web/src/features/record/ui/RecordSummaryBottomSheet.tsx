@@ -37,8 +37,8 @@ export default function RecordSummaryBottomSheet({
 }: RecordSummaryBottomSheetProps) {
   const publicId = typeof record === 'string' ? record : record.id;
 
-  // Blob URL 조회 (React Hook 규칙 - early return 이전에 호출)
-  const getBlobUrl = useBlobPreviewStore((state) => state.getBlobUrl);
+  // 모든 Blob URL 조회 (React Hook 규칙 - early return 이전에 호출)
+  const getBlobUrls = useBlobPreviewStore((state) => state.getBlobUrls);
 
   // 1. 상세 정보 조회 Hook (ID로 넘어왔을 때만 활성화)
   const {
@@ -82,16 +82,16 @@ export default function RecordSummaryBottomSheet({
   const getImageUrls = (
     detail: RecordDetail,
     recordPublicId: string,
-    getBlobUrlFn: (id: string) => string | undefined,
+    getBlobUrlsFn: (id: string) => string[],
   ): string[] => {
     const list = detail.images ?? [];
-    const blobUrl = getBlobUrlFn(recordPublicId);
+    const blobUrls = getBlobUrlsFn(recordPublicId);
 
     return list
       .map((img, index) => {
-        // 첫 번째 이미지만 Blob URL 우선 적용
-        if (index === 0 && blobUrl) {
-          return blobUrl;
+        // 해당 인덱스에 Blob URL이 있으면 우선 사용
+        if (index < blobUrls.length && blobUrls[index]) {
+          return blobUrls[index];
         }
         return img.medium?.url ?? img.thumbnail?.url ?? img.original?.url;
       })
@@ -114,20 +114,29 @@ export default function RecordSummaryBottomSheet({
   const displayData =
     typeof record !== 'string'
       ? (() => {
-          // 직접 전달받은 경우: Blob URL 우선, 없으면 record.images 사용
-          const blobUrl = getBlobUrl(publicId);
+          // 직접 전달받은 경우: 모든 Blob URL 우선, 없으면 record.images 사용
+          const blobUrls = getBlobUrls(publicId);
           const images = (() => {
             const recordImages = record.images ?? [];
 
-            // blobUrl이 있으면 우선 사용 (record.images가 없어도)
-            if (blobUrl) {
-              if (recordImages.length > 0) {
-                return [blobUrl, ...recordImages.slice(1)];
+            // Blob URL이 있으면 모두 사용
+            if (blobUrls.length > 0) {
+              // recordImages와 blobUrls를 병합 (각 인덱스마다 blobUrl 우선)
+              const maxLength = Math.max(blobUrls.length, recordImages.length);
+              const merged: string[] = [];
+
+              for (let i = 0; i < maxLength; i++) {
+                if (i < blobUrls.length && blobUrls[i]) {
+                  merged.push(blobUrls[i]);
+                } else if (i < recordImages.length && recordImages[i]) {
+                  merged.push(recordImages[i]);
+                }
               }
-              return [blobUrl]; // blobUrl만 있어도 표시
+
+              return merged.length > 0 ? merged : undefined;
             }
 
-            // blobUrl이 없으면 record.images 사용
+            // Blob URL이 없으면 record.images 사용
             return recordImages.length > 0 ? recordImages : undefined;
           })();
 
@@ -156,7 +165,7 @@ export default function RecordSummaryBottomSheet({
             },
             tags: recordDetail.tags?.map((tag) => tag.name) ?? [],
             content: recordDetail.content ?? '',
-            images: getImageUrls(recordDetail, publicId, getBlobUrl),
+            images: getImageUrls(recordDetail, publicId, getBlobUrls),
           }
         : {
             title: '',

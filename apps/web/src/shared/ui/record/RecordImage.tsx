@@ -31,12 +31,12 @@ export function RecordImage({
   alt,
   className,
 }: RecordImageProps) {
-  // Store에서 Blob URL 조회
-  const getBlobUrl = useBlobPreviewStore((state) => state.getBlobUrl);
-  const localPreviewUrl = getBlobUrl(recordId);
+  // Store에서 첫 번째 Blob URL 조회 (단일 이미지 썸네일용)
+  const getBlobUrls = useBlobPreviewStore((state) => state.getBlobUrls);
+  const localPreviewUrls = getBlobUrls(recordId);
 
-  // 핵심: useState로 Blob URL 캐시 (첫 렌더링 시에만 실행)
-  const [cachedBlobUrl] = useState(() => localPreviewUrl);
+  // 핵심: useState로 첫 번째 Blob URL 캐시 (첫 렌더링 시에만 실행)
+  const [cachedBlobUrl] = useState(() => localPreviewUrls[0]);
 
   const imgSrc = useMemo(() => {
     // 1순위: 캐시된 Blob URL (invalidate 후에도 유지됨)

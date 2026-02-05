@@ -11,23 +11,23 @@ interface BlobPreviewStore {
   /**
    * 기록별 Blob URL 저장소
    * key: recordPublicId
-   * value: 첫 번째 이미지의 Blob URL
+   * value: 모든 이미지의 Blob URL 배열
    */
-  blobUrls: Map<string, string>;
+  blobUrls: Map<string, string[]>;
 
   /**
-   * Blob URL 저장
+   * Blob URL 배열 저장
    * @param recordId 기록 publicId
-   * @param url Blob URL (blob:http://...)
+   * @param urls Blob URL 배열 (blob:http://...)
    */
-  setBlobUrl: (recordId: string, url: string) => void;
+  setBlobUrls: (recordId: string, urls: string[]) => void;
 
   /**
-   * Blob URL 조회
+   * Blob URL 배열 조회
    * @param recordId 기록 publicId
-   * @returns Blob URL 또는 undefined
+   * @returns Blob URL 배열 (없으면 빈 배열)
    */
-  getBlobUrl: (recordId: string) => string | undefined;
+  getBlobUrls: (recordId: string) => string[];
 
   /**
    * 특정 기록의 Blob URL 정리
@@ -42,29 +42,31 @@ interface BlobPreviewStore {
 }
 
 const initialState = {
-  blobUrls: new Map<string, string>(),
+  blobUrls: new Map<string, string[]>(),
 };
 
 export const useBlobPreviewStore = create<BlobPreviewStore>((set, get) => ({
   ...initialState,
 
-  setBlobUrl: (recordId, url) => {
+  setBlobUrls: (recordId, urls) => {
     set((state) => {
       const newMap = new Map(state.blobUrls);
-      newMap.set(recordId, url);
+      newMap.set(recordId, urls);
       return { blobUrls: newMap };
     });
   },
 
-  getBlobUrl: (recordId) => {
-    return get().blobUrls.get(recordId);
+  getBlobUrls: (recordId) => {
+    return get().blobUrls.get(recordId) ?? [];
   },
 
   cleanup: (recordId) => {
-    const url = get().blobUrls.get(recordId);
-    if (url?.startsWith('blob:')) {
-      URL.revokeObjectURL(url);
-    }
+    const urls = get().blobUrls.get(recordId);
+    urls?.forEach((url) => {
+      if (url.startsWith('blob:')) {
+        URL.revokeObjectURL(url);
+      }
+    });
 
     set((state) => {
       const newMap = new Map(state.blobUrls);
@@ -74,11 +76,13 @@ export const useBlobPreviewStore = create<BlobPreviewStore>((set, get) => ({
   },
 
   cleanupAll: () => {
-    const urls = get().blobUrls;
-    urls.forEach((url) => {
-      if (url.startsWith('blob:')) {
-        URL.revokeObjectURL(url);
-      }
+    const urlMap = get().blobUrls;
+    urlMap.forEach((urls) => {
+      urls.forEach((url) => {
+        if (url.startsWith('blob:')) {
+          URL.revokeObjectURL(url);
+        }
+      });
     });
 
     set({ blobUrls: new Map() });

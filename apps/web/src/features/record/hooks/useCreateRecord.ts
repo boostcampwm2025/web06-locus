@@ -75,11 +75,11 @@ export function useCreateRecord() {
       }
     },
     onSuccess: (data, variables) => {
-      // Blob URL을 Store에 저장 (React Query 캐시와 분리)
-      if (variables.previewUrls?.[0]) {
+      // 모든 Blob URL을 Store에 저장 (React Query 캐시와 분리)
+      if (variables.previewUrls && variables.previewUrls.length > 0) {
         useBlobPreviewStore
           .getState()
-          .setBlobUrl(data.publicId, variables.previewUrls[0]);
+          .setBlobUrls(data.publicId, variables.previewUrls);
       }
 
       // 모든 records 관련 쿼리 무효화 및 refetch
