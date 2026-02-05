@@ -33,29 +33,27 @@ export function RecordImageSlider({
 
   return (
     <div
-      className={`relative w-full h-full min-h-0 overflow-hidden rounded-xl bg-gray-100 ${className}`}
+      className={`relative w-full h-[300px] min-h-0 rounded-xl bg-gray-100 ${className}`}
       role="region"
       aria-label={`${alt} 이미지 ${count}장`}
     >
-      <div className="absolute inset-0">
-        {urls.map((src, index) => (
-          <div
-            key={src}
-            className="absolute inset-0 transition-opacity duration-300 ease-out"
-            style={{
-              opacity: index === currentIndex ? 1 : 0,
-              pointerEvents: index === currentIndex ? 'auto' : 'none',
-            }}
-            aria-hidden={index !== currentIndex}
-          >
-            <img
-              src={src}
-              alt={count > 1 ? `${alt} (${index + 1}/${count})` : alt}
-              className="w-full h-full object-cover"
-            />
-          </div>
-        ))}
-      </div>
+      {urls.map((src, index) => (
+        <div
+          key={src}
+          className="absolute inset-0 flex items-center justify-center transition-opacity duration-300 ease-out"
+          style={{
+            opacity: index === currentIndex ? 1 : 0,
+            pointerEvents: index === currentIndex ? 'auto' : 'none',
+          }}
+          aria-hidden={index !== currentIndex}
+        >
+          <img
+            src={src}
+            alt={count > 1 ? `${alt} (${index + 1}/${count})` : alt}
+            className="max-w-full max-h-full object-cover"
+          />
+        </div>
+      ))}
 
       {!singleImage && (
         <>

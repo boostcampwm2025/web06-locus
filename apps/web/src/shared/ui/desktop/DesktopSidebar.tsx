@@ -695,7 +695,7 @@ function RecordSummaryPanel({
       className="flex flex-col h-full relative"
     >
       {/* 헤더 */}
-      <div className="p-6 border-b border-gray-100 flex items-center gap-4 sticky top-0 bg-white z-10">
+      <div className="flex-none p-6 border-b border-gray-100 flex items-center gap-4 sticky top-0 bg-white z-10">
         <button
           type="button"
           onClick={onBack}
@@ -717,9 +717,9 @@ function RecordSummaryPanel({
       </div>
 
       {/* 스크롤 영역 */}
-      <div className="flex-1 overflow-y-auto no-scrollbar min-h-0">
+      <div className="flex-1 flex flex-col overflow-y-auto no-scrollbar min-h-0 h-full">
         {/* 이미지 - 1장 이상이면 슬라이더(이전/다음 버튼·인디케이터), 0장이면 플레이스홀더 */}
-        <div className="w-full aspect-video min-h-[200px] relative shrink-0 overflow-hidden bg-gray-100">
+        <div className="shrink-0 flex item-center justify-center w-full min-h-[200px] relative bg-gray-100">
           {imageUrls.length > 0 ? (
             <RecordImageSlider
               urls={imageUrls}
@@ -732,7 +732,7 @@ function RecordSummaryPanel({
               <img
                 src={imageUrl}
                 alt={recordDetail.title}
-                className="w-full h-full object-cover group-hover:scale-105 transition-all duration-700 relative z-10"
+                className="w-auto max-w-full h-auto max-h-[70vh] object-cover group-hover:scale-105 transition-all duration-700 relative z-10"
                 onLoad={(e) => {
                   const img = e.currentTarget;
                   const skeleton = img.previousElementSibling as HTMLElement;
@@ -750,7 +750,7 @@ function RecordSummaryPanel({
         </div>
 
         {/* 콘텐츠 */}
-        <div className="p-8">
+        <div className="flex-1 p-8">
           <div className="mb-8">
             {/* 태그 */}
             <div className="flex flex-wrap gap-2 mb-4">
@@ -801,7 +801,7 @@ function RecordSummaryPanel({
       </div>
 
       {/* 하단 버튼 */}
-      <div className="p-8 border-t border-gray-100 flex flex-col gap-3 bg-white">
+      <div className="flex-none p-8 border-t border-gray-100 flex flex-col gap-3 bg-white">
         <button
           type="button"
           onClick={onOpenFullDetail}
