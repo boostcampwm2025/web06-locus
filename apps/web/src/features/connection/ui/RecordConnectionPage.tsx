@@ -1,9 +1,10 @@
-import { useMemo } from 'react';
+import { useMemo, useEffect } from 'react';
 import { ChevronLeftIcon } from '@/shared/ui/icons/ChevronLeftIcon';
 import type {
   RecordConnectionPageProps,
   RecordConnectionItem,
 } from '../types/recordConnection';
+import { useConnectionStore } from '../domain/connectionStore';
 import { useRecordConnection } from '../domain/useRecordConnection';
 import { useCreateConnection } from '../hooks/useCreateConnection';
 import { useGetRecordsByBounds } from '@/features/record/hooks/useGetRecordsByBounds';
@@ -48,6 +49,11 @@ export default function RecordConnectionPage({
     updateSearchQuery,
     connect,
   } = useRecordConnection();
+
+  // 연결 페이지 진입 시마다 출발/도착 선택 초기화 (이전 연결 흔적 제거)
+  useEffect(() => {
+    useConnectionStore.getState().reset();
+  }, []);
 
   // 연결 생성 mutation
   const createConnectionMutation = useCreateConnection();
