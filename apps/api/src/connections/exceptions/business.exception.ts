@@ -14,13 +14,26 @@ export class SameRecordConnectionNotAllowedException extends BusinessException {
   }
 }
 export class PairConnectionNotFoundException extends BusinessException {
-  constructor(recordId: string) {
+  constructor(connectionId: string) {
     super(
       404,
       ConnectionErrorCode.PAIR_CONNECTION_NOT_FOUND,
-      '역방향 기록을 찾을 수 없습니다.',
+      '역방향 연결을 찾을 수 없습니다.',
       {
-        record_id: recordId,
+        connections_id: connectionId,
+      },
+    );
+  }
+}
+
+export class ConnectionNotFoundException extends BusinessException {
+  constructor(connectionId: string) {
+    super(
+      404,
+      ConnectionErrorCode.CONNECTION_NOT_FOUND,
+      `연결을 찾을 수 없습니다.`,
+      {
+        connections_id: connectionId,
       },
     );
   }
