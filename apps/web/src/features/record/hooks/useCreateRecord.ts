@@ -11,6 +11,7 @@ import {
   RecordCreationError,
 } from '@/shared/errors';
 import type { CreateRecordRequest, RecordWithImages } from '@locus/shared';
+import { useDuckCommentsStore } from '@/features/home/domain/duckCommentsStore';
 import { useBlobPreviewStore } from '../domain/blobPreviewStore';
 
 interface CreateRecordParams {
@@ -24,6 +25,7 @@ interface CreateRecordParams {
  */
 export function useCreateRecord() {
   const queryClient = useQueryClient();
+  const refreshDuckComments = useDuckCommentsStore((s) => s.refreshComments);
 
   return useMutation<RecordWithImages, Error, CreateRecordParams>({
     mutationFn: async ({ request, images = [] }) => {
@@ -85,6 +87,7 @@ export function useCreateRecord() {
       // 모든 records 관련 쿼리 무효화 및 refetch
       // setQueryData 없이 invalidate만 사용 (어차피 refetch로 덮어씌워지므로)
       void queryClient.invalidateQueries({ queryKey: ['records'] });
+      void refreshDuckComments();
     },
   });
 }

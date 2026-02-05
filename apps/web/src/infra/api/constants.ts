@@ -49,4 +49,7 @@ export const API_ENDPOINTS = {
   // Notifications
   NOTIFICATIONS_SETTINGS: '/notifications/settings',
   NOTIFICATIONS_SETTINGS_TIME: '/notifications/settings/time',
+
+  // Duck
+  DUCK_COMMENTS: '/duck/comments',
 } as const;
