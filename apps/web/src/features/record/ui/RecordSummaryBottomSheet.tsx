@@ -257,12 +257,12 @@ function RecordSummaryContent({
                   <motion.div
                     key={`${img}-${idx}`}
                     whileTap={{ scale: 0.98 }}
-                    className="relative shrink-0 w-64 h-48 rounded-4xl overflow-hidden shadow-md snap-center border-4 border-white"
+                    className="relative flex justify-center items-center shrink-0 w-64 h-48 rounded-4xl overflow-hidden shadow-md snap-center border-4 border-white"
                   >
                     <ImageWithFallback
                       src={img}
                       alt={`Photo ${idx + 1}`}
-                      className="w-full h-full object-cover"
+                      className="max-w-full max-h-full object-cover"
                     />
                   </motion.div>
                 ))}
