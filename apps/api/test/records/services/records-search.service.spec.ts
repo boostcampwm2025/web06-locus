@@ -8,7 +8,7 @@ import {
   RECORD_INDEX_SETTINGS,
   RECORD_SEARCH_MAPPING,
 } from '../../../src/records/constants/record-search.constant';
-import { ESDocumentNotFoundException } from '@/records/exceptions/record.exceptions';
+import { ESDocumentNotFoundException } from '@/infra/elasticsearch/exceptions/elasticsearch.exception';
 import { SearchRecordsDto } from '@/records/dto/search-records.dto';
 
 describe('RecordSearchService', () => {
@@ -364,6 +364,7 @@ describe('RecordSearchService', () => {
         content: '테스트 내용',
         isFavorite: false,
         locationName: '서울시 강남구',
+        locationAddress: '서울특별시 강남구 역삼동 396',
         tags: ['여행', '맛집'],
         hasImages: true,
         thumbnailImage: 'https://example.com/image.jpg',
@@ -394,6 +395,7 @@ describe('RecordSearchService', () => {
         content: '내용',
         isFavorite: false,
         locationName: '서울',
+        locationAddress: '서울특별시 강남구 역삼동 396',
         tags: ['태그'],
         hasImages: false,
         thumbnailImage: null,
@@ -417,6 +419,7 @@ describe('RecordSearchService', () => {
         content: null,
         isFavorite: false,
         locationName: '제주',
+        locationAddress: '제주시',
         tags: [],
         hasImages: false,
         thumbnailImage: null,
@@ -446,6 +449,7 @@ describe('RecordSearchService', () => {
         content: 'Some content',
         isFavorite: true,
         locationName: '인천',
+        locationAddress: '인천',
         tags: ['테스트'],
         hasImages: false,
         thumbnailImage: null,
@@ -475,6 +479,7 @@ describe('RecordSearchService', () => {
         content: 'Content',
         isFavorite: false,
         locationName: '대전',
+        locationAddress: '대전',
         tags: [],
         hasImages: true,
         thumbnailImage: 'https://example.com/thumb.jpg',
@@ -508,6 +513,7 @@ describe('RecordSearchService', () => {
         content: '업데이트된 내용',
         isFavorite: true,
         locationName: '서울시 강남구',
+        locationAddress: '서울특별시 강남구 역삼동 396',
         tags: ['수정', '업데이트'],
         hasImages: true,
         thumbnailImage: 'https://example.com/updated.jpg',
@@ -538,6 +544,7 @@ describe('RecordSearchService', () => {
         content: 'Content',
         isFavorite: false,
         locationName: '서울',
+        locationAddress: '서울특별시 강남구 역삼동 396',
         tags: [],
         hasImages: false,
         thumbnailImage: null,
@@ -561,6 +568,7 @@ describe('RecordSearchService', () => {
         content: 'New Content',
         isFavorite: false,
         locationName: '인천',
+        locationAddress: '인천',
         tags: ['신규'],
         hasImages: false,
         thumbnailImage: null,
