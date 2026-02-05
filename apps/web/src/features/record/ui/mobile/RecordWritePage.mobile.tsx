@@ -195,6 +195,7 @@ export function RecordWritePageMobile({
           tags: tagPublicIds,
         },
         images: selectedImages,
+        previewUrls: previewUrls,
       });
 
       // API 응답을 Record 타입으로 변환

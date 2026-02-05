@@ -113,6 +113,7 @@ export function RecordWritePageDesktop({
           tags: tagPublicIds,
         },
         images: selectedImages,
+        previewUrls: previewUrls,
       });
 
       const record: Record = {
