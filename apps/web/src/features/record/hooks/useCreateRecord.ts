@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { createRecord } from '@/infra/api/services/recordService';
 import type { CreateRecordRequest, RecordWithImages } from '@locus/shared';
+import { useDuckCommentsStore } from '@/features/home/domain/duckCommentsStore';
 
 interface CreateRecordParams {
   request: CreateRecordRequest;
@@ -12,12 +13,13 @@ interface CreateRecordParams {
  */
 export function useCreateRecord() {
   const queryClient = useQueryClient();
+  const refreshDuckComments = useDuckCommentsStore((s) => s.refreshComments);
 
   return useMutation<RecordWithImages, Error, CreateRecordParams>({
     mutationFn: ({ request, images = [] }) => createRecord(request, images),
     onSuccess: () => {
-      // 기록 목록 캐시 무효화하여 자동 refetch
       void queryClient.invalidateQueries({ queryKey: ['records'] });
+      void refreshDuckComments();
     },
   });
 }

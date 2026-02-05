@@ -36,6 +36,7 @@ import {
 } from '@/infra/storage/mapStateStorage';
 import { extractTagNames } from '@/shared/utils/tagUtils';
 import { useDuckScenario } from '@/shared/hooks/useDuckScenario';
+import { useDuckCommentsStore } from '@/features/home/domain/duckCommentsStore';
 import { DuckMapSceneCrossing } from '@/shared/ui/duck';
 
 export default function MapViewport({
@@ -104,6 +105,10 @@ export default function MapViewport({
   const setDuckScenario = useDuckScenario((s) => s.setScenario);
   const hasTriggeredDuckRef = useRef(false);
 
+  // 오리 말풍선용 코멘트 풀. 지도 준비 시 1회, 기록 생성 시마다 갱신
+  const duckComments = useDuckCommentsStore((s) => s.comments);
+  const refreshDuckComments = useDuckCommentsStore((s) => s.refreshComments);
+
   // 지도 인스턴스 관리
   const {
     mapContainerRef,
@@ -123,6 +128,9 @@ export default function MapViewport({
       position: 1, // naver.maps.Position.TOP_RIGHT
     },
     autoCenterToGeolocation: !savedMapState, // 저장된 상태가 있으면 자동 중심 이동 비활성화
+    onMapReady: () => {
+      void refreshDuckComments();
+    },
   });
 
   // 현재 화면 bounds 상태 관리 (실제 화면에 보이는 범위)
@@ -1239,6 +1247,7 @@ export default function MapViewport({
               duration={25}
               bounce
               height="100%"
+              comments={duckComments}
             />
           </div>
         )}

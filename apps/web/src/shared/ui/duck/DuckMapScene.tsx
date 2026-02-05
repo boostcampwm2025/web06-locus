@@ -16,6 +16,8 @@ export interface DuckMapSceneProps {
   duration?: number /** 이동 애니메이션 시간(초). 기본 2 */;
   bounce?: boolean /** 이동 중 위아래로 살짝 튀는 보조 애니메이션 사용 여부. 기본 true */;
   hint?: string /** 안내 문구. 없으면 기본 문구 표시 */;
+  /** 오리 말풍선용 코멘트 풀. 있으면 클릭 시 랜덤 1개 표시 */
+  comments?: string[];
   className?: string;
 }
 
@@ -29,6 +31,7 @@ export function DuckMapScene({
   duration = WALK_DURATION,
   bounce = true,
   hint = '지도 위를 클릭하면 오리가 걸어갑니다!',
+  comments = [],
   className = '',
 }: DuckMapSceneProps) {
   const { pos, angle, isMoving, walkTo, setIsMoving } =
@@ -76,7 +79,7 @@ export function DuckMapScene({
               : { duration: 0 }
           }
         >
-          <DuckWithSpeechBubble size={DUCK_SIZE}>
+          <DuckWithSpeechBubble size={DUCK_SIZE} comments={comments}>
             <DuckSprite angle={angle} size={DUCK_SIZE} />
           </DuckWithSpeechBubble>
         </motion.div>

@@ -22,6 +22,8 @@ export interface DuckMapSceneHybridProps {
   clickThrough?: boolean;
   target?: DuckPosition | null /** 지정 경로(이벤트): 이 좌표가 설정되면 오리가 그쪽으로 걸어갑니다. (예: 기록/항로 선택 시) */;
   wanderOptions?: UseDuckWalkerHybridOptions /** idle 배회 옵션 */;
+  /** 오리 말풍선용 코멘트 풀. 있으면 클릭 시 랜덤 1개 표시 */
+  comments?: string[];
   className?: string;
 }
 
@@ -40,6 +42,7 @@ export function DuckMapSceneHybrid({
   clickThrough = false,
   target = null,
   wanderOptions = {},
+  comments = [],
   className = '',
 }: DuckMapSceneHybridProps) {
   const { pos, angle, isMoving, walkTo, setIsMoving, setTarget } =
@@ -111,7 +114,7 @@ export function DuckMapSceneHybrid({
               : { duration: 0 }
           }
         >
-          <DuckWithSpeechBubble size={DUCK_SIZE}>
+          <DuckWithSpeechBubble size={DUCK_SIZE} comments={comments}>
             <DuckSprite angle={angle} size={DUCK_SIZE} />
           </DuckWithSpeechBubble>
         </motion.div>
