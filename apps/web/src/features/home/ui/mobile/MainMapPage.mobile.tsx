@@ -130,6 +130,7 @@ export function MainMapPageMobile() {
         tags: state.savedRecord.tags,
         location: state.savedRecord.location,
         createdAt: state.savedRecord.createdAt,
+        images: state.savedRecord.images,
       };
 
       setSavedRecord(newRecord);
