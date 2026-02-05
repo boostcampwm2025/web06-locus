@@ -356,7 +356,17 @@ function RecordDetailPageRoute() {
             void navigate(generatePath(ROUTES.CONNECTION_MANAGEMENT, { id }));
           }
         }}
-        onConnectionMode={() => void navigate(ROUTES.CONNECTION)}
+        onConnectionMode={() =>
+          void navigate(ROUTES.CONNECTION, {
+            state: {
+              fromRecord: {
+                id,
+                title: recordProps.title,
+                location: recordProps.location,
+              },
+            },
+          })
+        }
         onEdit={() => {
           // TODO: API 연동 후 구현 예정
         }}
@@ -373,6 +383,13 @@ function RecordDetailPageRoute() {
 
 function RecordConnectionPageRoute() {
   const navigate = useNavigate();
+  const { isMobile } = useDeviceType();
+
+  // 연결 모드는 모바일 전용. 데스크톱에서는 홈(지도)으로 이동
+  if (!isMobile) {
+    return <Navigate to={ROUTES.HOME} replace />;
+  }
+
   return (
     <Suspense fallback={<RouteLoadingFallback />}>
       <RecordConnectionPage
