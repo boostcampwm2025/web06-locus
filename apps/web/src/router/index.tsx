@@ -1,4 +1,4 @@
-import { Suspense, lazy, useMemo } from 'react';
+import { Suspense, lazy, useMemo, useState, useCallback } from 'react';
 import {
   Routes,
   Route,
@@ -17,6 +17,7 @@ import { useGetRecordDetail } from '@/features/record/hooks/useGetRecordDetail';
 import { useUpdateRecordFavorite } from '@/features/record/hooks/useUpdateRecordFavorite';
 import { useRecordGraph } from '@/features/connection/hooks/useRecordGraph';
 import { useRecordGraphDetails } from '@/features/connection/hooks/useRecordGraphDetails';
+import { useQueryClient } from '@tanstack/react-query';
 import { logger } from '@/shared/utils/logger';
 import { useToast } from '@/shared/ui/toast';
 import { RECORD_PLACEHOLDER_IMAGE } from '@/shared/constants/record';
@@ -36,6 +37,46 @@ function getGraphDetailsRecords(
   if (v.status === 'success' && Array.isArray(v.data?.records))
     return v.data.records;
   return undefined;
+}
+
+/** 1-depth 노드/엣지 빌드 (graph/details + 기준 기록) */
+function buildDetailGraph(
+  baseId: string,
+  baseRecord: {
+    title: string;
+    location?: { latitude?: number; longitude?: number };
+  },
+  detailsRecords: GraphRecordDetail[],
+): {
+  nodes: {
+    publicId: string;
+    location: { latitude: number; longitude: number };
+    title?: string;
+  }[];
+  edges: { fromRecordPublicId: string; toRecordPublicId: string }[];
+} {
+  const baseLat = baseRecord.location?.latitude ?? 0;
+  const baseLng = baseRecord.location?.longitude ?? 0;
+  const nodes = [
+    {
+      publicId: baseId,
+      location: { latitude: baseLat, longitude: baseLng },
+      title: baseRecord.title,
+    },
+    ...detailsRecords.map((r) => ({
+      publicId: r.publicId,
+      location: {
+        latitude: r.location?.latitude ?? 0,
+        longitude: r.location?.longitude ?? 0,
+      },
+      title: r.title,
+    })),
+  ];
+  const edges = detailsRecords.map((r) => ({
+    fromRecordPublicId: baseId,
+    toRecordPublicId: r.publicId,
+  }));
+  return { nodes, edges };
 }
 
 // 라우트별 지연 로딩
@@ -86,6 +127,8 @@ function RecordDetailPageRoute() {
   const updateFavoriteMutation = useUpdateRecordFavorite();
   const { showToast } = useToast();
 
+  const queryClient = useQueryClient();
+
   // 기록 상세 조회
   const {
     data: recordDetail,
@@ -93,12 +136,13 @@ function RecordDetailPageRoute() {
     isError,
   } = useGetRecordDetail(id ?? null);
 
-  // 연결 그래프 조회 (연결 개수 계산용)
+  // 초기엔 1-depth(Details)만 사용, "더 넓게 탐색" 시 전체 Graph 조회
+  const [graphScope, setGraphScope] = useState<'detail' | 'full'>('detail');
   const { data: graphData } = useRecordGraph(id ?? null, {
-    enabled: !!id,
+    enabled: !!id && graphScope === 'full',
   });
 
-  // 연결된 기록 상세 (제목·장소 등, D3 노드 제목·connectedRecords용)
+  // 연결된 기록 상세 (1-depth, D3 초기 뷰·connectedRecords·제목 병합용)
   const { data: graphDetailsData } = useRecordGraphDetails(id ?? null, {
     enabled: !!id,
   });
@@ -128,7 +172,14 @@ function RecordDetailPageRoute() {
     }));
   }, [graphDetailsData]);
 
-  // D3 네트워크 뷰용: 노드에 제목 병합 (기준 기록 = recordDetail, 연결 = graph/details)
+  // 1-depth D3용 노드/엣지 (초기 진입)
+  const detailGraph = useMemo(() => {
+    const records = getGraphDetailsRecords(graphDetailsData);
+    if (!id || !recordDetail) return { nodes: [], edges: [] };
+    return buildDetailGraph(id, recordDetail, records ?? []);
+  }, [id, recordDetail, graphDetailsData]);
+
+  // 전체 Graph D3용: 노드에 제목 병합 ("더 넓게 탐색" 후)
   const enrichedGraphNodes = useMemo(() => {
     const nodes = graphData?.data?.nodes;
     if (!nodes?.length) return undefined;
@@ -148,6 +199,26 @@ function RecordDetailPageRoute() {
       }),
     );
   }, [graphData?.data?.nodes, id, recordDetail, connectedRecordsFromApi]);
+
+  const handleToggleGraphScope = useCallback(() => {
+    setGraphScope((prev) => {
+      const next = prev === 'detail' ? 'full' : 'detail';
+      if (next === 'full' && id) {
+        void queryClient.invalidateQueries({ queryKey: ['record-graph', id] });
+      }
+      return next;
+    });
+  }, [id, queryClient]);
+
+  // 전체 그래프 로딩 중에는 1-depth 유지
+  const graphNodes =
+    graphScope === 'full'
+      ? (enrichedGraphNodes ?? graphData?.data?.nodes ?? detailGraph.nodes)
+      : detailGraph.nodes;
+  const graphEdges =
+    graphScope === 'full'
+      ? (graphData?.data?.edges ?? detailGraph.edges)
+      : detailGraph.edges;
 
   if (!id) {
     logger.warn('기록 상세 페이지: ID가 없음');
@@ -180,21 +251,8 @@ function RecordDetailPageRoute() {
   // 타입 단언 (useQuery의 타입 추론 문제 해결)
   const detail: RecordDetail = recordDetail;
 
-  // 연결 개수 계산 (그래프 API의 edges에서 계산)
-  const connectionCount =
-    graphData?.data?.edges && id
-      ? (() => {
-          const connectedIds = new Set<string>();
-          graphData.data.edges.forEach((edge) => {
-            if (edge.fromRecordPublicId === id) {
-              connectedIds.add(edge.toRecordPublicId);
-            } else if (edge.toRecordPublicId === id) {
-              connectedIds.add(edge.fromRecordPublicId);
-            }
-          });
-          return connectedIds.size;
-        })()
-      : 0;
+  // 연결 개수 (1-depth details 기준)
+  const connectionCount = connectedRecordsFromApi.length;
 
   // API 응답을 RecordDetailPageProps로 변환
   // 이미지 URL 목록 (슬라이더용). medium 사이즈 사용
@@ -284,9 +342,11 @@ function RecordDetailPageRoute() {
       <RecordDetailPage
         {...recordProps}
         connectedRecords={connectedRecordsFromApi}
-        graphNodes={enrichedGraphNodes ?? graphData?.data?.nodes}
-        graphEdges={graphData?.data?.edges}
+        graphNodes={graphNodes?.length ? graphNodes : undefined}
+        graphEdges={graphEdges?.length ? graphEdges : undefined}
         baseRecordPublicId={id}
+        onExpandGraph={handleToggleGraphScope}
+        isGraphExpanded={graphScope === 'full'}
         onBack={() => void navigate(ROUTES.RECORD_LIST)}
         onFavoriteToggle={handleFavoriteToggle}
         // onMenuClick을 전달하지 않으면 내부에서 ActionSheet를 열도록 함
@@ -329,38 +389,26 @@ function RecordConnectionPageRoute() {
 function ConnectionManagementPageRoute() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   // 기록 상세 조회 (baseRecord 정보용)
   const { data: recordDetail, isLoading: isRecordDetailLoading } =
     useGetRecordDetail(id ?? null);
 
-  // 연결 그래프 조회 (D3 네트워크 뷰용 nodes/edges)
+  // 초기엔 1-depth(Details)만 사용, "더 넓게 탐색" 시 전체 Graph 조회
+  const [graphScope, setGraphScope] = useState<'detail' | 'full'>('detail');
   const {
     data: graphData,
     isLoading: isGraphLoading,
     isError: isGraphError,
   } = useRecordGraph(id ?? null, {
-    enabled: !!id,
+    enabled: !!id && graphScope === 'full',
   });
 
-  // 연결된 기록 상세 조회 (제목·장소·태그·썸네일 등 목록용)
+  // 연결된 기록 상세 조회 (1-depth, 목록·D3 초기 뷰용)
   const { data: graphDetailsData } = useRecordGraphDetails(id ?? null, {
     enabled: !!id,
   });
-
-  // 연결된 기록 publicId 추출 (baseRecord.connectionCount, D3용)
-  const connectedRecordIds = useMemo(() => {
-    if (!graphData?.data?.edges || !id) return [];
-    const connectedIds = new Set<string>();
-    graphData.data.edges.forEach((edge) => {
-      if (edge.fromRecordPublicId === id) {
-        connectedIds.add(edge.toRecordPublicId);
-      } else if (edge.toRecordPublicId === id) {
-        connectedIds.add(edge.fromRecordPublicId);
-      }
-    });
-    return Array.from(connectedIds);
-  }, [graphData?.data?.edges, id]);
 
   // 연결된 기록 목록: GET /records/{publicId}/graph/details 응답으로 변환
   const connectedRecords = useMemo((): {
@@ -387,7 +435,14 @@ function ConnectionManagementPageRoute() {
     }));
   }, [graphDetailsData]);
 
-  // D3 네트워크 뷰용: graph API nodes에는 title 없음 → graph/details·기준 기록에서 병합
+  // 1-depth D3용 노드/엣지 (초기 진입)
+  const detailGraph = useMemo(() => {
+    const records = getGraphDetailsRecords(graphDetailsData);
+    if (!id || !recordDetail) return { nodes: [], edges: [] };
+    return buildDetailGraph(id, recordDetail, records ?? []);
+  }, [id, recordDetail, graphDetailsData]);
+
+  // 전체 Graph D3용 ("더 넓게 탐색" 후)
   const enrichedGraphNodes = useMemo(() => {
     const nodes = graphData?.data?.nodes;
     if (!nodes?.length) return undefined;
@@ -405,6 +460,28 @@ function ConnectionManagementPageRoute() {
     );
   }, [graphData?.data?.nodes, id, recordDetail, connectedRecords]);
 
+  const handleToggleGraphScope = useCallback(() => {
+    setGraphScope((prev) => {
+      const next = prev === 'detail' ? 'full' : 'detail';
+      if (next === 'full' && id) {
+        void queryClient.invalidateQueries({ queryKey: ['record-graph', id] });
+      }
+      return next;
+    });
+  }, [id, queryClient]);
+
+  // 전체 그래프 로딩 중에는 1-depth 유지
+  const graphNodes =
+    graphScope === 'full'
+      ? (enrichedGraphNodes ?? graphData?.data?.nodes ?? detailGraph.nodes)
+      : detailGraph.nodes;
+  const graphEdges =
+    graphScope === 'full'
+      ? (graphData?.data?.edges ?? detailGraph.edges)
+      : detailGraph.edges;
+
+  const hasGraphData = graphNodes?.length && graphEdges?.length;
+
   if (!id) {
     return (
       <div className="flex items-center justify-center h-screen">
@@ -413,13 +490,18 @@ function ConnectionManagementPageRoute() {
     );
   }
 
-  // 로딩 중
-  if (isRecordDetailLoading || isGraphLoading) {
+  // 로딩 중 (details만 기다림; full graph는 확장 시 로딩)
+  if (isRecordDetailLoading) {
     return <RouteLoadingFallback />;
   }
 
-  // 에러 처리
-  if (isGraphError) {
+  // 전체 그래프 로딩 중 (확장 후)
+  if (graphScope === 'full' && isGraphLoading) {
+    return <RouteLoadingFallback />;
+  }
+
+  // 에러 처리 (전체 그래프 확장 후 실패 시)
+  if (graphScope === 'full' && isGraphError) {
     return (
       <div className="flex items-center justify-center h-screen">
         <p className="text-gray-400">연결된 기록을 불러올 수 없습니다.</p>
@@ -427,7 +509,7 @@ function ConnectionManagementPageRoute() {
     );
   }
 
-  // baseRecord 정보 구성
+  // baseRecord 정보 구성 (연결 개수 = details 기준)
   const baseRecord = recordDetail
     ? {
         id,
@@ -438,7 +520,7 @@ function ConnectionManagementPageRoute() {
         },
         date: new Date(recordDetail.createdAt),
         tags: (recordDetail.tags ?? []).map((tag) => tag.name),
-        connectionCount: connectedRecordIds.length,
+        connectionCount: connectedRecords.length,
       }
     : {
         id,
@@ -454,9 +536,11 @@ function ConnectionManagementPageRoute() {
       <ConnectionManagementPage
         baseRecord={baseRecord}
         connectedRecords={connectedRecords}
-        graphNodes={enrichedGraphNodes}
-        graphEdges={graphData?.data?.edges}
+        graphNodes={hasGraphData ? graphNodes : undefined}
+        graphEdges={hasGraphData ? graphEdges : undefined}
         baseRecordPublicId={id}
+        onExpandGraph={handleToggleGraphScope}
+        isGraphExpanded={graphScope === 'full'}
         onBack={() => {
           if (id) {
             void navigate(generatePath(ROUTES.RECORD_DETAIL, { id }));

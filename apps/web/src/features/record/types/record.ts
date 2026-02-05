@@ -261,6 +261,10 @@ export interface RecordDetailPageProps {
   graphEdges?: GraphEdgeResponse[];
   /** 현재 기록의 publicId (D3 뷰 base 노드 강조용) */
   baseRecordPublicId?: string;
+  /** 토글: "더 넓게 탐색" ↔ "현재 기록에 집중" (전체 그래프로 갈 때만 캐시 무시 재조회) */
+  onExpandGraph?: () => void;
+  /** true = 전체 그래프 뷰, false = 1-depth(현재 기록에 집중) */
+  isGraphExpanded?: boolean;
   isFavorite?: boolean;
   onBack?: () => void;
   onFavoriteToggle?: () => void;
