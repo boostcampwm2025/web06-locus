@@ -104,20 +104,22 @@ model Image {
   recordId        BigInt      @map("record_id")
   order           Int
 
-  thumbnailUrl    String @map("thumbnail_url")
-  thumbnailWidth  Int    @map("thumbnail_width")
-  thumbnailHeight Int    @map("thumbnail_height")
-  thumbnailSize   Int    @map("thumbnail_size")
+  thumbnailUrl    String? @map("thumbnail_url")
+  thumbnailWidth  Int?    @map("thumbnail_width")
+  thumbnailHeight Int?    @map("thumbnail_height")
+  thumbnailSize   Int?    @map("thumbnail_size")
 
-  mediumUrl    String @map("medium_url")
-  mediumWidth  Int    @map("medium_width")
-  mediumHeight Int    @map("medium_height")
-  mediumSize   Int    @map("medium_size")
+  mediumUrl    String? @map("medium_url")
+  mediumWidth  Int?    @map("medium_width")
+  mediumHeight Int?    @map("medium_height")
+  mediumSize   Int?    @map("medium_size")
 
   originalUrl    String @map("original_url")
-  originalWidth  Int    @map("original_width")
-  originalHeight Int    @map("original_height")
-  originalSize   Int    @map("original_size")
+  originalWidth  Int?   @map("original_width")
+  originalHeight Int?   @map("original_height")
+  originalSize   Int?   @map("original_size")
+
+  status ImageStatus @default(PROCESSING)
 
   createdAt DateTime @default(now()) @map("created_at")
 
@@ -200,5 +202,12 @@ enum OutboxEventType {
   RECORD_DELETED
   RECORD_FAVORITE_UPDATED
   RECORD_CONNECTIONS_COUNT_UPDATED
+  @@schema("locus")
+}
+
+enum ImageStatus {
+  PROCESSING  // 원본만 업로드됨, 리사이징 진행 중
+  COMPLETED   // 모든 사이즈 준비 완료
+  FAILED      // 리사이징 실패
   @@schema("locus")
 }

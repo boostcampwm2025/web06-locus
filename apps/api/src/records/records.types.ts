@@ -21,18 +21,19 @@ export type RecordModelWithoutCoords = Omit<
 export interface ImageModel {
   publicId: string;
   order: number;
-  thumbnailUrl: string;
-  thumbnailWidth: number;
-  thumbnailHeight: number;
-  thumbnailSize: number;
-  mediumUrl: string;
-  mediumWidth: number;
-  mediumHeight: number;
-  mediumSize: number;
+  thumbnailUrl: string | null;
+  thumbnailWidth: number | null;
+  thumbnailHeight: number | null;
+  thumbnailSize: number | null;
+  mediumUrl: string | null;
+  mediumWidth: number | null;
+  mediumHeight: number | null;
+  mediumSize: number | null;
   originalUrl: string;
-  originalWidth: number;
-  originalHeight: number;
-  originalSize: number;
+  originalWidth: number | null;
+  originalHeight: number | null;
+  originalSize: number | null;
+  status: 'PROCESSING' | 'COMPLETED' | 'FAILED';
 }
 
 export interface LocationInfo {
