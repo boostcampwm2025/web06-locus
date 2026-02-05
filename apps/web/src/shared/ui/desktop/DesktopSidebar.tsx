@@ -552,14 +552,14 @@ function RecordCard({
     >
       <div className="flex gap-5 items-center">
         {/* 이미지 썸네일 - 없으면 기본 이미지 */}
-        <div className="w-24 h-24 rounded-[20px] overflow-hidden shrink-0 relative">
+        <div className="w-24 h-24 flex justify-center items-center rounded-[20px] overflow-hidden shrink-0 relative">
           {!imageError ? (
             <>
               {imageLoading && <ImageSkeleton className="absolute inset-0" />}
               <img
                 src={imageSrc}
                 alt={record.title}
-                className={`w-full h-full object-cover transition-opacity duration-300 ${
+                className={`max-w-full max-h-full object-cover transition-opacity duration-300 ${
                   imageLoading ? 'opacity-0' : 'opacity-100'
                 }`}
                 onLoad={() => setImageLoading(false)}
