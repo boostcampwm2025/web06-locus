@@ -1,7 +1,8 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 
 const DEFAULT_MESSAGE = '잠을 자도 피로가 안 풀리냐덕?';
+const DISPLAY_DURATION = 3000; // 말풍선 유지 시간 (3초)
 
 export interface DuckWithSpeechBubbleProps {
   children: React.ReactNode;
@@ -52,6 +53,23 @@ export function DuckWithSpeechBubble({
 
     return comments[nextIndex] ?? message;
   }, [comments, message, unusedIndices]);
+
+  /**
+   * 자동 사라짐 타이머 설정
+   */
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout>;
+
+    if (isVisible) {
+      timer = setTimeout(() => {
+        setIsVisible(false);
+      }, DISPLAY_DURATION);
+    }
+
+    return () => {
+      if (timer) clearTimeout(timer);
+    };
+  }, [isVisible]);
 
   const toggleBubble = () => {
     const nextVisibility = !isVisible;
