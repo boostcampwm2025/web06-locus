@@ -4,32 +4,48 @@ import { geocode } from '@/infra/api/services/mapService';
 import { useDebounce } from '@/shared/hooks/useDebounce';
 import type { GeocodeResponse } from '@/infra/types/map';
 
+type UseGeocodeSearchOptions =
+  | { controlled?: false }
+  | { controlled: true; controlledQuery: string };
+
 /**
  * 주소 검색을 위한 지오코딩 React Query Hook (디바운스 적용)
  * - 입력값이 변경되어도 300ms 동안 가만히 있을 때만 API 호출
  * - UI의 Input과 연결하여 사용
+ * - controlled: true 이고 controlledQuery를 넘기면 외부 상태와 연동 가능
  */
-export function useGeocodeSearch(initialAddress = '') {
+export function useGeocodeSearch(
+  initialAddress = '',
+  options?: UseGeocodeSearchOptions,
+) {
   const [address, setAddress] = useState(initialAddress);
 
-  // 1. 입력값이 변경되어도 300ms 동안 가만히 있을 때만 값이 바뀜
-  const debouncedAddress = useDebounce(address, 300);
+  const isControlled = options?.controlled === true;
+  const controlledQuery = options?.controlled ? options.controlledQuery : '';
+
+  const debouncedUncontrolled = useDebounce(address, 300);
+  const debouncedControlled = useDebounce(controlledQuery, 300);
+  const debouncedAddress = isControlled
+    ? debouncedControlled
+    : debouncedUncontrolled;
 
   const query = useQuery<GeocodeResponse, Error>({
-    // 2. queryKey에 디바운스된 값을 넣어 불필요한 캐시 생성을 막음
     queryKey: ['geocode', debouncedAddress.trim()],
     queryFn: ({ signal }) => geocode(debouncedAddress.trim(), { signal }),
 
-    // 3. 디바운스된 값이 있을 때만 활성화
     enabled: debouncedAddress.trim().length > 0,
 
     staleTime: 5 * 60 * 1000, // 5분 캐시
-    retry: false, // 오타일 확률이 높으므로 재시도 차단
+    retry: false,
   });
 
   return {
-    address,
-    setAddress, // UI의 Input과 연결
-    ...query, // data, isLoading, error 등 반환
+    address: isControlled ? controlledQuery : address,
+    setAddress: isControlled
+      ? () => {
+          /* 외부에서 제어하므로 아무 작업도 하지 않음 */
+        }
+      : setAddress,
+    ...query,
   };
 }

@@ -18,7 +18,9 @@ import {
 import type { Record, Coordinates, Location } from '@/features/record/types';
 import type { MainMapPageLocationState } from '@features/home/types/mainMapPage';
 import type { StoredRecordPin } from '@/infra/types/storage';
+import type { GeocodeAddress } from '@/infra/types/map';
 import MapViewport from '../MapViewport';
+import SearchResultsPanel from '../SearchResultsPanel';
 
 export function MainMapPageDesktop() {
   const location = useLocation();
@@ -93,27 +95,20 @@ export function MainMapPageDesktop() {
     null,
   );
 
+  /** 지도 우측 상단 장소 검색 전용 (사이드바 검색과 분리) */
+  const [mapPlaceSearchQuery, setMapPlaceSearchQuery] = useState('');
+
   /**
-   * 1. 지오코딩 API 훅
+   * 1. 지오코딩 API 훅 (지도 장소 검색 전용)
    */
   const {
     data: geocodeData,
     isLoading: isGeocoding,
     error: geocodeError,
-  } = useGeocodeSearch('');
-
-  /**
-   * 2. 검색 결과에 따른 지도 중심 이동
-   */
-  useEffect(() => {
-    const firstAddr = geocodeData?.data?.addresses?.[0];
-    if (firstAddr) {
-      setTargetLocation({
-        lat: parseFloat(firstAddr.latitude),
-        lng: parseFloat(firstAddr.longitude),
-      });
-    }
-  }, [geocodeData]);
+  } = useGeocodeSearch('', {
+    controlled: true,
+    controlledQuery: mapPlaceSearchQuery,
+  });
 
   /**
    * 3. 캐시 및 로컬 스토리지 동기화
@@ -255,6 +250,14 @@ export function MainMapPageDesktop() {
     setPinSelectedRecordsOverride(null);
   };
 
+  const handleMapPlaceSelect = (address: GeocodeAddress) => {
+    setTargetLocation({
+      lat: parseFloat(address.latitude),
+      lng: parseFloat(address.longitude),
+    });
+    setMapPlaceSearchQuery('');
+  };
+
   return (
     <div className="flex h-screen w-full overflow-hidden bg-[#FDFCFB]">
       {/* 사이드바 */}
@@ -338,6 +341,29 @@ export function MainMapPageDesktop() {
               )}
             />
           </Suspense>
+        </div>
+
+        {/* 지도 우측 상단 장소 검색 (absolute) */}
+        <div className="absolute top-4 right-4 z-20 w-[min(400px,calc(100%-2rem))] flex flex-col gap-1 pointer-events-auto">
+          <input
+            type="search"
+            value={mapPlaceSearchQuery}
+            onChange={(e) => setMapPlaceSearchQuery(e.target.value)}
+            onFocus={(e) => e.target.select()}
+            placeholder="장소 검색..."
+            aria-label="장소 검색"
+            className="w-full h-11 px-4 rounded-xl border border-gray-200 bg-white/95 shadow-sm text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-400"
+          />
+          <SearchResultsPanel
+            isOpen={mapPlaceSearchQuery.trim().length > 0}
+            isLoading={isGeocoding}
+            query={mapPlaceSearchQuery}
+            results={geocodeData?.data?.addresses}
+            onSelect={handleMapPlaceSelect}
+            onClose={() => setMapPlaceSearchQuery('')}
+            alignRight
+            alignRightOffsetTop="3.25rem"
+          />
         </div>
       </main>
 
