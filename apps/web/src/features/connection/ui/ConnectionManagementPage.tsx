@@ -18,6 +18,8 @@ export default function ConnectionManagementPage({
   graphNodes,
   graphEdges,
   baseRecordPublicId,
+  onExpandGraph,
+  isGraphExpanded = false,
   onBack,
   onSearchChange,
   onRecordRemove,
@@ -70,6 +72,8 @@ export default function ConnectionManagementPage({
             height={280}
             className="w-full min-w-0"
             onNodeClick={onRecordClick}
+            onToggleScope={onExpandGraph}
+            isExpanded={isGraphExpanded}
           />
         ) : (
           <ConnectionMapVisualization

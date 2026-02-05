@@ -244,17 +244,6 @@ export function RecordWritePageMobile({
     setSavedRecord(null);
   };
 
-  const handleEdit = () => {
-    // TODO: 수정 기능 구현
-    setIsDetailSheetOpen(false);
-  };
-
-  const handleDelete = () => {
-    // TODO: 삭제 기능 구현
-    setIsDetailSheetOpen(false);
-    setSavedRecord(null);
-  };
-
   return (
     <div className="flex flex-col h-screen bg-white">
       <RecordWriteHeader location={initialLocation} onCancel={onCancel} />
@@ -309,8 +298,6 @@ export function RecordWritePageMobile({
           isOpen={isDetailSheetOpen}
           onClose={handleDetailSheetClose}
           record={savedRecord}
-          onEdit={handleEdit}
-          onDelete={handleDelete}
         />
       )}
     </div>

@@ -10,6 +10,8 @@ import { LocationIcon } from '@/shared/ui/icons/LocationIcon';
 import { CalendarIcon } from '@/shared/ui/icons/CalendarIcon';
 import { ChevronRightIcon } from '@/shared/ui/icons/ChevronRightIcon';
 import { LinkIcon } from '@/shared/ui/icons/LinkIcon';
+import { FavoriteIcon } from '@/shared/ui/icons/FavoriteIcon';
+import { TrashIcon } from '@/shared/ui/icons/TrashIcon';
 import { RECORD_PLACEHOLDER_IMAGE } from '@/shared/constants/record';
 import { ImageSkeleton } from '@/shared/ui/skeleton';
 import { RecordImageSlider } from '@/shared/ui/record';
@@ -20,8 +22,13 @@ import { useGetTags } from '@/features/record/hooks/useGetTags';
 import { useSidebarRecords } from '@/features/record/hooks/useSidebarRecords';
 import { useSearchRecords } from '@/features/record/hooks/useSearchRecords';
 import { useGetRecordDetail } from '@/features/record/hooks/useGetRecordDetail';
+import { useUpdateRecordFavorite } from '@/features/record/hooks/useUpdateRecordFavorite';
+import { useDeleteRecord } from '@/features/record/hooks/useDeleteRecord';
 import { useConnectionStore } from '@/features/connection/domain/connectionStore';
+import { useToast } from '@/shared/ui/toast';
 import { useConnectionModeData } from '@/features/connection/hooks/useConnectionModeData';
+import { useRecordGraphDetails } from '@/features/connection/hooks/useRecordGraphDetails';
+import { ConfirmModal } from '@/features/settings/ui/desktop/modals/ConfirmModal';
 import { useBlobPreviewStore } from '@/features/record/domain/blobPreviewStore';
 import { DesktopFilterPanel } from './DesktopFilterPanel';
 import type {
@@ -104,6 +111,19 @@ export function DesktopSidebar({
   // 연결 모드일 때는 useConnectionModeData 사용
   const connectionModeData = useConnectionModeData();
 
+  // 연결 모드일 때 기준 기록(connectionFromRecordId)과 이미 연결된 기록 ID 집합
+  const { data: connectionGraphDetails } = useRecordGraphDetails(
+    connectionFromRecordId,
+    { enabled: !!connectionFromRecordId },
+  );
+  const connectedRecordIds = useMemo(
+    () =>
+      new Set(
+        connectionGraphDetails?.data?.records?.map((r) => r.publicId) ?? [],
+      ),
+    [connectionGraphDetails?.data?.records],
+  );
+
   // 카테고리 목록 (전체 + 태그들)
   const categories = useMemo(
     () => [
@@ -132,14 +152,17 @@ export function DesktopSidebar({
   );
 
   // 일반 모드일 때는 useSidebarRecords 사용 (검색어가 없을 때만)
-  const { records: allSidebarRecords, isLoading: isRecordsLoading } =
-    useSidebarRecords({
-      sortOrder,
-      startDate,
-      endDate,
-      selectedCategory,
-      categories,
-    });
+  const {
+    records: allSidebarRecords,
+    totalCount: sidebarTotalCount,
+    isLoading: isRecordsLoading,
+  } = useSidebarRecords({
+    sortOrder,
+    startDate,
+    endDate,
+    selectedCategory,
+    categories,
+  });
 
   // 기록 목록 변환 (연결 모드 vs 검색 모드 vs 일반 모드)
   const allRecords = useMemo(() => {
@@ -214,6 +237,14 @@ export function DesktopSidebar({
   const hasMore =
     !(pinSelectedRecordIds && pinSelectedRecordIds.length > 0) &&
     displayCount < filteredRecords.length;
+
+  // 헤더에 표시할 총 개수 (API totalCount 사용, 핀 선택 시에만 현재 표시 개수)
+  const displayTotalCount =
+    pinSelectedRecordIds && pinSelectedRecordIds.length > 0
+      ? records.length
+      : hasSearchKeyword
+        ? (searchData?.pagination?.totalCount ?? records.length)
+        : (sidebarTotalCount ?? records.length);
 
   // 무한 스크롤: 더 많은 아이템 로드
   const loadMore = useCallback(() => {
@@ -364,8 +395,8 @@ export function DesktopSidebar({
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium text-gray-900">
                     {pinSelectedRecordIds && pinSelectedRecordIds.length > 0
-                      ? `선택한 위치 기록 ${records.length}`
-                      : `검색 결과 ${records.length}`}
+                      ? `기록 목록 ${displayTotalCount}`
+                      : `기록 목록 ${displayTotalCount}`}
                   </span>
                   <div className="relative">
                     <button
@@ -434,6 +465,10 @@ export function DesktopSidebar({
                         isConnectionMode={!!connectionFromRecordId}
                         isSource={connectionFromRecordId === record.id}
                         isSelected={arrival?.id === record.id}
+                        isConnected={
+                          !!connectionFromRecordId &&
+                          connectedRecordIds.has(record.id)
+                        }
                         onConnectClick={
                           connectionFromRecordId
                             ? () => handleConnectClick(record.id)
@@ -520,11 +555,13 @@ function RecordCard({
   isConnectionMode = false,
   isSource = false,
   isSelected = false,
+  isConnected = false,
 }: RecordCardProps & {
   onConnectClick?: () => void;
   isConnectionMode?: boolean;
   isSource?: boolean;
   isSelected?: boolean;
+  isConnected?: boolean;
 }) {
   const [imageLoading, setImageLoading] = useState(true);
   const [imageError, setImageError] = useState(false);
@@ -583,9 +620,17 @@ function RecordCard({
 
         {/* 콘텐츠 */}
         <div className="flex flex-col flex-1 min-w-0">
-          <h3 className="text-lg font-black text-gray-900 leading-tight mb-1 truncate">
-            {record.title}
-          </h3>
+          <div className="flex items-center gap-1.5 mb-1">
+            <h3 className="text-lg font-black text-gray-900 leading-tight truncate flex-1 min-w-0">
+              {record.title}
+            </h3>
+            {record.isFavorite && (
+              <FavoriteIcon
+                className="w-5 h-5 shrink-0 text-yellow-500 fill-yellow-500"
+                aria-label="즐겨찾기"
+              />
+            )}
+          </div>
           <p className="text-sm text-gray-500 flex items-center gap-1.5 mb-1">
             <LocationIcon className="w-[14px] h-[14px] text-[#73C92E]" />
             {record.location.name?.trim() ||
@@ -602,7 +647,12 @@ function RecordCard({
               연결 {record.connectionCount ?? 0}개
             </p>
           )}
-          {isConnectionMode && !isSource && (
+          {isConnectionMode && !isSource && isConnected && (
+            <p className="mt-3 bg-[#5828DA] text-white px-5 py-2 rounded-full text-[10px] font-black w-fit uppercase hover:bg-[#4a20bf] transition-colors">
+              이미 연결됨
+            </p>
+          )}
+          {isConnectionMode && !isSource && !isConnected && (
             <motion.button
               type="button"
               onClick={(e) => {
@@ -629,11 +679,16 @@ function RecordSummaryPanel({
   onOpenFullDetail,
   onStartConnection,
 }: RecordSummaryPanelProps) {
+  const [isDeleteRecordConfirmOpen, setIsDeleteRecordConfirmOpen] =
+    useState(false);
   const {
     data: recordDetail,
     isLoading,
     isError,
   } = useGetRecordDetail(recordId, { enabled: !!recordId });
+  const updateFavoriteMutation = useUpdateRecordFavorite();
+  const deleteRecordMutation = useDeleteRecord();
+  const { showToast } = useToast();
 
   // 모든 Blob URL 조회 (기록 생성 직후 모든 이미지)
   const getBlobUrl = useBlobPreviewStore((state) => state.getBlobUrls);
@@ -704,17 +759,81 @@ function RecordSummaryPanel({
           <ChevronRightIcon className="w-6 h-6 rotate-180" />
         </button>
         <h2 className="text-lg font-black text-gray-900">기록 요약</h2>
-        <div className="ml-auto">
+        <div className="ml-auto flex items-center gap-2">
           <button
             type="button"
-            onClick={onStartConnection}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-orange-50 text-[#FE8916] text-xs font-black hover:bg-orange-100 transition-colors"
+            onClick={() => {
+              if (!recordId || updateFavoriteMutation.isPending) return;
+              const nextFavorite = !recordDetail?.isFavorite;
+              updateFavoriteMutation
+                .mutateAsync({
+                  publicId: recordId,
+                  isFavorite: nextFavorite,
+                })
+                .then(() => {
+                  showToast({
+                    variant: 'success',
+                    message: nextFavorite
+                      ? '즐겨찾기에 추가되었습니다.'
+                      : '즐겨찾기에서 제거되었습니다.',
+                  });
+                })
+                .catch(() => {
+                  showToast({
+                    variant: 'error',
+                    message: '즐겨찾기 변경에 실패했습니다.',
+                  });
+                });
+            }}
+            className="p-2 rounded-full hover:bg-gray-100 transition-colors"
+            aria-label={
+              recordDetail?.isFavorite ? '즐겨찾기 해제' : '즐겨찾기 추가'
+            }
           >
-            <LinkIcon className="w-3.5 h-3.5" />
-            연결하기
+            <FavoriteIcon
+              className={`w-6 h-6 ${
+                recordDetail?.isFavorite
+                  ? 'text-yellow-500 fill-yellow-500'
+                  : 'text-gray-400'
+              }`}
+            />
+          </button>
+          <button
+            type="button"
+            onClick={() => setIsDeleteRecordConfirmOpen(true)}
+            className="p-2 rounded-full hover:bg-red-50 text-gray-400 hover:text-red-600 transition-colors"
+            aria-label="삭제"
+          >
+            <TrashIcon className="w-6 h-6" />
           </button>
         </div>
       </div>
+
+      <ConfirmModal
+        isOpen={isDeleteRecordConfirmOpen}
+        icon={TrashIcon}
+        title="기록을 삭제할까요?"
+        description="삭제한 기록은 다시 복구할 수 없습니다."
+        confirmLabel="삭제 확정"
+        cancelLabel="취소"
+        onConfirm={() => {
+          if (!recordId) return;
+          setIsDeleteRecordConfirmOpen(false);
+          deleteRecordMutation.mutate(recordId, {
+            onSuccess: () => {
+              onBack();
+              showToast({
+                variant: 'success',
+                message: '기록이 삭제되었습니다.',
+              });
+            },
+            onError: () => {
+              showToast({ variant: 'error', message: '삭제에 실패했습니다.' });
+            },
+          });
+        }}
+        onCancel={() => setIsDeleteRecordConfirmOpen(false)}
+      />
 
       {/* 스크롤 영역 */}
       <div className="flex-1 flex flex-col overflow-y-auto no-scrollbar min-h-0 h-full">
@@ -769,22 +888,36 @@ function RecordSummaryPanel({
               {recordDetail.title}
             </h1>
 
-            {/* 위치 및 날짜 */}
-            <div className="space-y-2">
-              <div className="flex items-center gap-2 text-gray-500">
-                <LocationIcon className="w-[14px] h-[14px] text-[#73C92E]" />
-                <span className="text-sm font-bold text-gray-700">
-                  {recordDetail.location.name?.trim() ??
-                    recordDetail.location.address?.trim() ??
-                    '장소 없음'}
-                </span>
+            {/* 위치 및 날짜 + 연결하기 버튼 그룹 */}
+            <div className="flex items-end justify-between gap-4 mb-8">
+              <div className="flex-1 min-w-0 space-y-2">
+                {/* 위치 */}
+                <div className="flex items-center gap-2 text-gray-500">
+                  <LocationIcon className="w-[14px] h-[14px] text-[#73C92E] shrink-0" />
+                  <span className="text-sm font-bold text-gray-700 truncate">
+                    {recordDetail.location.name?.trim() ??
+                      recordDetail.location.address?.trim() ??
+                      '장소 없음'}
+                  </span>
+                </div>
+                {/* 날짜 */}
+                <div className="flex items-center gap-2 text-gray-400">
+                  <CalendarIcon className="w-[14px] h-[14px] shrink-0" />
+                  <span className="text-xs font-medium">
+                    {formatDateShort(new Date(recordDetail.createdAt))}
+                  </span>
+                </div>
               </div>
-              <div className="flex items-center gap-2 text-gray-400">
-                <CalendarIcon className="w-[14px] h-[14px]" />
-                <span className="text-xs font-medium">
-                  {formatDateShort(new Date(recordDetail.createdAt))}
-                </span>
-              </div>
+
+              {/* 연결하기 버튼: 우측 하단 정렬 */}
+              <button
+                type="button"
+                onClick={onStartConnection}
+                className="shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-xl bg-orange-50 text-[#FE8916] text-[11px] font-black hover:bg-orange-100 transition-all border border-orange-100/50 active:scale-95"
+              >
+                <LinkIcon className="w-3.5 h-3.5" />
+                연결하기
+              </button>
             </div>
           </div>
 

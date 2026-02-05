@@ -18,6 +18,7 @@ import { useRecordGraph } from '@/features/connection/hooks/useRecordGraph';
 import { buildGraphFromStoredConnections } from '@/infra/storage/connectionStorage';
 import type { Coordinates } from '@/features/record/types';
 import { useGetRecordsByBounds } from '@/features/record/hooks/useGetRecordsByBounds';
+import { useGetRecordDetail } from '@/features/record/hooks/useGetRecordDetail';
 import type { Record as ApiRecord } from '@locus/shared';
 import {
   expandBounds,
@@ -65,6 +66,9 @@ export default function MapViewport({
   const [selectedRecordPublicId, setSelectedRecordPublicId] = useState<
     string | null
   >(null);
+  /** "이 장소와 연결된 기록 확인" 클릭 시에만 연결선 표시 (바텀시트 열릴 때는 미표시) */
+  const [showConnectionLinesForRecordId, setShowConnectionLinesForRecordId] =
+    useState<string | null>(null);
 
   // 모든 가져온 기록을 저장 (확장된 bounds에서 가져온 전체 데이터)
   // 타임스탬프를 함께 저장하여 오래된 순으로 정리 가능
@@ -375,10 +379,22 @@ export default function MapViewport({
     return map;
   }, [visibleApiRecords, createdRecordPins]);
 
-  // 선택된 기록의 그래프 조회
-  const isGraphQueryEnabled = !!selectedRecordPublicId && isMapLoaded;
+  // 연결된 두 기록 상세 (지도 bounds 밖이어도 연결선 그리기용)
+  const fromRecordId = connectedRecords?.fromId ?? null;
+  const toRecordId = connectedRecords?.toId ?? null;
+  const { data: fromRecordDetail } = useGetRecordDetail(fromRecordId, {
+    enabled: !!fromRecordId,
+  });
+  const { data: toRecordDetail } = useGetRecordDetail(toRecordId, {
+    enabled: !!toRecordId,
+  });
+
+  // 그래프 조회: 핀 선택 시(edges 개수로 버튼 노출) + 버튼 클릭 시(연결선 그리기)
+  const graphQueryRecordId =
+    selectedRecordPublicId ?? showConnectionLinesForRecordId;
+  const isGraphQueryEnabled = !!graphQueryRecordId && isMapLoaded;
   const { data: graphData, isError: isGraphError } = useRecordGraph(
-    selectedRecordPublicId,
+    graphQueryRecordId,
     {
       enabled: isGraphQueryEnabled,
     },
@@ -387,7 +403,11 @@ export default function MapViewport({
   // 그래프 데이터가 변경되면 연결선 그리기
   // API 실패 시 localStorage의 연결 정보 사용
   useEffect(() => {
-    if (!isMapLoaded || !mapInstanceRef.current || !selectedRecordPublicId) {
+    if (
+      !isMapLoaded ||
+      !mapInstanceRef.current ||
+      !showConnectionLinesForRecordId
+    ) {
       return;
     }
 
@@ -423,7 +443,9 @@ export default function MapViewport({
         };
       } else if (isGraphError) {
         // API 실패 시 localStorage에서 그래프 구성
-        graphToUse = buildGraphFromStoredConnections(selectedRecordPublicId);
+        graphToUse = buildGraphFromStoredConnections(
+          showConnectionLinesForRecordId,
+        );
       }
 
       if (!graphToUse || graphToUse.nodes.length === 0) {
@@ -490,7 +512,7 @@ export default function MapViewport({
   }, [
     graphData,
     isGraphError,
-    selectedRecordPublicId,
+    showConnectionLinesForRecordId,
     isMapLoaded,
     mapInstanceRef,
     allPins,
@@ -505,11 +527,12 @@ export default function MapViewport({
     const map = mapInstanceRef.current;
     const handleMapClick = (e: naver.maps.PointerEvent) => {
       // 핀 클릭은 이벤트 전파가 막혀있으므로, 지도 클릭만 처리
-      if (selectedRecordPublicId) {
+      if (selectedRecordPublicId || showConnectionLinesForRecordId) {
         setSelectedRecordPublicId(null);
         setSelectedRecord(null);
         setIsSummaryOpen(false);
         setSelectedPinId(null);
+        setShowConnectionLinesForRecordId(null);
         // 연결선 제거
         polylinesRef.current.forEach((polyline) => {
           polyline.setMap(null);
@@ -549,7 +572,12 @@ export default function MapViewport({
     };
     // ref는 변경되어도 재렌더링을 트리거하지 않으므로 dependency에서 제외
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isMapLoaded, selectedRecordPublicId, renderLocationConfirmation]);
+  }, [
+    isMapLoaded,
+    selectedRecordPublicId,
+    showConnectionLinesForRecordId,
+    renderLocationConfirmation,
+  ]);
 
   // 지도 로드 후 한 번만 오리 노출 트리거 (시나리오·확률 로직은 별도에서 확장 가능)
   useEffect(() => {
@@ -849,7 +877,7 @@ export default function MapViewport({
     map.setZoom(15); // 검색 결과 위치로 이동 시 줌 레벨 조정
   }, [isMapLoaded, mapInstanceRef, targetLocation]);
 
-  // 연결된 기록 표시 (8초간만)
+  // 연결된 기록 표시 (8초간만) — allPins에 없어도 상세 조회 좌표로 선 표시(데스크톱 사이드바 연결 등)
   useEffect(() => {
     if (!isMapLoaded || !mapInstanceRef.current || !connectedRecords) {
       // connectedRecords가 없으면 연결선 제거
@@ -868,13 +896,7 @@ export default function MapViewport({
       connectionPolylineRef.current = null;
     }
 
-    // 연결된 두 기록의 위치 찾기
-    const fromRecord = allRecords[connectedRecords.fromId];
-    const toRecord = allRecords[connectedRecords.toId];
-
-    if (!fromRecord || !toRecord) return;
-
-    // allPins에서 위치 찾기
+    // 위치 결정: allPins 우선, 없으면 상세 조회 결과(fromRecordDetail, toRecordDetail) 사용
     const fromPin = allPins.find(
       (pin) => String(pin.id) === connectedRecords.fromId,
     );
@@ -882,14 +904,41 @@ export default function MapViewport({
       (pin) => String(pin.id) === connectedRecords.toId,
     );
 
-    if (!fromPin || !toPin) return;
+    const getCoords = (): {
+      from: { lat: number; lng: number };
+      to: { lat: number; lng: number };
+    } | null => {
+      if (fromPin && toPin) {
+        return {
+          from: fromPin.position,
+          to: toPin.position,
+        };
+      }
+      const fromLoc = fromRecordDetail?.location as
+        | { latitude?: number; longitude?: number }
+        | undefined;
+      const toLoc = toRecordDetail?.location as
+        | { latitude?: number; longitude?: number }
+        | undefined;
+      if (
+        fromLoc?.latitude != null &&
+        fromLoc?.longitude != null &&
+        toLoc?.latitude != null &&
+        toLoc?.longitude != null
+      ) {
+        return {
+          from: { lat: fromLoc.latitude, lng: fromLoc.longitude },
+          to: { lat: toLoc.latitude, lng: toLoc.longitude },
+        };
+      }
+      return null;
+    };
 
-    // 연결선 그리기
-    const fromPos = new naver.maps.LatLng(
-      fromPin.position.lat,
-      fromPin.position.lng,
-    );
-    const toPos = new naver.maps.LatLng(toPin.position.lat, toPin.position.lng);
+    const coords = getCoords();
+    if (!coords) return;
+
+    const fromPos = new naver.maps.LatLng(coords.from.lat, coords.from.lng);
+    const toPos = new naver.maps.LatLng(coords.to.lat, coords.to.lng);
 
     connectionPolylineRef.current = new naver.maps.Polyline({
       map,
@@ -916,7 +965,14 @@ export default function MapViewport({
         connectionPolylineRef.current = null;
       }
     };
-  }, [connectedRecords, isMapLoaded, mapInstanceRef, allPins, allRecords]);
+  }, [
+    connectedRecords,
+    isMapLoaded,
+    mapInstanceRef,
+    allPins,
+    fromRecordDetail,
+    toRecordDetail,
+  ]);
 
   // 보라 핀(기록/클러스터) 클릭 핸들러 - summary 또는 클러스터 바텀시트, onRecordPinClick 위임
   const handleRecordPinClick = (pinId: string | number) => {
@@ -1237,16 +1293,28 @@ export default function MapViewport({
             setIsSummaryOpen(false);
             setSelectedRecord(null);
             setSelectedRecordPublicId(null);
+            setShowConnectionLinesForRecordId(null);
             polylinesRef.current.forEach((polyline) => {
               polyline.setMap(null);
             });
             polylinesRef.current = [];
           }}
           record={selectedRecordPublicId}
+          hasConnectedRecords={
+            (graphData?.data?.edges?.length ?? 0) > 0 &&
+            graphQueryRecordId === selectedRecordPublicId
+          }
+          onShowLinkedRecords={() => {
+            setShowConnectionLinesForRecordId(selectedRecordPublicId);
+            setIsSummaryOpen(false);
+            setSelectedRecord(null);
+            setSelectedRecordPublicId(null);
+          }}
           onAddRecord={(loc: LocationWithCoordinates) => {
             setIsSummaryOpen(false);
             setSelectedRecord(null);
             setSelectedRecordPublicId(null);
+            setShowConnectionLinesForRecordId(null);
             polylinesRef.current.forEach((polyline) => {
               polyline.setMap(null);
             });

@@ -84,6 +84,7 @@ export function useSidebarRecords({
       tags: extractTagNames(record.tags),
       imageUrl: record.images?.[0]?.thumbnail?.url ?? RECORD_PLACEHOLDER_IMAGE,
       connectionCount: record.connectionCount,
+      isFavorite: record.isFavorite,
     }));
   }, [
     allRecordsData,
@@ -94,5 +95,12 @@ export function useSidebarRecords({
     includeImages,
   ]);
 
-  return { records: filteredAndSortedRecords, isLoading, isError };
+  const totalCount = allRecordsData?.totalCount ?? 0;
+
+  return {
+    records: filteredAndSortedRecords,
+    totalCount,
+    isLoading,
+    isError,
+  };
 }

@@ -1,16 +1,18 @@
+import { useState } from 'react';
 import { motion } from 'motion/react';
 import BaseBottomSheet from '@/shared/ui/bottomSheet/BaseBottomSheet';
 import { CalendarIcon } from '@/shared/ui/icons/CalendarIcon';
 import { TagIcon } from '@/shared/ui/icons/TagIcon';
-import { EditIcon } from '@/shared/ui/icons/EditIcon';
 import { TrashIcon } from '@/shared/ui/icons/TrashIcon';
 import { LocationIcon } from '@/shared/ui/icons/LocationIcon';
 import { PlusIcon } from '@/shared/ui/icons/PlusIcon';
 import { XIcon } from '@/shared/ui/icons/XIcon';
 import { ImageIcon } from '@/shared/ui/icons/ImageIcon';
-import ActionButton from '@/shared/ui/button/ActionButton';
 import { ImageWithFallback } from '@/shared/ui/image';
+import { ConfirmDialog } from '@/shared/ui/dialog';
 import { useGetRecordDetail } from '../hooks/useGetRecordDetail';
+import { useDeleteRecord } from '../hooks/useDeleteRecord';
+import { useToast } from '@/shared/ui/toast';
 import { logger } from '@/shared/utils/logger';
 import LoadingPage from '@/shared/ui/loading/LoadingPage';
 import type { RecordDetail } from '@locus/shared';
@@ -29,13 +31,15 @@ export default function RecordSummaryBottomSheet({
   isOpen,
   onClose,
   record,
-  isDeleting = false,
-  onEdit,
-  onDelete,
   onAddRecord,
   recordCoordinates,
+  onShowLinkedRecords,
+  hasConnectedRecords = false,
 }: RecordSummaryBottomSheetProps) {
   const publicId = typeof record === 'string' ? record : record.id;
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+  const deleteRecordMutation = useDeleteRecord();
+  const { showToast } = useToast();
 
   // 모든 Blob URL 조회 (React Hook 규칙 - early return 이전에 호출)
   const getBlobUrls = useBlobPreviewStore((state) => state.getBlobUrls);
@@ -176,15 +180,37 @@ export default function RecordSummaryBottomSheet({
             images: undefined,
           };
 
+  const handleDeleteConfirm = () => {
+    deleteRecordMutation.mutate(publicId, {
+      onSuccess: () => {
+        onClose();
+        showToast({ variant: 'success', message: '기록이 삭제되었습니다.' });
+      },
+      onError: () => {
+        showToast({ variant: 'error', message: '삭제에 실패했습니다.' });
+      },
+    });
+  };
+
   return (
     <BaseBottomSheet isOpen={isOpen} onClose={onClose} height="summary">
       <RecordSummaryContent
         {...displayData}
-        isDeleting={isDeleting}
-        onEdit={onEdit}
-        onDelete={onDelete}
         onClose={onClose}
         onAddRecord={onAddRecord}
+        onShowLinkedRecords={onShowLinkedRecords}
+        hasConnectedRecords={hasConnectedRecords}
+        onDeleteClick={() => setIsDeleteConfirmOpen(true)}
+      />
+      <ConfirmDialog
+        isOpen={isDeleteConfirmOpen}
+        onClose={() => setIsDeleteConfirmOpen(false)}
+        title="이 기록을 삭제할까요?"
+        message="삭제한 기록은 다시 복구할 수 없습니다."
+        confirmLabel="삭제"
+        cancelLabel="취소"
+        variant="danger"
+        onConfirm={handleDeleteConfirm}
       />
     </BaseBottomSheet>
   );
@@ -224,18 +250,31 @@ function RecordSummaryContent({
   tags,
   content,
   images,
-  isDeleting,
-  onEdit,
-  onDelete,
   onClose,
   onAddRecord,
+  onShowLinkedRecords,
+  hasConnectedRecords = false,
+  onDeleteClick,
 }: RecordSummaryContentProps) {
   return (
     <div className="flex flex-col h-full">
       {/* 1. 고정 헤더 영역 */}
       <div className="shrink-0 px-6 pt-6">
-        <RecordSummaryHeader title={title} date={date} onClose={onClose} />
-        <RecordLocationCard location={location} onAddRecord={onAddRecord} />
+        <RecordSummaryHeader
+          title={title}
+          date={date}
+          onClose={onClose}
+          onDeleteClick={
+            typeof onDeleteClick === 'function' ? onDeleteClick : undefined
+          }
+        />
+        <RecordLocationCard
+          location={location}
+          onAddRecord={onAddRecord}
+          hasConnectedRecords={hasConnectedRecords}
+          onShowLinkedRecords={onShowLinkedRecords}
+          onClose={onClose}
+        />
       </div>
 
       {/* 2. 스크롤 영역 (이미지 갤러리 + 태그 + 본문) */}
@@ -277,33 +316,6 @@ function RecordSummaryContent({
           </p>
         </div>
       </div>
-
-      {/* 3. 고정 액션 버튼 영역 */}
-      <div className="shrink-0 px-6 pb-6 pt-4 border-t border-gray-50">
-        <div className="flex gap-3">
-          {onEdit && (
-            <ActionButton
-              variant="secondary"
-              onClick={onEdit}
-              className="flex-1 flex items-center justify-center gap-2"
-            >
-              <EditIcon className="w-4 h-4" />
-              수정
-            </ActionButton>
-          )}
-          {onDelete && (
-            <ActionButton
-              variant="secondary"
-              onClick={onDelete}
-              disabled={isDeleting}
-              className="flex-1 flex items-center justify-center gap-2 bg-red-50 text-red-600 hover:bg-red-100 focus-visible:ring-red-500 disabled:opacity-50"
-            >
-              <TrashIcon className="w-4 h-4" />
-              {isDeleting ? '삭제 중...' : '삭제'}
-            </ActionButton>
-          )}
-        </div>
-      </div>
     </div>
   );
 }
@@ -312,13 +324,29 @@ function RecordSummaryHeader({
   title,
   date,
   onClose,
+  onDeleteClick,
 }: RecordSummaryHeaderProps) {
   return (
     <div className="flex items-start justify-between mb-5">
-      <div className="flex-1 pr-2">
-        <h2 className="text-[1.125rem] font-semibold text-gray-900 mb-1.5 break-all">
-          {title}
-        </h2>
+      <div className="flex-1 pr-2 min-w-0">
+        <div className="flex items-center gap-2 mb-1.5">
+          <h2 className="text-[1.125rem] font-semibold text-gray-900 break-all flex-1 min-w-0">
+            {title}
+          </h2>
+          {typeof onDeleteClick === 'function' && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onDeleteClick();
+              }}
+              className="p-1.5 rounded-full hover:bg-red-50 text-gray-400 hover:text-red-600 transition-colors shrink-0"
+              aria-label="삭제"
+            >
+              <TrashIcon className="w-5 h-5" />
+            </button>
+          )}
+        </div>
         <div className="flex items-center gap-1.5 text-xs text-gray-500">
           <CalendarIcon className="w-3.5 h-3.5" />
           <span>{formatDate(date)}</span>
@@ -339,6 +367,9 @@ function RecordSummaryHeader({
 function RecordLocationCard({
   location,
   onAddRecord,
+  hasConnectedRecords = false,
+  onShowLinkedRecords,
+  onClose,
 }: RecordLocationCardProps) {
   const hasLocation = Boolean(
     location.name?.trim() || location.address?.trim(),
@@ -386,14 +417,29 @@ function RecordLocationCard({
           <button
             type="button"
             onClick={handleAddRecord}
-            className="w-10 h-10 bg-white rounded-2xl flex items-center justify-center text-blue-600 shadow-sm border border-transparent hover:border-blue-200 active:scale-90 transition-all shrink-0"
+            className="w-10 h-10 bg-white rounded-2xl flex items-center justify-center text-blue-600 shadow-sm border border-transparent hover:border-blue-200 active:scale-90 transition-all"
             title="이 장소에 추가"
-            aria-label="이 장소에 추가"
           >
             <PlusIcon className="w-5 h-5" />
           </button>
         )}
       </div>
+      {hasConnectedRecords && (
+        <button
+          type="button"
+          onClick={() => {
+            if (onShowLinkedRecords) {
+              onShowLinkedRecords();
+            } else {
+              onClose?.();
+            }
+          }}
+          className="w-full mt-3 py-2 bg-white/60 hover:bg-white rounded-xl flex items-center justify-center gap-2 text-blue-600 text-[0.8125rem] font-bold border border-blue-100/50 transition-all active:scale-[0.98]"
+        >
+          <span>🔗</span>
+          <span>이 장소와 연결된 기록 확인</span>
+        </button>
+      )}
     </div>
   );
 }
