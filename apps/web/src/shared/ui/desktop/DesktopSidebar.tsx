@@ -25,6 +25,7 @@ import { useUpdateRecordFavorite } from '@/features/record/hooks/useUpdateRecord
 import { useConnectionStore } from '@/features/connection/domain/connectionStore';
 import { useToast } from '@/shared/ui/toast';
 import { useConnectionModeData } from '@/features/connection/hooks/useConnectionModeData';
+import { useRecordGraphDetails } from '@/features/connection/hooks/useRecordGraphDetails';
 import { DesktopFilterPanel } from './DesktopFilterPanel';
 import type {
   DesktopSidebarProps,
@@ -104,6 +105,19 @@ export function DesktopSidebar({
 
   // 연결 모드일 때는 useConnectionModeData 사용
   const connectionModeData = useConnectionModeData();
+
+  // 연결 모드일 때 기준 기록(connectionFromRecordId)과 이미 연결된 기록 ID 집합
+  const { data: connectionGraphDetails } = useRecordGraphDetails(
+    connectionFromRecordId,
+    { enabled: !!connectionFromRecordId },
+  );
+  const connectedRecordIds = useMemo(
+    () =>
+      new Set(
+        connectionGraphDetails?.data?.records?.map((r) => r.publicId) ?? [],
+      ),
+    [connectionGraphDetails?.data?.records],
+  );
 
   // 카테고리 목록 (전체 + 태그들)
   const categories = useMemo(
@@ -446,6 +460,10 @@ export function DesktopSidebar({
                         isConnectionMode={!!connectionFromRecordId}
                         isSource={connectionFromRecordId === record.id}
                         isSelected={arrival?.id === record.id}
+                        isConnected={
+                          !!connectionFromRecordId &&
+                          connectedRecordIds.has(record.id)
+                        }
                         onConnectClick={
                           connectionFromRecordId
                             ? () => handleConnectClick(record.id)
@@ -532,11 +550,13 @@ function RecordCard({
   isConnectionMode = false,
   isSource = false,
   isSelected = false,
+  isConnected = false,
 }: RecordCardProps & {
   onConnectClick?: () => void;
   isConnectionMode?: boolean;
   isSource?: boolean;
   isSelected?: boolean;
+  isConnected?: boolean;
 }) {
   const [imageLoading, setImageLoading] = useState(true);
   const [imageError, setImageError] = useState(false);
@@ -615,7 +635,12 @@ function RecordCard({
               연결 {record.connectionCount ?? 0}개
             </p>
           )}
-          {isConnectionMode && !isSource && (
+          {isConnectionMode && !isSource && isConnected && (
+            <p className="mt-3 bg-[#5828DA] text-white px-5 py-2 rounded-full text-[10px] font-black w-fit uppercase hover:bg-[#4a20bf] transition-colors">
+              이미 연결됨
+            </p>
+          )}
+          {isConnectionMode && !isSource && !isConnected && (
             <motion.button
               type="button"
               onClick={(e) => {
