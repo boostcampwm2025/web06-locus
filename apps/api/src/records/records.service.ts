@@ -54,7 +54,8 @@ import { RecordQueryService } from './services/records-query.service';
 import { RecordGraphService } from './services/records-graph.service';
 import { RecordLocationService } from './services/records-location.service';
 import { ObjectStorageService } from './services/object-storage.service';
-
+import { RedisService } from '@/redis/redis.service';
+import { GraphResponseDto } from './dto/graph.response.dto';
 @Injectable()
 export class RecordsService {
   private readonly logger = new Logger(RecordsService.name);
@@ -70,6 +71,7 @@ export class RecordsService {
     private readonly recordQueryService: RecordQueryService,
     private readonly recordGraphService: RecordGraphService,
     private readonly recordLocationService: RecordLocationService,
+    private readonly redisService: RedisService,
   ) {}
 
   async createRecord(
@@ -491,8 +493,35 @@ export class RecordsService {
     );
   }
 
-  async getGraph(startRecordPublicId: string, userId: bigint) {
-    return this.recordGraphService.getGraph(startRecordPublicId, userId);
+  async getGraph(
+    startRecordPublicId: string,
+    userId: bigint,
+  ): Promise<GraphResponseDto> {
+    const recordCachingId = this.redisService.makeCachingRecordKey(
+      userId,
+      startRecordPublicId,
+    );
+
+    // 캐시 확인
+    const cachedGraphId = await this.redisService.get(recordCachingId);
+
+    if (cachedGraphId !== null) {
+      const cachedGraph = await this.redisService.get(cachedGraphId);
+      //cache hit
+      if (cachedGraph !== null) {
+        return JSON.parse(cachedGraph) as GraphResponseDto;
+      }
+    }
+
+    //cache miss
+    const graph = await this.recordGraphService.getGraph(
+      startRecordPublicId,
+      userId,
+    );
+
+    await this.redisService.cacheGraph(userId, startRecordPublicId, graph);
+
+    return graph;
   }
 
   async getGraphNeighborDetail(startRecordPublicId: string, userId: bigint) {
@@ -500,6 +529,15 @@ export class RecordsService {
       startRecordPublicId,
       userId,
     );
+  }
+
+  async findOneById(id: bigint, userId: bigint) {
+    const record = await this.prisma.record.findUnique({
+      where: { id, userId },
+    });
+
+    if (!record) throw new RecordNotFoundException(`ID: ${id.toString()}`);
+    return record;
   }
 
   private async buildRecordListResponse(

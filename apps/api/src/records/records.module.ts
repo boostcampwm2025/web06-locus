@@ -20,6 +20,7 @@ import { RecordLocationService } from './services/records-location.service';
 import { RecordQueryService } from './services/records-query.service';
 import { RecordImageService } from './services/records-image.service';
 import { ImageUploadConfigProvider } from './config/image-upload.config';
+import { RedisModule } from '@/redis/redis.module';
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { ImageUploadConfigProvider } from './config/image-upload.config';
     OutboxModule,
     TagsModule,
     ImagesModule,
+    RedisModule,
   ],
   controllers: [RecordsController, WebhooksController, RecordSyncConsumer],
   providers: [
