@@ -293,3 +293,14 @@ export class ImageDeletionFailedException extends BusinessException {
     );
   }
 }
+
+export class ImageNotFoundException extends BusinessException {
+  constructor(imageId: string) {
+    super(
+      HttpStatus.NOT_FOUND,
+      RecordErrorCode.IMAGE_NOT_FOUND,
+      '이미지를 찾을 수 없습니다.',
+      { image_id: imageId },
+    );
+  }
+}

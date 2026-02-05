@@ -27,7 +27,12 @@ export class NotificationScheduler {
       // Redis에서 현재 시간의 (사용자, token) 조회
       const notificationDatas =
         await this.notificationScheduleService.getUsersForTime(time);
+
+      this.logger.log(`[Scheduler]: ${notificationDatas.length}`);
+
       if (notificationDatas.length === 0) return;
+
+      this.logger.log(`[Scheduler] token: ${notificationDatas[0].token}`);
 
       const batches: NotificationData[][] = [];
 

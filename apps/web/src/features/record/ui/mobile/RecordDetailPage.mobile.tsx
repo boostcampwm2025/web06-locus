@@ -1,12 +1,13 @@
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import { ChevronLeftIcon } from '@/shared/ui/icons/ChevronLeftIcon';
 import { FavoriteIcon } from '@/shared/ui/icons/FavoriteIcon';
-import { MoreVerticalIcon } from '@/shared/ui/icons/MoreVerticalIcon';
+import { TrashIcon } from '@/shared/ui/icons/TrashIcon';
 import { CalendarIcon } from '@/shared/ui/icons/CalendarIcon';
 import { LocationIcon } from '@/shared/ui/icons/LocationIcon';
-import { ActionSheet, ConfirmDialog } from '@/shared/ui/dialog';
+import { ConfirmDialog } from '@/shared/ui/dialog';
 import type { RecordDetailPageProps } from '@/features/record/types';
 import { formatDateShort } from '@/shared/utils/dateUtils';
+import { RecordImageSlider } from '@/shared/ui/record';
 import { getDisplayTags } from '@/shared/utils/tagUtils';
 
 export function RecordDetailPageMobile({
@@ -16,28 +17,17 @@ export function RecordDetailPageMobile({
   tags,
   description,
   imageUrl,
+  imageUrls,
   connectionCount,
   isFavorite = false,
   onBack,
   onFavoriteToggle,
-  onMenuClick,
   onConnectionManage,
   onConnectionMode,
-  onEdit,
   onDelete,
   className = '',
 }: RecordDetailPageProps) {
-  const [isActionSheetOpen, setIsActionSheetOpen] = useState(false);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
-  const menuButtonRef = useRef<HTMLButtonElement>(null);
-
-  const handleMenuClick = () => {
-    if (onMenuClick) {
-      onMenuClick();
-    } else {
-      setIsActionSheetOpen(true);
-    }
-  };
 
   return (
     <div className={`flex flex-col h-screen bg-white ${className}`}>
@@ -47,8 +37,9 @@ export function RecordDetailPageMobile({
         isFavorite={isFavorite}
         onBack={onBack}
         onFavoriteToggle={onFavoriteToggle}
-        onMenuClick={handleMenuClick}
-        menuButtonRef={menuButtonRef}
+        onDeleteClick={
+          onDelete ? () => setIsDeleteConfirmOpen(true) : undefined
+        }
       />
 
       {/* 2. 스크롤 가능한 본문 영역 */}
@@ -62,6 +53,7 @@ export function RecordDetailPageMobile({
 
         <RecordContent
           imageUrl={imageUrl}
+          imageUrls={imageUrls}
           description={description}
           title={title}
         />
@@ -73,32 +65,6 @@ export function RecordDetailPageMobile({
         onConnectionManage={onConnectionManage}
         onConnectionMode={onConnectionMode}
       />
-
-      {/* 메뉴 액션 시트 */}
-      {isActionSheetOpen && (
-        <div className="relative">
-          <ActionSheet
-            isOpen={isActionSheetOpen}
-            onClose={() => setIsActionSheetOpen(false)}
-            anchorElement={menuButtonRef.current}
-            items={[
-              ...(onEdit ? [{ label: '편집하기', onClick: onEdit }] : []),
-              ...(onDelete
-                ? [
-                    {
-                      label: '삭제하기',
-                      onClick: () => {
-                        setIsActionSheetOpen(false);
-                        setIsDeleteConfirmOpen(true);
-                      },
-                      variant: 'danger' as const,
-                    },
-                  ]
-                : []),
-            ]}
-          />
-        </div>
-      )}
 
       {/* 삭제 확인 다이얼로그 */}
       <ConfirmDialog
@@ -126,15 +92,13 @@ function RecordDetailHeader({
   isFavorite,
   onBack,
   onFavoriteToggle,
-  onMenuClick,
-  menuButtonRef,
+  onDeleteClick,
 }: {
   title: string;
   isFavorite: boolean;
   onBack?: () => void;
   onFavoriteToggle?: () => void;
-  onMenuClick?: () => void;
-  menuButtonRef: React.RefObject<HTMLButtonElement | null>;
+  onDeleteClick?: () => void;
 }) {
   return (
     <header className="flex items-center justify-between px-4 py-3 bg-white border-b border-gray-100 shrink-0">
@@ -164,15 +128,16 @@ function RecordDetailHeader({
             }`}
           />
         </button>
-        <button
-          ref={menuButtonRef}
-          type="button"
-          onClick={onMenuClick}
-          aria-label="메뉴"
-          className="p-2 rounded-full hover:bg-gray-100 transition-colors"
-        >
-          <MoreVerticalIcon className="w-6 h-6 text-gray-700" />
-        </button>
+        {onDeleteClick && (
+          <button
+            type="button"
+            onClick={onDeleteClick}
+            aria-label="삭제"
+            className="p-2 rounded-full hover:bg-gray-100 transition-colors text-gray-700"
+          >
+            <TrashIcon className="w-6 h-6" />
+          </button>
+        )}
       </div>
     </header>
   );
@@ -204,7 +169,9 @@ function RecordMetaInfo({
         </div>
         <div className="flex items-center gap-1.5 text-sm text-gray-600">
           <LocationIcon className="w-4 h-4" />
-          <span>{location.name}</span>
+          <span>
+            {location.name?.trim() || location.address?.trim() || '장소 없음'}
+          </span>
         </div>
       </div>
       {displayTags.length > 0 && (
@@ -233,16 +200,29 @@ function RecordMetaInfo({
  */
 function RecordContent({
   imageUrl,
+  imageUrls,
   description,
   title,
 }: {
   imageUrl?: string;
+  imageUrls?: string[];
   description: string;
   title: string;
 }) {
+  const hasSlider = (imageUrls?.length ?? 0) > 0;
+  const hasSingleImage = !hasSlider && imageUrl;
+
   return (
     <div className="pb-10">
-      {imageUrl && (
+      {hasSlider ? (
+        <div className="w-full aspect-4/3 mb-6 px-4 rounded-lg overflow-hidden">
+          <RecordImageSlider
+            urls={imageUrls!}
+            alt={title}
+            className="rounded-lg"
+          />
+        </div>
+      ) : hasSingleImage ? (
         <div className="w-full mb-6 px-4">
           <div className="w-full aspect-4/3 rounded-lg overflow-hidden">
             <img
@@ -252,7 +232,7 @@ function RecordContent({
             />
           </div>
         </div>
-      )}
+      ) : null}
       <div className="px-4">
         <p className="text-base text-gray-700 leading-relaxed whitespace-pre-line">
           {description}

@@ -2,20 +2,22 @@ import { Injectable } from '@nestjs/common';
 import { CreateConnectionRequestDto } from './dto/create-connection.request.dto';
 import {
   ConnectionAlreadyExistsException,
+  ConnectionNotFoundException,
   PairConnectionNotFoundException,
   SameRecordConnectionNotAllowedException,
 } from './exceptions/business.exception';
 import { PrismaService } from '@/prisma/prisma.service';
 import { DeletedConnectionDto } from './dto/delete-connection.response.dto';
 import { ConnectionDto } from './dto/create-connection.response.dto';
-import { RecordNotFoundException } from '@/records/exceptions/record.exceptions';
 import { RecordsService } from '@/records/records.service';
+import { RedisService } from '@/redis/redis.service';
 
 @Injectable()
 export class ConnectionsService {
   constructor(
     private readonly prismaService: PrismaService,
     private readonly recordsService: RecordsService,
+    private readonly redisService: RedisService,
   ) {}
 
   async create(
@@ -55,11 +57,16 @@ export class ConnectionsService {
         select: { id: true },
       });
 
+      // 연결 수 증가
       await this.recordsService.incrementConnectionsCount(tx, fromRecord.id, 1);
       await this.recordsService.incrementConnectionsCount(tx, toRecord.id, 1);
 
       return createdConnection;
     });
+
+    // 캐시 삭제
+    await this.redisService.deleteCachedGraph(userId, fromRecord.publicId);
+    await this.redisService.deleteCachedGraph(userId, toRecord.publicId);
 
     return {
       publicId: created.publicId,
@@ -73,32 +80,34 @@ export class ConnectionsService {
     userId: bigint,
     publicId: string,
   ): Promise<DeletedConnectionDto> {
-    const [findOne, findPair] = await this.findPairConnections(
-      userId,
-      publicId,
-    );
+    const { connection, pairConnection, fromRecord, toRecord } =
+      await this.findPairConnections(userId, publicId);
 
     await this.prismaService.$transaction(async (tx) => {
       //양방향 연결 삭제
       await tx.connection.deleteMany({
-        where: { id: { in: [findOne.id, findPair.id] } },
+        where: { id: { in: [connection.id, pairConnection.id] } },
       });
 
       await this.recordsService.incrementConnectionsCount(
         tx,
-        findOne.toRecordId,
+        connection.toRecordId,
         -1,
       );
       await this.recordsService.incrementConnectionsCount(
         tx,
-        findOne.fromRecordId,
+        connection.fromRecordId,
         -1,
       );
     });
 
+    // 캐시 삭제
+    await this.redisService.deleteCachedGraph(userId, fromRecord.publicId);
+    await this.redisService.deleteCachedGraph(userId, toRecord.publicId);
+
     return {
-      publicId: findOne.publicId,
-      pairPublicId: findPair.publicId,
+      publicId: connection.publicId,
+      pairPublicId: pairConnection.publicId,
     };
   }
 
@@ -143,25 +152,34 @@ export class ConnectionsService {
   }
 
   private async findPairConnections(userId: bigint, publicId: string) {
-    const findOne = await this.prismaService.connection.findFirst({
+    const connection = await this.prismaService.connection.findFirst({
       where: { userId, publicId },
     });
 
-    if (!findOne) {
-      throw new RecordNotFoundException(publicId);
+    if (!connection) {
+      throw new ConnectionNotFoundException(publicId);
     }
 
-    const findPair = await this.prismaService.connection.findFirst({
+    const fromRecord = await this.recordsService.findOneById(
+      connection.fromRecordId,
+      userId,
+    );
+    const toRecord = await this.recordsService.findOneById(
+      connection.toRecordId,
+      userId,
+    );
+
+    const pairConnection = await this.prismaService.connection.findFirst({
       where: {
         userId,
-        fromRecordId: findOne.toRecordId,
-        toRecordId: findOne.fromRecordId,
+        fromRecordId: connection.toRecordId,
+        toRecordId: connection.fromRecordId,
       },
     });
 
-    if (!findPair) {
+    if (!pairConnection) {
       throw new PairConnectionNotFoundException(publicId);
     }
-    return [findOne, findPair];
+    return { connection, pairConnection, fromRecord, toRecord };
   }
 }

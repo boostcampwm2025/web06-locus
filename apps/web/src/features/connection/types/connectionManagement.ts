@@ -38,6 +38,10 @@ export interface ConnectionManagementPageProps {
   graphEdges?: GraphEdgeResponse[];
   /** 기준 기록 publicId (D3 네트워크 뷰 강조용) */
   baseRecordPublicId?: string;
+  /** 토글: "더 넓게 탐색" ↔ "현재 기록에 집중" */
+  onExpandGraph?: () => void;
+  /** true = 전체 그래프 뷰, false = 1-depth */
+  isGraphExpanded?: boolean;
   onBack?: () => void;
   onSearchChange?: (value: string) => void;
   onRecordRemove?: (recordId: string) => void;

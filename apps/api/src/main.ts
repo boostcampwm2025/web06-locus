@@ -9,13 +9,18 @@ import { ValidationException } from './common/exceptions/validation.exception';
 import { ValidationError } from 'class-validator';
 
 async function bootstrap() {
+  process.env.TZ = 'Asia/Seoul';
   const app = await NestFactory.create(AppModule);
 
   app.setGlobalPrefix('api');
 
   const allowedOrigins = process.env.CORS_URL
     ? process.env.CORS_URL.split(',').map((origin) => origin.trim())
-    : ['http://localhost:5173'];
+    : [
+        'http://localhost:5173',
+        'https://dev.locus.io.kr',
+        'https://locus.io.kr',
+      ];
 
   app.enableCors({
     origin: allowedOrigins,

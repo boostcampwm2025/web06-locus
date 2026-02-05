@@ -22,6 +22,11 @@ import { useCameraAvailability } from '@/shared/hooks/useCameraAvailability';
 import { useImageUpload } from '@/shared/hooks/useImageUpload';
 import { useViewportMobile } from '@/shared/hooks/useViewportMobile';
 import { useToast } from '@/shared/ui/toast';
+import {
+  isPresignedUrlGenerationError,
+  isImageUploadError,
+  isRecordCreationError,
+} from '@/shared/errors';
 import DraggablePinOverlay from '@/infra/map/marker/DraggablePinOverlay';
 import type {
   RecordWritePageProps,
@@ -190,10 +195,12 @@ export function RecordWritePageMobile({
           tags: tagPublicIds,
         },
         images: selectedImages,
+        previewUrls: previewUrls,
       });
 
       // API 응답을 Record 타입으로 변환
       // response.tags는 객체 배열이므로 태그 이름만 추출
+      // images는 blobPreviewStore에서 관리하므로 여기서는 전달하지 않음
       const record: Record = {
         id: response.publicId,
         text: response.title,
@@ -210,22 +217,29 @@ export function RecordWritePageMobile({
       onSave(record, currentCoordinates);
     } catch (error) {
       console.error('기록 생성 실패:', error);
-      // TODO: 에러 토스트 표시
+
+      let errorMessage = '기록 저장에 실패했습니다.';
+
+      if (isPresignedUrlGenerationError(error)) {
+        errorMessage =
+          '이미지 업로드 URL 생성에 실패했습니다. 잠시 후 다시 시도해주세요.';
+      } else if (isImageUploadError(error)) {
+        errorMessage =
+          '이미지 업로드에 실패했습니다. 네트워크 연결을 확인해주세요.';
+      } else if (isRecordCreationError(error)) {
+        errorMessage = '기록 생성에 실패했습니다. 다시 시도해주세요.';
+      } else if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+
+      showToast({
+        variant: 'error',
+        message: errorMessage,
+      });
     }
   };
 
   const handleDetailSheetClose = () => {
-    setIsDetailSheetOpen(false);
-    setSavedRecord(null);
-  };
-
-  const handleEdit = () => {
-    // TODO: 수정 기능 구현
-    setIsDetailSheetOpen(false);
-  };
-
-  const handleDelete = () => {
-    // TODO: 삭제 기능 구현
     setIsDetailSheetOpen(false);
     setSavedRecord(null);
   };
@@ -284,8 +298,6 @@ export function RecordWritePageMobile({
           isOpen={isDetailSheetOpen}
           onClose={handleDetailSheetClose}
           record={savedRecord}
-          onEdit={handleEdit}
-          onDelete={handleDelete}
         />
       )}
     </div>

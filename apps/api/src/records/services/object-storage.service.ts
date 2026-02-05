@@ -1,17 +1,24 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import {
   S3Client,
   PutObjectCommand,
   DeleteObjectsCommand,
+  HeadObjectCommand,
 } from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import {
   IMAGE_SIZES,
   ImageSize,
+  TEMP_UPLOAD_KEY,
   ProcessedImage,
   UploadedImage,
 } from './object-storage.types';
 import { ImageDeletionFailedException } from '../exceptions/record.exceptions';
+import {
+  IMAGE_UPLOAD_CONFIG,
+  ImageUploadConfig,
+} from '../config/image-upload.config';
 
 @Injectable()
 export class ObjectStorageService {
@@ -20,7 +27,11 @@ export class ObjectStorageService {
   private readonly bucketName: string;
   private readonly publicUrl: string;
 
-  constructor(private configService: ConfigService) {
+  constructor(
+    private configService: ConfigService,
+    @Inject(IMAGE_UPLOAD_CONFIG)
+    private readonly imageUploadConfig: ImageUploadConfig,
+  ) {
     this.bucketName = this.configService.getOrThrow<string>('NCP_BUCKET_NAME');
     this.publicUrl = this.configService.getOrThrow<string>('NCP_PUBLIC_URL');
 
@@ -141,13 +152,103 @@ export class ObjectStorageService {
     }
   }
 
-  private buildKey(
+  buildKey(
     userPublicId: string,
     recordPublicId: string,
     imageId: string,
-    size: ImageSize,
+    variant: ImageSize | typeof TEMP_UPLOAD_KEY,
   ): string {
-    return `records/${userPublicId}/${recordPublicId}/${imageId}/${size}.jpg`;
+    return `records/${userPublicId}/${recordPublicId}/${imageId}/${variant}.jpg`;
+  }
+
+  /**
+   * Presigned URL 생성
+   * @param key - S3 객체 키
+   * @param expiresIn - 만료 시간 (초 단위, 기본 1시간)
+   * @returns presigned URL
+   */
+  async generatePresignedUrl(key: string, expiresIn = 3600): Promise<string> {
+    const command = new PutObjectCommand({
+      Bucket: this.bucketName,
+      Key: key,
+      ContentType: 'image/jpeg',
+      ACL: 'public-read',
+    });
+
+    return await getSignedUrl(this.s3Client, command, { expiresIn });
+  }
+
+  /**
+   * S3 객체 존재 여부 확인 (HEAD 요청)
+   * @param key - S3 객체 키
+   * @returns 존재 여부
+   */
+  async checkExists(key: string): Promise<boolean> {
+    try {
+      const command = new HeadObjectCommand({
+        Bucket: this.bucketName,
+        Key: key,
+      });
+      await this.s3Client.send(command);
+      return true;
+    } catch (error: unknown) {
+      // NotFound 에러 체크
+      if (error instanceof Error && error.name === 'NotFound') {
+        return false;
+      }
+      // 404 상태 코드 체크
+      if (typeof error === 'object' && error !== null && '$metadata' in error) {
+        const awsError = error as { $metadata?: { httpStatusCode?: number } };
+        if (awsError.$metadata?.httpStatusCode === 404) {
+          return false;
+        }
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * S3 객체 존재 여부 확인 (재시도 포함)
+   *
+   * 네트워크 지연이나 일시적 업로드 중인 상황을 처리하기 위해
+   * 설정된 횟수만큼 재시도(Polling)합니다.
+   *
+   * @param key - S3 객체 키
+   * @returns 존재 여부
+   */
+  async checkExistsWithRetry(key: string): Promise<boolean> {
+    const { maxRetries, retryDelayMs } = this.imageUploadConfig.headCheck;
+
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      const exists = await this.checkExists(key);
+
+      if (exists) {
+        if (attempt > 1) {
+          this.logger.log(`Object found after ${attempt} attempts: ${key}`);
+        }
+        return true;
+      }
+
+      // 마지막 시도가 아니면 대기
+      if (attempt < maxRetries) {
+        this.logger.debug(
+          `Object not found, retrying (${attempt}/${maxRetries}): ${key}`,
+        );
+        await new Promise((resolve) => setTimeout(resolve, retryDelayMs));
+      }
+    }
+
+    this.logger.warn(`Object not found after ${maxRetries} attempts: ${key}`);
+    return false;
+  }
+
+  /**
+   * S3 키로부터 전체 URL 생성
+   * @param key - S3 객체 키
+   * @returns 전체 URL
+   */
+  buildUrl(key: string): string {
+    return `${this.publicUrl}/${key}`;
   }
 
   /**

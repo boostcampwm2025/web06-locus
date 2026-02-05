@@ -24,6 +24,8 @@ export interface Record {
   tags: string[];
   location: Location;
   createdAt: Date;
+  /** 이미지 URL 목록 (medium 등). 클러스터 바텀시트 갤러리 등에서 사용 */
+  images?: string[];
 }
 
 /**
@@ -68,6 +70,15 @@ export interface ImageSelectBottomSheetProps {
 }
 
 /**
+ * 장소에 기록 추가 시 전달할 위치 정보 (위도/경도 필수)
+ */
+export interface LocationWithCoordinates {
+  name: string;
+  address: string;
+  coordinates: { lat: number; lng: number };
+}
+
+/**
  * 기록 요약 바텀시트 Props
  * record는 Record 객체 또는 publicId 문자열을 받을 수 있음
  * publicId인 경우 내부에서 API로 상세 정보를 조회함
@@ -76,9 +87,28 @@ export interface RecordSummaryBottomSheetProps {
   isOpen: boolean;
   onClose: () => void;
   record: Record | string; // Record 객체 또는 publicId
-  isDeleting?: boolean;
-  onEdit?: () => void;
-  onDelete?: () => void;
+  /** 장소에 기록 추가 시 (record에 좌표가 있을 때만 + 버튼 표시) */
+  onAddRecord?: (location: LocationWithCoordinates) => void;
+  /** record가 객체일 때 좌표 전달 (savedRecord.coordinates 등) */
+  recordCoordinates?: Coordinates;
+  /** "이 장소와 연결된 기록 확인" 버튼 클릭 시 */
+  onShowLinkedRecords?: () => void;
+  /** 연결된 기록이 있을 때만 해당 버튼 노출 (graph edges > 0) */
+  hasConnectedRecords?: boolean;
+}
+
+/**
+ * 클러스터(그리드) 기록 바텀시트 Props
+ * 대표 1개 기록 요약 + 슬라이드업 시 해당 그리드 전체 기록 목록
+ */
+export interface ClusterRecordBottomSheetProps {
+  isOpen: boolean;
+  onClose: () => void;
+  topRecord: Record /** 대표 기록 (가장 최상단, 예: 최신) */;
+  clusterRecords: Record[] /** 해당 그리드의 전체 기록 (topRecord 포함, 최소 1개) */;
+  onRecordClick?: (
+    recordId: string,
+  ) => void /** 목록에서 기록 클릭 시 (상세 페이지 이동 등) */;
 }
 
 /**
@@ -88,13 +118,23 @@ export interface RecordSummaryHeaderProps {
   title: string;
   date: Date | string;
   onClose: () => void;
+  /** 휴지통 아이콘 클릭 시 (삭제 확인 모달 열기) */
+  onDeleteClick?: () => void;
 }
 
 /**
  * 기록 위치 카드 Props
  */
 export interface RecordLocationCardProps {
-  location: Location;
+  location: Location & { coordinates?: { lat: number; lng: number } };
+  /** 장소에 기록 추가 시 (coordinates 있을 때만 + 버튼 표시) */
+  onAddRecord?: (location: LocationWithCoordinates) => void;
+  /** 연결된 기록이 있을 때만 "이 장소와 연결된 기록 확인" 버튼 표시 */
+  hasConnectedRecords?: boolean;
+  /** 해당 버튼 클릭 시 (바텀시트 닫고 연결선 표시 등) */
+  onShowLinkedRecords?: () => void;
+  /** 버튼만 있을 때 닫기용 */
+  onClose?: () => void;
 }
 
 /**
@@ -114,10 +154,15 @@ export interface RecordSummaryContentProps
   title: string;
   date: Date | string;
   content: string;
-  isDeleting: boolean;
-  onEdit?: () => void;
-  onDelete?: () => void;
+  /** 이미지 URL 목록. 있으면 갤러리 영역 표시 */
+  images?: string[];
   onClose: () => void;
+  /** "이 장소와 연결된 기록 확인" 버튼 클릭 시 */
+  onShowLinkedRecords?: () => void;
+  /** 연결된 기록이 있을 때만 해당 버튼 노출 */
+  hasConnectedRecords?: boolean;
+  /** 휴지통 아이콘 클릭 시 (삭제 확인 모달 열기) */
+  onDeleteClick?: () => void;
 }
 
 /**
@@ -216,7 +261,10 @@ export interface RecordDetailPageProps {
   location: Location;
   tags: string[];
   description: string;
+  /** 단일 이미지 (하위 호환). imageUrls가 있으면 슬라이더로 모두 표시 */
   imageUrl?: string;
+  /** 기록에 올라온 이미지 URL 목록. 있으면 슬라이더로 표시 */
+  imageUrls?: string[];
   connectionCount: number;
   connectedRecords?: ConnectedRecord[];
   /** GET /records/{publicId}/graph 응답의 nodes (데스크톱 사이드패널 D3 뷰용) */
@@ -225,6 +273,10 @@ export interface RecordDetailPageProps {
   graphEdges?: GraphEdgeResponse[];
   /** 현재 기록의 publicId (D3 뷰 base 노드 강조용) */
   baseRecordPublicId?: string;
+  /** 토글: "더 넓게 탐색" ↔ "현재 기록에 집중" (전체 그래프로 갈 때만 캐시 무시 재조회) */
+  onExpandGraph?: () => void;
+  /** true = 전체 그래프 뷰, false = 1-depth(현재 기록에 집중) */
+  isGraphExpanded?: boolean;
   isFavorite?: boolean;
   onBack?: () => void;
   onFavoriteToggle?: () => void;
