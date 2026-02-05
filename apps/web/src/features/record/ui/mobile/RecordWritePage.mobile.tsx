@@ -200,6 +200,7 @@ export function RecordWritePageMobile({
 
       // API 응답을 Record 타입으로 변환
       // response.tags는 객체 배열이므로 태그 이름만 추출
+      // images는 blobPreviewStore에서 관리하므로 여기서는 전달하지 않음
       const record: Record = {
         id: response.publicId,
         text: response.title,

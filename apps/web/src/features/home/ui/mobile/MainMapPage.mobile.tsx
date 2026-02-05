@@ -124,6 +124,7 @@ export function MainMapPageMobile() {
     const state = location.state as MainMapPageLocationState | null;
 
     if (state?.savedRecord) {
+      // images는 blobPreviewStore에서 관리하므로 여기서는 포함하지 않음
       const newRecord: Record = {
         id: state.savedRecord.id,
         text: state.savedRecord.text,

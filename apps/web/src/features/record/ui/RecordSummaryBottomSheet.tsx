@@ -23,6 +23,7 @@ import type {
 } from '../types';
 import { extractTagNames } from '@/shared/utils/tagUtils';
 import type { Coordinates } from '../types';
+import { useBlobPreviewStore } from '../domain/blobPreviewStore';
 
 export default function RecordSummaryBottomSheet({
   isOpen,
@@ -35,6 +36,9 @@ export default function RecordSummaryBottomSheet({
   recordCoordinates,
 }: RecordSummaryBottomSheetProps) {
   const publicId = typeof record === 'string' ? record : record.id;
+
+  // Blob URL 조회 (React Hook 규칙 - early return 이전에 호출)
+  const getBlobUrl = useBlobPreviewStore((state) => state.getBlobUrl);
 
   // 1. 상세 정보 조회 Hook (ID로 넘어왔을 때만 활성화)
   const {
@@ -74,11 +78,23 @@ export default function RecordSummaryBottomSheet({
     );
   }
 
-  // 이미지 URL 목록 추출 (API 응답: medium → thumbnail → original)
-  const getImageUrls = (detail: RecordDetail): string[] => {
+  // 이미지 URL 목록 추출 (Blob URL → API 응답: medium → thumbnail → original)
+  const getImageUrls = (
+    detail: RecordDetail,
+    recordPublicId: string,
+    getBlobUrlFn: (id: string) => string | undefined,
+  ): string[] => {
     const list = detail.images ?? [];
+    const blobUrl = getBlobUrlFn(recordPublicId);
+
     return list
-      .map((img) => img.medium?.url ?? img.thumbnail?.url ?? img.original?.url)
+      .map((img, index) => {
+        // 첫 번째 이미지만 Blob URL 우선 적용
+        if (index === 0 && blobUrl) {
+          return blobUrl;
+        }
+        return img.medium?.url ?? img.thumbnail?.url ?? img.original?.url;
+      })
       .filter((url): url is string => Boolean(url));
   };
 
@@ -97,17 +113,38 @@ export default function RecordSummaryBottomSheet({
   // 데이터 가공 (직접 전달받은 경우 vs API에서 가져온 경우)
   const displayData =
     typeof record !== 'string'
-      ? {
-          title: extractTitle(record.text),
-          date: record.createdAt,
-          location: {
-            ...record.location,
-            coordinates: coords,
-          },
-          tags: Array.isArray(record.tags) ? extractTagNames(record.tags) : [],
-          content: record.text,
-          images: record.images,
-        }
+      ? (() => {
+          // 직접 전달받은 경우: Blob URL 우선, 없으면 record.images 사용
+          const blobUrl = getBlobUrl(publicId);
+          const images = (() => {
+            const recordImages = record.images ?? [];
+
+            // blobUrl이 있으면 우선 사용 (record.images가 없어도)
+            if (blobUrl) {
+              if (recordImages.length > 0) {
+                return [blobUrl, ...recordImages.slice(1)];
+              }
+              return [blobUrl]; // blobUrl만 있어도 표시
+            }
+
+            // blobUrl이 없으면 record.images 사용
+            return recordImages.length > 0 ? recordImages : undefined;
+          })();
+
+          return {
+            title: extractTitle(record.text),
+            date: record.createdAt,
+            location: {
+              ...record.location,
+              coordinates: coords,
+            },
+            tags: Array.isArray(record.tags)
+              ? extractTagNames(record.tags)
+              : [],
+            content: record.text,
+            images,
+          };
+        })()
       : recordDetail
         ? {
             title: extractTitle(recordDetail.title),
@@ -119,7 +156,7 @@ export default function RecordSummaryBottomSheet({
             },
             tags: recordDetail.tags?.map((tag) => tag.name) ?? [],
             content: recordDetail.content ?? '',
-            images: getImageUrls(recordDetail),
+            images: getImageUrls(recordDetail, publicId, getBlobUrl),
           }
         : {
             title: '',
