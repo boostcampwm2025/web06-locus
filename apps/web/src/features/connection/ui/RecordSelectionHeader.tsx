@@ -21,23 +21,23 @@ export default function RecordSelectionHeader({
       className={['flex gap-3 px-4 py-3', className].filter(Boolean).join(' ')}
     >
       <SelectionButton
-        label="출발"
-        placeholder="출발 기록 선택"
+        label="기억의 조각"
+        placeholder="기억 선택"
         dotClassName="bg-green-500"
         selected={departure}
         onClick={onDepartureClick}
         onClear={onDepartureClear}
-        clearAriaLabel="출발 기록 취소"
+        clearAriaLabel="기억 찾기 취소"
       />
 
       <SelectionButton
-        label="도착"
-        placeholder="도착 기록 선택"
+        label="연결된 기억"
+        placeholder="연결할 기억 찾기"
         dotClassName="bg-red-500"
         selected={arrival}
         onClick={onArrivalClick}
         onClear={onArrivalClear}
-        clearAriaLabel="도착 기록 취소"
+        clearAriaLabel="연결할 기억 취소"
       />
     </div>
   );

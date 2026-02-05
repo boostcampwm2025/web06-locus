@@ -1,4 +1,5 @@
 import { useMemo, useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { ChevronLeftIcon } from '@/shared/ui/icons/ChevronLeftIcon';
 import type {
   RecordConnectionPageProps,
@@ -50,9 +51,33 @@ export default function RecordConnectionPage({
     connect,
   } = useRecordConnection();
 
-  // 연결 페이지 진입 시마다 출발/도착 선택 초기화 (이전 연결 흔적 제거)
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  // 연결 페이지 진입 시 한 번만: 기록 상세에서 온 경우 해당 기록을 출발로 설정, 아니면 초기화
   useEffect(() => {
-    useConnectionStore.getState().reset();
+    const state = location.state as
+      | {
+          fromRecord?: {
+            id: string;
+            title: string;
+            location: { name: string; address: string };
+          };
+        }
+      | undefined;
+    const fromRecord = state?.fromRecord;
+    const store = useConnectionStore.getState();
+    store.reset();
+    if (fromRecord) {
+      store.selectDeparture({
+        ...fromRecord,
+        date: new Date(),
+        tags: [],
+      });
+      void navigate(location.pathname, { replace: true, state: {} });
+    }
+    // 마운트 시 초기 location.state만 반영 (의존성 추가 시 state 제거 후 재실행 방지)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // 연결 생성 mutation
