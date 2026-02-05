@@ -732,7 +732,7 @@ function RecordSummaryPanel({
               <img
                 src={imageUrl}
                 alt={recordDetail.title}
-                className="w-auto max-w-full h-auto max-h-[70vh] object-cover group-hover:scale-105 transition-all duration-700 relative z-10"
+                className="w-auto max-w-full h-auto max-h-[300px] object-cover group-hover:scale-105 transition-all duration-700 relative z-10"
                 onLoad={(e) => {
                   const img = e.currentTarget;
                   const skeleton = img.previousElementSibling as HTMLElement;
