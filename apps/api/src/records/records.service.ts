@@ -83,7 +83,7 @@ export class RecordsService {
     return this.createRecordWithoutImages(userId, dto);
   }
 
-  async generateUploadUrls(
+  async generatePresignedUrls(
     userId: bigint,
     count: number,
   ): Promise<GenerateUploadUrlsResponseDto> {

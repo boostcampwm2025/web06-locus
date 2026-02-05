@@ -100,11 +100,11 @@ export class RecordsController {
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Presigned URL 생성' })
   @ApiBearerAuth()
-  async generateUploadUrls(
+  async generatePresignedUrls(
     @CurrentUser('sub') userId: bigint,
     @Body() dto: GenerateUploadUrlsRequestDto,
   ): Promise<GenerateUploadUrlsResponseDto> {
-    return await this.recordsService.generateUploadUrls(userId, dto.count);
+    return await this.recordsService.generatePresignedUrls(userId, dto.count);
   }
 
   @Post('with-presigned-images')
