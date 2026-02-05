@@ -3,7 +3,6 @@ import type {
   Record as ApiRecord,
   SearchRecordItem,
   GraphNode,
-  Image,
 } from '@locus/shared';
 import type { GraphEdgeResponse } from '@/infra/types/connection';
 
@@ -358,16 +357,3 @@ export interface SearchRecordsData {
     totalCount: number;
   };
 }
-
-/**
- * 클라이언트 전용: 로컬 미리보기 URL을 포함한 이미지 타입
- *
- * @property localPreviewUrl
- *
- * 기록 생성 직후 임시 미리보기용 Blob URL
- * React Query 캐시에 런타임으로 동적 추가됨
- * RecordImage 컴포넌트에서 useState로 캐시하여 사용
- */
-export type ImageWithPreview = Image & {
-  localPreviewUrl?: string;
-};
