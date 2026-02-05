@@ -11,10 +11,12 @@ import {
   RecordCreationError,
 } from '@/shared/errors';
 import type { CreateRecordRequest, RecordWithImages } from '@locus/shared';
+import { useBlobPreviewStore } from '../domain/blobPreviewStore';
 
 interface CreateRecordParams {
   request: CreateRecordRequest;
   images?: File[];
+  previewUrls?: string[];
 }
 
 /**
@@ -72,9 +74,24 @@ export function useCreateRecord() {
         throw new RecordCreationError('기록 생성에 실패했습니다.', error);
       }
     },
-    onSuccess: () => {
-      // 기록 목록 캐시 무효화하여 자동 refetch
-      void queryClient.invalidateQueries({ queryKey: ['records'] });
+    onSuccess: (data, variables) => {
+      // Blob URL을 Store에 저장 (React Query 캐시와 분리)
+      if (variables.previewUrls?.[0]) {
+        useBlobPreviewStore
+          .getState()
+          .setBlobUrl(data.publicId, variables.previewUrls[0]);
+      }
+
+      // React Query 캐시 업데이트 (순수한 서버 데이터만)
+      queryClient.setQueryData<RecordWithImages[]>(['records'], (old = []) => [
+        data,
+        ...old,
+      ]);
+
+      queryClient.setQueryData<RecordWithImages>(
+        ['record', 'detail', data.publicId],
+        data,
+      );
     },
   });
 }
