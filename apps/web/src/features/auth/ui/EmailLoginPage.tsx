@@ -99,7 +99,7 @@ export default function EmailLoginPage() {
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full px-4 py-3 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors font-extralight disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full px-4 py-3 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors font-normal disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isLoading ? '로그인 중...' : '로그인'}
           </button>

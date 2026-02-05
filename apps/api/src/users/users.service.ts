@@ -87,6 +87,14 @@ export class UsersService {
     return user;
   }
 
+  async findNickNameById(id: bigint): Promise<string> {
+    const user = await this.prisma.user.findUnique({ where: { id } });
+
+    if (!user) throw new UserNotFoundException();
+    const nickname = user.nickname ?? '';
+    return nickname;
+  }
+
   async isExistsByEmail(email: string): Promise<boolean> {
     const user = await this.prisma.user.findUnique({ where: { email } });
     if (!user) return false;

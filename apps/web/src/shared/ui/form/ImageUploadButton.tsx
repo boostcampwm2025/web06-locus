@@ -41,6 +41,8 @@ export default function ImageUploadButton({
         <ImageUploadMobileTrigger
           isDisabled={isDisabled}
           isCompressing={isCompressing}
+          maxFiles={maxFiles}
+          currentCount={selectedImages.length}
           onMobileAddClick={onMobileAddClick}
           onFilesSelected={onMobileAddClick ? undefined : onFilesSelected}
         />
@@ -55,20 +57,26 @@ export default function ImageUploadButton({
   );
 }
 
-/** 모바일 "이미지 추가" 트리거. 바텀시트용 버튼 또는 파일 input 연동 label */
+/** 모바일 "이미지 추가" 트리거. 바텀시트용 버튼 또는 파일 input 연동 label. 최대 개수·현재 개수 표시로 데스크톱과 동일한 UX 제공. */
 function ImageUploadMobileTrigger({
   isDisabled,
   isCompressing,
+  maxFiles = 5,
+  currentCount = 0,
   onMobileAddClick,
   onFilesSelected,
 }: {
   isDisabled: boolean;
   isCompressing: boolean;
+  maxFiles?: number;
+  currentCount?: number;
   onMobileAddClick?: () => void;
   onFilesSelected?: (files: File[]) => void | Promise<void>;
 }) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const inputId = useId();
+  const atLimit = currentCount >= maxFiles;
+  const disabled = isDisabled || atLimit;
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files ?? []);
@@ -80,28 +88,51 @@ function ImageUploadMobileTrigger({
     }
   };
 
+  const getButtonLabel = () => {
+    if (isCompressing) return '처리 중...';
+    if (atLimit) return '최대 개수에 도달했어요';
+    return `이미지 추가 (${currentCount}/${maxFiles})`;
+  };
+
+  const getSubMessage = () => {
+    if (isCompressing) return '잠시만 기다려주세요';
+    if (atLimit) return `최대 ${maxFiles}개까지만 등록할 수 있습니다.`;
+    return `최대 ${maxFiles}개 가능`;
+  };
+
   const triggerContent = (
-    <span className="contents">
-      <ImageIcon className="w-6 h-6 text-gray-400" />
-      <span className="text-gray-600 text-sm">
-        {isCompressing ? '처리 중...' : '이미지 추가'}
+    <span className="flex flex-col items-center gap-0.5">
+      <span className="flex items-center gap-3">
+        <ImageIcon
+          className={`w-6 h-6 ${atLimit ? 'text-gray-300' : 'text-gray-400'}`}
+        />
+        <span
+          className={`text-sm font-medium ${
+            atLimit ? 'text-gray-400' : 'text-gray-600'
+          }`}
+        >
+          {getButtonLabel()}
+        </span>
       </span>
+      <span className="text-xs text-gray-400">{getSubMessage()}</span>
     </span>
   );
 
   const baseClass =
-    'w-full px-4 py-4 border border-gray-200 rounded-xl flex items-center justify-center gap-3 hover:bg-gray-50 transition-colors';
+    'w-full px-4 py-4 border border-gray-200 rounded-xl flex flex-col items-center justify-center gap-1 hover:bg-gray-50 transition-colors';
 
   if (onMobileAddClick) {
     return (
-      <button
-        type="button"
-        onClick={onMobileAddClick}
-        disabled={isDisabled}
-        className={`${baseClass} disabled:opacity-50 disabled:cursor-not-allowed`}
-      >
-        {triggerContent}
-      </button>
+      <div className="w-full">
+        <button
+          type="button"
+          onClick={onMobileAddClick}
+          disabled={disabled}
+          className={`${baseClass} disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent`}
+        >
+          {triggerContent}
+        </button>
+      </div>
     );
   }
 
@@ -110,7 +141,7 @@ function ImageUploadMobileTrigger({
       <label
         htmlFor={inputId}
         className={`${baseClass} cursor-pointer ${
-          isDisabled ? 'opacity-50 cursor-not-allowed pointer-events-none' : ''
+          disabled ? 'opacity-50 cursor-not-allowed pointer-events-none' : ''
         }`}
       >
         {triggerContent}
@@ -123,7 +154,7 @@ function ImageUploadMobileTrigger({
         multiple
         onChange={handleFileChange}
         className="hidden"
-        disabled={isDisabled}
+        disabled={disabled}
       />
     </>
   );
