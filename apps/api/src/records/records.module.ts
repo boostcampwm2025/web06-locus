@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { RecordsController } from './records.controller';
+import { WebhooksController } from './webhooks/webhooks.controller';
 import { RecordsService } from './records.service';
 import { MapsService } from '../maps/maps.service';
 import { PrismaModule } from '@/prisma/prisma.module';
@@ -18,6 +19,8 @@ import { RecordGraphService } from './services/records-graph.service';
 import { RecordLocationService } from './services/records-location.service';
 import { RecordQueryService } from './services/records-query.service';
 import { RecordImageService } from './services/records-image.service';
+import { ImageUploadConfigProvider } from './config/image-upload.config';
+import { RedisModule } from '@/redis/redis.module';
 
 @Module({
   imports: [
@@ -27,9 +30,11 @@ import { RecordImageService } from './services/records-image.service';
     OutboxModule,
     TagsModule,
     ImagesModule,
+    RedisModule,
   ],
-  controllers: [RecordsController, RecordSyncConsumer],
+  controllers: [RecordsController, WebhooksController, RecordSyncConsumer],
   providers: [
+    ImageUploadConfigProvider,
     RecordsService,
     RecordSearchService,
     RecordTagsService,

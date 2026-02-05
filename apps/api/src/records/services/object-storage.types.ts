@@ -4,6 +4,9 @@ export const IMAGE_SIZE = {
   ORIGINAL: 'original',
 } as const;
 
+// 임시 업로드용 키 (presigned URL 전용, Cloud Functions 처리 후 삭제됨)
+export const TEMP_UPLOAD_KEY = 'pre-resizing' as const;
+
 // 타입 추출: 'thumbnail' | 'medium' | 'original'
 export type ImageSize = (typeof IMAGE_SIZE)[keyof typeof IMAGE_SIZE];
 

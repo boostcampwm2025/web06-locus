@@ -17,6 +17,8 @@ export interface UIRecord {
   imageUrl?: string;
   /** 연결된 기록 개수 (all/검색 API 등에서 제공) */
   connectionCount?: number;
+  /** 즐겨찾기 여부 (GET /records/all 등에서 제공) */
+  isFavorite?: boolean;
 }
 
 /**
@@ -35,7 +37,7 @@ export function transformRecordApiToUI(record: ApiRecord): UIRecord {
 
   const thumbnailUrl =
     recordWithImages.images && recordWithImages.images.length > 0
-      ? recordWithImages.images[0].thumbnail.url
+      ? recordWithImages.images[0].thumbnail?.url
       : RECORD_PLACEHOLDER_IMAGE;
 
   return {

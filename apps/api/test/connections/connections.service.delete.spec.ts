@@ -1,8 +1,11 @@
 import { ConnectionsService } from '@/connections/connections.service';
 import { PrismaService } from '@/prisma/prisma.service';
-import { PairConnectionNotFoundException } from '@/connections/exceptions/business.exception';
-import { RecordNotFoundException } from '@/records/exceptions/record.exceptions';
+import {
+  ConnectionNotFoundException,
+  PairConnectionNotFoundException,
+} from '@/connections/exceptions/business.exception';
 import { RecordsService } from '@/records/records.service';
+import { RedisService } from '@/redis/redis.service';
 
 interface PrismaMock {
   record: { findUnique: jest.Mock };
@@ -18,6 +21,12 @@ interface PrismaMock {
 describe('ConnectionsService - delete / findPairConnections', () => {
   let service: ConnectionsService;
   let prismaServiceMock: PrismaMock;
+  let recordsServiceMock: {
+    findOneByPublicId: jest.Mock;
+    incrementConnectionsCount: jest.Mock;
+    findOneById: jest.Mock;
+  };
+  let redisServiceMock: { deleteCachedGraph: jest.Mock };
 
   beforeEach(() => {
     prismaServiceMock = {
@@ -31,21 +40,27 @@ describe('ConnectionsService - delete / findPairConnections', () => {
       $transaction: jest.fn(),
     };
 
-    const recordsServiceMock = {
+    recordsServiceMock = {
       findOneByPublicId: jest.fn(),
       incrementConnectionsCount: jest.fn(),
+      findOneById: jest.fn(),
+    };
+
+    redisServiceMock = {
+      deleteCachedGraph: jest.fn(),
     };
 
     service = new ConnectionsService(
       prismaServiceMock as unknown as PrismaService,
       recordsServiceMock as unknown as RecordsService,
+      redisServiceMock as unknown as RedisService,
     );
 
     jest.clearAllMocks();
   });
 
   describe('findPairConnections', () => {
-    test('publicId에 해당하는 연결이 없으면 RecordNotFoundException을 던진다', async () => {
+    test('publicId에 해당하는 연결이 없으면 ConnectionNotFoundException을 던진다', async () => {
       const userId = 1n;
       const publicId = 'conn_aaa';
 
@@ -54,7 +69,7 @@ describe('ConnectionsService - delete / findPairConnections', () => {
       // private 메서드라서 캐스팅으로 접근
       await expect(
         (service as any).findPairConnections(userId, publicId),
-      ).rejects.toBeInstanceOf(RecordNotFoundException);
+      ).rejects.toBeInstanceOf(ConnectionNotFoundException);
 
       expect(prismaServiceMock.connection.findFirst).toHaveBeenCalledTimes(1);
       expect(prismaServiceMock.connection.findFirst).toHaveBeenCalledWith({
@@ -76,6 +91,10 @@ describe('ConnectionsService - delete / findPairConnections', () => {
       prismaServiceMock.connection.findFirst
         .mockResolvedValueOnce(findOne) // 첫 번째 findFirst 결과
         .mockResolvedValueOnce(null); // pair findFirst 결과 없음
+
+      recordsServiceMock.findOneById
+        .mockResolvedValueOnce({ id: 10n, userId })
+        .mockResolvedValueOnce({ id: 20n, userId });
 
       await expect(
         (service as any).findPairConnections(userId, publicId),
@@ -124,25 +143,34 @@ describe('ConnectionsService - delete / findPairConnections', () => {
         .mockResolvedValueOnce(findOne)
         .mockResolvedValueOnce(findPair);
 
+      recordsServiceMock.findOneById
+        .mockResolvedValueOnce({ id: 10n, userId, publicId: 'rec_a' })
+        .mockResolvedValueOnce({ id: 20n, userId, publicId: 'rec_b' });
+
       const result = await (service as any).findPairConnections(
         userId,
         publicId,
       );
 
-      expect(result).toEqual([findOne, findPair]);
+      expect(result).toEqual({
+        connection: findOne,
+        pairConnection: findPair,
+        fromRecord: { id: 10n, userId, publicId: 'rec_a' },
+        toRecord: { id: 20n, userId, publicId: 'rec_b' },
+      });
       expect(prismaServiceMock.connection.findFirst).toHaveBeenCalledTimes(2);
     });
   });
 
   describe('delete', () => {
-    test('publicId에 해당하는 연결이 없으면 RecordNotFoundException을 던지고, 트랜잭션 삭제는 호출하지 않는다', async () => {
+    test('publicId에 해당하는 연결이 없으면 ConnectionNotFoundException을 던지고, 트랜잭션 삭제는 호출하지 않는다', async () => {
       const userId = 1n;
       const publicId = 'conn_aaa';
 
       prismaServiceMock.connection.findFirst.mockResolvedValueOnce(null);
 
       await expect(service.delete(userId, publicId)).rejects.toBeInstanceOf(
-        RecordNotFoundException,
+        ConnectionNotFoundException,
       );
 
       expect(prismaServiceMock.$transaction).not.toHaveBeenCalled();
@@ -163,6 +191,10 @@ describe('ConnectionsService - delete / findPairConnections', () => {
       prismaServiceMock.connection.findFirst
         .mockResolvedValueOnce(findOne)
         .mockResolvedValueOnce(null);
+
+      recordsServiceMock.findOneById
+        .mockResolvedValueOnce({ id: 10n, userId, publicId: 'rec_a' })
+        .mockResolvedValueOnce({ id: 20n, userId, publicId: 'rec_b' });
 
       await expect(service.delete(userId, publicId)).rejects.toBeInstanceOf(
         PairConnectionNotFoundException,
@@ -191,6 +223,12 @@ describe('ConnectionsService - delete / findPairConnections', () => {
       prismaServiceMock.connection.findFirst
         .mockResolvedValueOnce(findOne)
         .mockResolvedValueOnce(findPair);
+
+      recordsServiceMock.findOneById
+        .mockResolvedValueOnce({ id: 10n, userId, publicId: 'rec_a' })
+        .mockResolvedValueOnce({ id: 20n, userId, publicId: 'rec_b' });
+
+      recordsServiceMock.incrementConnectionsCount.mockResolvedValue(undefined);
 
       // deleteMany는 실제 결과를 사용하지 않으므로 대충 반환
       prismaServiceMock.connection.deleteMany.mockResolvedValue({} as any);

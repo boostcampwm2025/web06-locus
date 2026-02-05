@@ -7,7 +7,6 @@ import { LocationIcon } from '@/shared/ui/icons/LocationIcon';
 import { XIcon } from '@/shared/ui/icons/XIcon';
 import { ChevronDownIcon } from '@/shared/ui/icons/ChevronDownIcon';
 import { ChevronRightIcon } from '@/shared/ui/icons/ChevronRightIcon';
-import { BookmarkIcon } from '@/shared/ui/icons/BookmarkIcon';
 import { ClockIcon } from '@/shared/ui/icons/ClockIcon';
 import { ImageIcon } from '@/shared/ui/icons/ImageIcon';
 import { ImageWithFallback } from '@/shared/ui/image';
@@ -67,13 +66,6 @@ export default function ClusterRecordBottomSheet({
                 aria-label="닫기"
               >
                 <XIcon className="w-5 h-5" />
-              </button>
-              <button
-                type="button"
-                className="p-2.5 bg-gray-50 rounded-full text-gray-400 hover:text-blue-500 hover:bg-blue-50 transition-all active:scale-90"
-                aria-label="북마크"
-              >
-                <BookmarkIcon className="w-5 h-5" />
               </button>
             </div>
           </div>

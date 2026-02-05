@@ -11,7 +11,6 @@ import ToastErrorMessage from '@/shared/ui/alert/ToastErrorMessage';
 import RecordSummaryBottomSheet from '@/features/record/ui/RecordSummaryBottomSheet';
 import TagManagementModal from '@/features/record/ui/TagManagementModal';
 import { useGetTags } from '@/features/record/hooks/useGetTags';
-import { useDeleteRecord } from '@/features/record/hooks/useDeleteRecord';
 import { useAuthStore } from '@/features/auth/domain/authStore';
 import { useBottomTabNavigation } from '@/shared/hooks/useBottomTabNavigation';
 import { useGeocodeSearch } from '@/features/home/hooks/useGeocodeSearch';
@@ -44,7 +43,6 @@ export function MainMapPageMobile() {
 
   // 알림 상태 관리
   const [showSuccessToast, setShowSuccessToast] = useState(false);
-  const [showDeleteErrorToast, setShowDeleteErrorToast] = useState(false);
 
   // 생성된 기록들을 누적해서 관리
   const [createdRecordPins, setCreatedRecordPins] = useState<
@@ -81,12 +79,7 @@ export function MainMapPageMobile() {
   } = useGeocodeSearch('');
 
   /**
-   * 3. 기록 삭제 훅
-   */
-  const deleteRecordMutation = useDeleteRecord();
-
-  /**
-   * 4. 캐시 및 로컬 스토리지 동기화
+   * 3. 캐시 및 로컬 스토리지 동기화
    */
   useEffect(() => {
     const updateCreatedRecordPins = () => {
@@ -124,12 +117,14 @@ export function MainMapPageMobile() {
     const state = location.state as MainMapPageLocationState | null;
 
     if (state?.savedRecord) {
+      // images는 blobPreviewStore에서 관리하므로 여기서는 포함하지 않음
       const newRecord: Record = {
         id: state.savedRecord.id,
         text: state.savedRecord.text,
         tags: state.savedRecord.tags,
         location: state.savedRecord.location,
         createdAt: state.savedRecord.createdAt,
+        images: state.savedRecord.images,
       };
 
       setSavedRecord(newRecord);
@@ -169,7 +164,6 @@ export function MainMapPageMobile() {
 
   /** 핸들러 */
   const handleDetailSheetClose = () => {
-    if (deleteRecordMutation.isPending) return; // 삭제 중엔 닫기 방지
     setIsDetailSheetOpen(false);
     setSavedRecord(null);
     setSavedRecordCoordinates(null);
@@ -252,12 +246,6 @@ export function MainMapPageMobile() {
             variant="success"
           />
         )}
-        {showDeleteErrorToast && (
-          <ToastErrorMessage
-            message="기록 삭제에 실패했습니다."
-            variant="error"
-          />
-        )}
         {isGeocoding && (
           <ToastErrorMessage message="주소를 검색하는 중..." variant="info" />
         )}
@@ -276,26 +264,6 @@ export function MainMapPageMobile() {
           onClose={handleDetailSheetClose}
           record={savedRecord}
           recordCoordinates={savedRecordCoordinates ?? undefined}
-          isDeleting={deleteRecordMutation.isPending}
-          onEdit={() => setIsDetailSheetOpen(false)}
-          onDelete={() => {
-            if (savedRecord?.id) {
-              deleteRecordMutation.mutate(savedRecord.id, {
-                onSuccess: () => {
-                  setCreatedRecordPins((prev) =>
-                    prev.filter((pin) => pin.record.id !== savedRecord.id),
-                  );
-                  setIsDetailSheetOpen(false);
-                  setSavedRecord(null);
-                  setSavedRecordCoordinates(null);
-                },
-                onError: () => {
-                  setShowDeleteErrorToast(true);
-                  setTimeout(() => setShowDeleteErrorToast(false), 3000);
-                },
-              });
-            }
-          }}
           onAddRecord={(locationWithCoords) => {
             handleDetailSheetClose();
             void navigate(ROUTES.RECORD, {

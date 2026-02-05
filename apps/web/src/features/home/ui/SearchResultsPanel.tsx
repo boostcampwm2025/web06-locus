@@ -7,6 +7,10 @@ interface SearchResultsPanelProps {
   results?: GeocodeAddress[];
   onSelect: (address: GeocodeAddress) => void;
   onClose?: () => void;
+  /** true면 카드를 우측 상단에 배치 (데스크톱 메인 맵용) */
+  alignRight?: boolean;
+  /** alignRight일 때 결과 카드 top 오프셋 (예: 입력창 아래로 "3.25rem") */
+  alignRightOffsetTop?: string;
 }
 
 const formatSearchTitle = (title: string) =>
@@ -25,8 +29,13 @@ export default function SearchResultsPanel({
   results,
   onSelect,
   onClose,
+  alignRight = false,
+  alignRightOffsetTop,
 }: SearchResultsPanelProps) {
   if (!isOpen || query.trim().length === 0) return null;
+
+  const rightCardTop =
+    alignRight && alignRightOffsetTop != null ? alignRightOffsetTop : '1rem';
 
   return (
     <div className="fixed inset-0 z-40" role="presentation">
@@ -36,7 +45,14 @@ export default function SearchResultsPanel({
         className="absolute inset-0 cursor-default"
         onClick={onClose}
       />
-      <div className="absolute top-[72px] left-0 right-0 px-4">
+      <div
+        className={
+          alignRight
+            ? `absolute left-auto right-4 w-[min(400px,calc(100vw-2rem))]`
+            : 'absolute top-[72px] left-0 right-0 px-4'
+        }
+        style={alignRight ? { top: rightCardTop } : undefined}
+      >
         <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
           {isLoading ? (
             <div className="px-4 py-3 text-sm text-gray-500">검색 중...</div>

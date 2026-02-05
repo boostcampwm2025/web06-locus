@@ -7,6 +7,7 @@ import {
 } from '@/connections/exceptions/business.exception';
 import { RecordNotFoundException } from '@/records/exceptions/record.exceptions';
 import { RecordsService } from '@/records/records.service';
+import { RedisService } from '@/redis/redis.service';
 
 describe('ConnectionsService', () => {
   let service: ConnectionsService;
@@ -26,11 +27,16 @@ describe('ConnectionsService', () => {
     incrementConnectionsCount: jest.fn(),
   };
 
+  const redisServiceMock = {
+    deleteCachedGraph: jest.fn(),
+  };
+
   beforeEach(() => {
     jest.clearAllMocks();
     service = new ConnectionsService(
       prismaServiceMock as unknown as PrismaService,
       recordsServiceMock as unknown as RecordsService,
+      redisServiceMock as unknown as RedisService,
     );
   });
 

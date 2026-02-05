@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { motion } from 'motion/react';
 import { DuckSprite } from './DuckSprite';
+import { DuckWithSpeechBubble } from './DuckWithSpeechBubble';
 import { useDuckWalker } from '@/shared/hooks/useDuckWalker';
 import { getCrossingPathEndpoints } from '@/shared/utils/duckWalkerUtils';
 import type { DuckPosition } from '@/shared/hooks/useDuckWalker';
@@ -17,6 +18,8 @@ export interface DuckMapSceneCrossingProps {
   duration?: number /** 이동 애니메이션 시간(초). 기본 25 */;
   bounce?: boolean /** 이동 중 위아래로 살짝 튀는 보조 애니메이션. 기본 true */;
   height?: number | string /** 컨테이너 높이. '100%' 등 (레이아웃용) */;
+  /** 오리 말풍선용 코멘트 풀. 있으면 클릭 시 랜덤 1개 표시 */
+  comments?: string[];
   className?: string;
 }
 
@@ -31,6 +34,7 @@ export function DuckMapSceneCrossing({
   duration = WALK_DURATION,
   bounce = true,
   height = '100%',
+  comments = [],
   className = '',
 }: DuckMapSceneCrossingProps) {
   const { width, height: h } = containerSize;
@@ -101,7 +105,9 @@ export function DuckMapSceneCrossing({
               : { duration: 0 }
           }
         >
-          <DuckSprite angle={angle} size={DUCK_SIZE} />
+          <DuckWithSpeechBubble size={DUCK_SIZE} comments={comments}>
+            <DuckSprite angle={angle} size={DUCK_SIZE} />
+          </DuckWithSpeechBubble>
         </motion.div>
       </motion.div>
     </div>

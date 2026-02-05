@@ -31,6 +31,8 @@ export function RecordDetailPageDesktop({
   graphNodes,
   graphEdges,
   baseRecordPublicId,
+  onExpandGraph,
+  isGraphExpanded = false,
   isFavorite = false,
   onBack,
   onFavoriteToggle,
@@ -181,12 +183,14 @@ export function RecordDetailPageDesktop({
             </h2>
             <p className="text-sm text-gray-500">노드의 관계를 탐색하세요.</p>
           </div>
-          <div className="flex-1 min-h-0 p-4 flex flex-col">
+          <div className="flex-1 min-h-0 p-4 flex flex-col relative">
             <ConnectionNetworkView
               nodes={graphNodes}
               edges={graphEdges}
               baseRecordPublicId={baseRecordPublicId}
               onNodeClick={handleGraphNodeClick}
+              onToggleScope={onExpandGraph}
+              isExpanded={isGraphExpanded}
               className="flex-1 min-h-0 w-full rounded-2xl"
             />
           </div>
