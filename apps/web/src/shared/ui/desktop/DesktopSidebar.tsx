@@ -10,6 +10,7 @@ import { LocationIcon } from '@/shared/ui/icons/LocationIcon';
 import { CalendarIcon } from '@/shared/ui/icons/CalendarIcon';
 import { ChevronRightIcon } from '@/shared/ui/icons/ChevronRightIcon';
 import { LinkIcon } from '@/shared/ui/icons/LinkIcon';
+import { FavoriteIcon } from '@/shared/ui/icons/FavoriteIcon';
 import { RECORD_PLACEHOLDER_IMAGE } from '@/shared/constants/record';
 import { ImageSkeleton } from '@/shared/ui/skeleton';
 import { RecordImageSlider } from '@/shared/ui/record';
@@ -585,9 +586,17 @@ function RecordCard({
 
         {/* 콘텐츠 */}
         <div className="flex flex-col flex-1 min-w-0">
-          <h3 className="text-lg font-black text-gray-900 leading-tight mb-1 truncate">
-            {record.title}
-          </h3>
+          <div className="flex items-center gap-1.5 mb-1">
+            <h3 className="text-lg font-black text-gray-900 leading-tight truncate flex-1 min-w-0">
+              {record.title}
+            </h3>
+            {record.isFavorite && (
+              <FavoriteIcon
+                className="w-5 h-5 shrink-0 text-yellow-500 fill-yellow-500"
+                aria-label="즐겨찾기"
+              />
+            )}
+          </div>
           <p className="text-sm text-gray-500 flex items-center gap-1.5 mb-1">
             <LocationIcon className="w-[14px] h-[14px] text-[#73C92E]" />
             {record.location.name?.trim() ||

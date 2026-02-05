@@ -84,6 +84,7 @@ export function useSidebarRecords({
       tags: extractTagNames(record.tags),
       imageUrl: record.images?.[0]?.thumbnail?.url ?? RECORD_PLACEHOLDER_IMAGE,
       connectionCount: record.connectionCount,
+      isFavorite: record.isFavorite,
     }));
   }, [
     allRecordsData,
