@@ -38,10 +38,6 @@ describe('RecordSearchService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         RecordSearchService,
-        // {
-        //   provide: ElasticsearchService,
-        //   useValue: mockElasticsearchService,
-        // },
         {
           provide: PrismaService,
           useValue: mockPrismaService,
