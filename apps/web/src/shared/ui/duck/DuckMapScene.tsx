@@ -1,5 +1,6 @@
 import { motion } from 'motion/react';
 import { DuckSprite } from './DuckSprite';
+import { DuckWithSpeechBubble } from './DuckWithSpeechBubble';
 import { useDuckWalker } from '@/shared/hooks/useDuckWalker';
 
 const DUCK_SIZE = 80;
@@ -75,7 +76,9 @@ export function DuckMapScene({
               : { duration: 0 }
           }
         >
-          <DuckSprite angle={angle} size={DUCK_SIZE} />
+          <DuckWithSpeechBubble size={DUCK_SIZE}>
+            <DuckSprite angle={angle} size={DUCK_SIZE} />
+          </DuckWithSpeechBubble>
         </motion.div>
       </motion.div>
     </div>

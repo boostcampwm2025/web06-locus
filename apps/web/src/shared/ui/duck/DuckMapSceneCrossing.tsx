@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { motion } from 'motion/react';
 import { DuckSprite } from './DuckSprite';
+import { DuckWithSpeechBubble } from './DuckWithSpeechBubble';
 import { useDuckWalker } from '@/shared/hooks/useDuckWalker';
 import { getCrossingPathEndpoints } from '@/shared/utils/duckWalkerUtils';
 import type { DuckPosition } from '@/shared/hooks/useDuckWalker';
@@ -101,7 +102,9 @@ export function DuckMapSceneCrossing({
               : { duration: 0 }
           }
         >
-          <DuckSprite angle={angle} size={DUCK_SIZE} />
+          <DuckWithSpeechBubble size={DUCK_SIZE}>
+            <DuckSprite angle={angle} size={DUCK_SIZE} />
+          </DuckWithSpeechBubble>
         </motion.div>
       </motion.div>
     </div>

@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { motion } from 'motion/react';
 import { DuckSprite } from './DuckSprite';
+import { DuckWithSpeechBubble } from './DuckWithSpeechBubble';
 import { useDuckWalkerHybrid } from '@/shared/hooks/useDuckWalkerHybrid';
 import type { UseDuckWalkerHybridOptions } from '@/shared/hooks/useDuckWalkerHybrid';
 import type { DuckPosition } from '@/shared/hooks/useDuckWalker';
@@ -110,7 +111,9 @@ export function DuckMapSceneHybrid({
               : { duration: 0 }
           }
         >
-          <DuckSprite angle={angle} size={DUCK_SIZE} />
+          <DuckWithSpeechBubble size={DUCK_SIZE}>
+            <DuckSprite angle={angle} size={DUCK_SIZE} />
+          </DuckWithSpeechBubble>
         </motion.div>
       </motion.div>
     </div>
