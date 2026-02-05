@@ -87,9 +87,6 @@ export interface RecordSummaryBottomSheetProps {
   isOpen: boolean;
   onClose: () => void;
   record: Record | string; // Record 객체 또는 publicId
-  isDeleting?: boolean;
-  onEdit?: () => void;
-  onDelete?: () => void;
   /** 장소에 기록 추가 시 (record에 좌표가 있을 때만 + 버튼 표시) */
   onAddRecord?: (location: LocationWithCoordinates) => void;
   /** record가 객체일 때 좌표 전달 (savedRecord.coordinates 등) */
@@ -121,6 +118,8 @@ export interface RecordSummaryHeaderProps {
   title: string;
   date: Date | string;
   onClose: () => void;
+  /** 휴지통 아이콘 클릭 시 (삭제 확인 모달 열기) */
+  onDeleteClick?: () => void;
 }
 
 /**
@@ -157,14 +156,13 @@ export interface RecordSummaryContentProps
   content: string;
   /** 이미지 URL 목록. 있으면 갤러리 영역 표시 */
   images?: string[];
-  isDeleting: boolean;
-  onEdit?: () => void;
-  onDelete?: () => void;
   onClose: () => void;
   /** "이 장소와 연결된 기록 확인" 버튼 클릭 시 */
   onShowLinkedRecords?: () => void;
   /** 연결된 기록이 있을 때만 해당 버튼 노출 */
   hasConnectedRecords?: boolean;
+  /** 휴지통 아이콘 클릭 시 (삭제 확인 모달 열기) */
+  onDeleteClick?: () => void;
 }
 
 /**

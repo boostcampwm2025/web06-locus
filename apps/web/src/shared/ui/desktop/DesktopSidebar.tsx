@@ -11,6 +11,7 @@ import { CalendarIcon } from '@/shared/ui/icons/CalendarIcon';
 import { ChevronRightIcon } from '@/shared/ui/icons/ChevronRightIcon';
 import { LinkIcon } from '@/shared/ui/icons/LinkIcon';
 import { FavoriteIcon } from '@/shared/ui/icons/FavoriteIcon';
+import { TrashIcon } from '@/shared/ui/icons/TrashIcon';
 import { RECORD_PLACEHOLDER_IMAGE } from '@/shared/constants/record';
 import { ImageSkeleton } from '@/shared/ui/skeleton';
 import { RecordImageSlider } from '@/shared/ui/record';
@@ -22,10 +23,12 @@ import { useSidebarRecords } from '@/features/record/hooks/useSidebarRecords';
 import { useSearchRecords } from '@/features/record/hooks/useSearchRecords';
 import { useGetRecordDetail } from '@/features/record/hooks/useGetRecordDetail';
 import { useUpdateRecordFavorite } from '@/features/record/hooks/useUpdateRecordFavorite';
+import { useDeleteRecord } from '@/features/record/hooks/useDeleteRecord';
 import { useConnectionStore } from '@/features/connection/domain/connectionStore';
 import { useToast } from '@/shared/ui/toast';
 import { useConnectionModeData } from '@/features/connection/hooks/useConnectionModeData';
 import { useRecordGraphDetails } from '@/features/connection/hooks/useRecordGraphDetails';
+import { ConfirmModal } from '@/features/settings/ui/desktop/modals/ConfirmModal';
 import { DesktopFilterPanel } from './DesktopFilterPanel';
 import type {
   DesktopSidebarProps,
@@ -667,12 +670,15 @@ function RecordSummaryPanel({
   onOpenFullDetail,
   onStartConnection,
 }: RecordSummaryPanelProps) {
+  const [isDeleteRecordConfirmOpen, setIsDeleteRecordConfirmOpen] =
+    useState(false);
   const {
     data: recordDetail,
     isLoading,
     isError,
   } = useGetRecordDetail(recordId, { enabled: !!recordId });
   const updateFavoriteMutation = useUpdateRecordFavorite();
+  const deleteRecordMutation = useDeleteRecord();
   const { showToast } = useToast();
 
   if (isLoading) {
@@ -770,8 +776,42 @@ function RecordSummaryPanel({
               }`}
             />
           </button>
+          <button
+            type="button"
+            onClick={() => setIsDeleteRecordConfirmOpen(true)}
+            className="p-2 rounded-full hover:bg-red-50 text-gray-400 hover:text-red-600 transition-colors"
+            aria-label="삭제"
+          >
+            <TrashIcon className="w-6 h-6" />
+          </button>
         </div>
       </div>
+
+      <ConfirmModal
+        isOpen={isDeleteRecordConfirmOpen}
+        icon={TrashIcon}
+        title="기록을 삭제할까요?"
+        description="삭제한 기록은 다시 복구할 수 없습니다."
+        confirmLabel="삭제 확정"
+        cancelLabel="취소"
+        onConfirm={() => {
+          if (!recordId) return;
+          setIsDeleteRecordConfirmOpen(false);
+          deleteRecordMutation.mutate(recordId, {
+            onSuccess: () => {
+              onBack();
+              showToast({
+                variant: 'success',
+                message: '기록이 삭제되었습니다.',
+              });
+            },
+            onError: () => {
+              showToast({ variant: 'error', message: '삭제에 실패했습니다.' });
+            },
+          });
+        }}
+        onCancel={() => setIsDeleteRecordConfirmOpen(false)}
+      />
 
       {/* 스크롤 영역 */}
       <div className="flex-1 overflow-y-auto no-scrollbar min-h-0">
