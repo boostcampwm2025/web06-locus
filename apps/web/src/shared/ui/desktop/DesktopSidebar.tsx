@@ -22,6 +22,7 @@ import { useSearchRecords } from '@/features/record/hooks/useSearchRecords';
 import { useGetRecordDetail } from '@/features/record/hooks/useGetRecordDetail';
 import { useConnectionStore } from '@/features/connection/domain/connectionStore';
 import { useConnectionModeData } from '@/features/connection/hooks/useConnectionModeData';
+import { useBlobPreviewStore } from '@/features/record/domain/blobPreviewStore';
 import { DesktopFilterPanel } from './DesktopFilterPanel';
 import type {
   DesktopSidebarProps,
@@ -30,6 +31,7 @@ import type {
   RecordSummaryPanelProps,
 } from '@/shared/types';
 import { formatDateShort } from '@/shared/utils/dateUtils';
+import { logger } from '@sentry/react';
 
 export function DesktopSidebar({
   searchValue = '',
@@ -527,6 +529,13 @@ function RecordCard({
   const [imageLoading, setImageLoading] = useState(true);
   const [imageError, setImageError] = useState(false);
 
+  // 첫 번째 Blob URL 조회 (기록 생성 직후, 단일 썸네일용)
+  const getBlobUrls = useBlobPreviewStore((state) => state.getBlobUrls);
+  const blobUrls = getBlobUrls(record.id);
+
+  // 이미지 URL 우선순위: 첫 번째 Blob URL → imageUrl → Placeholder
+  const imageSrc = blobUrls[0] ?? record.imageUrl ?? RECORD_PLACEHOLDER_IMAGE;
+
   return (
     <button
       type="button"
@@ -548,7 +557,7 @@ function RecordCard({
             <>
               {imageLoading && <ImageSkeleton className="absolute inset-0" />}
               <img
-                src={record.imageUrl ?? RECORD_PLACEHOLDER_IMAGE}
+                src={imageSrc}
                 alt={record.title}
                 className={`w-full h-full object-cover transition-opacity duration-300 ${
                   imageLoading ? 'opacity-0' : 'opacity-100'
@@ -626,6 +635,9 @@ function RecordSummaryPanel({
     isError,
   } = useGetRecordDetail(recordId, { enabled: !!recordId });
 
+  // 모든 Blob URL 조회 (기록 생성 직후 모든 이미지)
+  const getBlobUrl = useBlobPreviewStore((state) => state.getBlobUrls);
+
   if (isLoading) {
     return (
       <motion.div
@@ -651,16 +663,26 @@ function RecordSummaryPanel({
   }
 
   const tags = recordDetail.tags?.map((tag) => tag.name) ?? [];
-  // 이미지 URL 목록 (medium → thumbnail → original 순으로 fallback)
+
+  // 모든 Blob URL 사용 (기록 생성 직후 모든 이미지)
+  const blobUrls = getBlobUrl(recordDetail.publicId);
+
+  // 이미지 URL 목록 (Blob URL → medium → thumbnail → original 순으로 fallback)
   const list = recordDetail.images ?? [];
   const imageUrls = list
-    .map(
-      (img: {
-        medium?: { url?: string };
-        thumbnail?: { url?: string };
-        original?: { url?: string };
-      }) => img.medium?.url ?? img.thumbnail?.url ?? img.original?.url,
-    )
+    .map((img, index) => {
+      // 해당 인덱스에 Blob URL이 있으면 우선 사용
+      if (index < blobUrls.length && blobUrls[index]) {
+        logger.warn(
+          `[RecordSummaryPanel] Using Blob URL for image ${index + 1}`,
+        );
+        return blobUrls[index];
+      }
+
+      // 나머지는 기존 로직
+      const url = img.medium?.url ?? img.thumbnail?.url ?? img.original?.url;
+      return url;
+    })
     .filter((url): url is string => Boolean(url));
   const imageUrl =
     imageUrls.length > 0 ? imageUrls[0] : RECORD_PLACEHOLDER_IMAGE;

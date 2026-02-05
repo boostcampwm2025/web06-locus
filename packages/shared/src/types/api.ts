@@ -17,6 +17,7 @@ import {
   SearchRecordsRequestSchema,
   GetAllRecordsRequestSchema,
   CreateRecordRequestSchema,
+  CreateRecordWithPresignedRequestSchema,
   UpdateRecordRequestSchema,
   DeleteRecordRequestSchema,
   GetGraphRequestSchema,
@@ -60,6 +61,9 @@ export type GetRecordsByBoundsRequest = z.infer<
 export type SearchRecordsRequest = z.infer<typeof SearchRecordsRequestSchema>;
 export type GetAllRecordsRequest = z.infer<typeof GetAllRecordsRequestSchema>;
 export type CreateRecordRequest = z.infer<typeof CreateRecordRequestSchema>;
+export type CreateRecordWithPresignedRequest = z.infer<
+  typeof CreateRecordWithPresignedRequestSchema
+>;
 export type UpdateRecordRequest = z.infer<typeof UpdateRecordRequestSchema>;
 export type DeleteRecordRequest = z.infer<typeof DeleteRecordRequestSchema>;
 export type GetGraphRequest = z.infer<typeof GetGraphRequestSchema>;

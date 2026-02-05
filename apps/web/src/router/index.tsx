@@ -17,6 +17,7 @@ import { useGetRecordDetail } from '@/features/record/hooks/useGetRecordDetail';
 import { useUpdateRecordFavorite } from '@/features/record/hooks/useUpdateRecordFavorite';
 import { useRecordGraph } from '@/features/connection/hooks/useRecordGraph';
 import { useRecordGraphDetails } from '@/features/connection/hooks/useRecordGraphDetails';
+import { useBlobPreviewStore } from '@/features/record/domain/blobPreviewStore';
 import { logger } from '@/shared/utils/logger';
 import { useToast } from '@/shared/ui/toast';
 import { RECORD_PLACEHOLDER_IMAGE } from '@/shared/constants/record';
@@ -85,6 +86,9 @@ function RecordDetailPageRoute() {
   const deleteRecordMutation = useDeleteRecord();
   const updateFavoriteMutation = useUpdateRecordFavorite();
   const { showToast } = useToast();
+
+  // 모든 Blob URL 조회 (기록 생성 직후 모든 이미지)
+  const getBlobUrls = useBlobPreviewStore((state) => state.getBlobUrls);
 
   // 기록 상세 조회
   const {
@@ -196,10 +200,23 @@ function RecordDetailPageRoute() {
         })()
       : 0;
 
+  // 모든 Blob URL 사용 (기록 생성 직후 모든 이미지)
+  const blobUrls = getBlobUrls(id ?? '');
+
   // API 응답을 RecordDetailPageProps로 변환
-  // 이미지 URL 목록 (슬라이더용). medium 사이즈 사용
+  // 이미지 URL 목록 (슬라이더용). Blob URL → medium 순으로 fallback
   const imageUrls =
-    detail.images?.map((img) => img.medium?.url).filter(Boolean) ?? [];
+    detail.images
+      ?.map((img, index) => {
+        // 해당 인덱스에 Blob URL이 있으면 우선 사용
+        if (index < blobUrls.length && blobUrls[index]) {
+          return blobUrls[index];
+        }
+
+        // 나머지는 medium 사이즈
+        return img.medium?.url;
+      })
+      .filter((url): url is string => Boolean(url)) ?? [];
   const thumbnailImageUrl =
     imageUrls.length > 0 ? imageUrls[0] : RECORD_PLACEHOLDER_IMAGE;
 

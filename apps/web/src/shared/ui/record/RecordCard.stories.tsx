@@ -2,6 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react-vite';
 import RecordCard from './RecordCard';
 import type { Location } from '@/features/record/types';
 import type { RecordCardProps } from './RecordCard.types';
+import type { Image } from '@locus/shared';
 
 const meta = {
   title: 'Shared/UI/Record/RecordCard',
@@ -28,14 +29,38 @@ const mockLocation: Location = {
 
 const mockDate = new Date('2025-12-15');
 
+const mockImage: Image = {
+  publicId: 'img_mock123',
+  thumbnail: {
+    url: '/record-placehold.webp',
+    width: 400,
+    height: 300,
+    size: 48000,
+  },
+  medium: {
+    url: '/record-placehold.webp',
+    width: 800,
+    height: 600,
+    size: 120000,
+  },
+  original: {
+    url: '/record-placehold.webp',
+    width: 1920,
+    height: 1440,
+    size: 450000,
+  },
+  order: 0,
+};
+
 export const WithImage: Story = {
   args: {
+    recordId: 'rec_001',
     title: '경복궁 나들이',
     location: mockLocation,
     date: mockDate,
     tags: ['역사', '명소'],
     connectionCount: 3,
-    imageUrl: '/record-placehold.webp',
+    image: mockImage,
     onClick: () => {
       /* empty */
     },
@@ -51,6 +76,7 @@ export const WithImage: Story = {
 
 export const WithoutImage: Story = {
   args: {
+    recordId: 'rec_002',
     title: '경복궁 나들이',
     location: mockLocation,
     date: mockDate,
@@ -71,6 +97,7 @@ export const WithoutImage: Story = {
 
 export const WithLongTitle: Story = {
   args: {
+    recordId: 'rec_003',
     title: '한옥의 고즈넉한 분위기와 골목길이 인상적인 북촌 한옥마을',
     location: {
       name: '북촌 한옥마을',
@@ -94,6 +121,7 @@ export const WithLongTitle: Story = {
 
 export const WithSingleTag: Story = {
   args: {
+    recordId: 'rec_004',
     title: '서울숲 산책',
     location: {
       name: '서울숲',
@@ -117,6 +145,7 @@ export const WithSingleTag: Story = {
 
 export const WithManyTags: Story = {
   args: {
+    recordId: 'rec_005',
     title: '강남역 맛집 탐방',
     location: {
       name: '강남역',
@@ -125,7 +154,7 @@ export const WithManyTags: Story = {
     date: new Date('2025-12-12'),
     tags: ['맛집', '한식', '데이트', '친구', '저녁'],
     connectionCount: 8,
-    imageUrl: '/record-placehold.webp',
+    image: mockImage,
     onClick: () => {
       /* empty */
     },
@@ -144,14 +173,16 @@ export const States: Story = {
   render: () => (
     <div className="space-y-0 border border-gray-200 rounded-lg overflow-hidden">
       <RecordCard
+        recordId="rec_006"
         title="경복궁 나들이"
         location={mockLocation}
         date={mockDate}
         tags={['역사', '명소']}
         connectionCount={3}
-        imageUrl="/record-placehold.webp"
+        image={mockImage}
       />
       <RecordCard
+        recordId="rec_007"
         title="북촌 한옥마을"
         location={{
           name: '북촌 한옥마을',
@@ -162,6 +193,7 @@ export const States: Story = {
         connectionCount={2}
       />
       <RecordCard
+        recordId="rec_008"
         title="서울숲 산책"
         location={{
           name: '서울숲',
