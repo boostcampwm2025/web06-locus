@@ -82,16 +82,9 @@ export function useCreateRecord() {
           .setBlobUrl(data.publicId, variables.previewUrls[0]);
       }
 
-      // React Query 캐시 업데이트 (순수한 서버 데이터만)
-      queryClient.setQueryData<RecordWithImages[]>(['records'], (old = []) => [
-        data,
-        ...old,
-      ]);
-
-      queryClient.setQueryData<RecordWithImages>(
-        ['record', 'detail', data.publicId],
-        data,
-      );
+      // 모든 records 관련 쿼리 무효화 및 refetch
+      // setQueryData 없이 invalidate만 사용 (어차피 refetch로 덮어씌워지므로)
+      void queryClient.invalidateQueries({ queryKey: ['records'] });
     },
   });
 }
