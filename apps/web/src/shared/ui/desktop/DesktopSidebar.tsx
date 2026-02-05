@@ -529,6 +529,13 @@ function RecordCard({
   const [imageLoading, setImageLoading] = useState(true);
   const [imageError, setImageError] = useState(false);
 
+  // Blob URL 조회 (기록 생성 직후 첫 번째 이미지)
+  const getBlobUrl = useBlobPreviewStore((state) => state.getBlobUrl);
+  const blobUrl = getBlobUrl(record.id);
+
+  // 이미지 URL 우선순위: Blob URL → imageUrl → Placeholder
+  const imageSrc = blobUrl ?? record.imageUrl ?? RECORD_PLACEHOLDER_IMAGE;
+
   return (
     <button
       type="button"
@@ -550,7 +557,7 @@ function RecordCard({
             <>
               {imageLoading && <ImageSkeleton className="absolute inset-0" />}
               <img
-                src={record.imageUrl ?? RECORD_PLACEHOLDER_IMAGE}
+                src={imageSrc}
                 alt={record.title}
                 className={`w-full h-full object-cover transition-opacity duration-300 ${
                   imageLoading ? 'opacity-0' : 'opacity-100'
