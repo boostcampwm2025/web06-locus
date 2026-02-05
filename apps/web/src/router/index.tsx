@@ -20,6 +20,7 @@ import { useRecordGraphDetails } from '@/features/connection/hooks/useRecordGrap
 import { useQueryClient } from '@tanstack/react-query';
 import { logger } from '@/shared/utils/logger';
 import { useToast } from '@/shared/ui/toast';
+import { useDeviceType } from '@/shared/hooks/useDeviceType';
 import { RECORD_PLACEHOLDER_IMAGE } from '@/shared/constants/record';
 import type { RecordDetail, GraphDetailsResponse } from '@locus/shared';
 
@@ -390,6 +391,7 @@ function ConnectionManagementPageRoute() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { isMobile } = useDeviceType();
 
   // 기록 상세 조회 (baseRecord 정보용)
   const { data: recordDetail, isLoading: isRecordDetailLoading } =
@@ -488,6 +490,11 @@ function ConnectionManagementPageRoute() {
         <p className="text-gray-400">기록 ID가 없습니다.</p>
       </div>
     );
+  }
+
+  // 연결 관리 페이지는 모바일 전용. 데스크톱에서는 기록 상세로 이동
+  if (!isMobile) {
+    return <Navigate to={generatePath(ROUTES.RECORD_DETAIL, { id })} replace />;
   }
 
   // 로딩 중 (details만 기다림; full graph는 확장 시 로딩)
