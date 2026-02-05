@@ -244,17 +244,6 @@ export class RecordNotFoundException extends BusinessException {
   }
 }
 
-export class ESDocumentNotFoundException extends BusinessException {
-  constructor(recordId: string) {
-    super(
-      HttpStatus.NOT_FOUND,
-      RecordErrorCode.ES_DOCUMENT_NOT_FOUND,
-      '기록 document을 찾을 수 없습니다.',
-      { record_id: recordId },
-    );
-  }
-}
-
 export class LocationNotFoundException extends BusinessException {
   constructor(recordId: string) {
     super(
