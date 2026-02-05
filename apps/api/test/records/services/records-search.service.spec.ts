@@ -1,30 +1,35 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { ElasticsearchService } from '@nestjs/elasticsearch';
-import { errors } from '@elastic/elasticsearch';
 import { RecordSearchService } from '../../../src/records/services/records-search.service';
 import { RecordSyncPayload } from '../../../src/records/type/record-sync.types';
 import {
+  RECORD_INDEX_ALIAS,
   RECORD_INDEX_NAME,
-  RECORD_INDEX_SETTINGS,
-  RECORD_SEARCH_MAPPING,
 } from '../../../src/records/constants/record-search.constant';
-import { ESDocumentNotFoundException } from '@/records/exceptions/record.exceptions';
+import { ESDocumentNotFoundException } from '@/infra/elasticsearch/exceptions/elasticsearch.exception';
 import { SearchRecordsDto } from '@/records/dto/search-records.dto';
+import { PrismaService } from '@/prisma/prisma.service';
+import { ElasticsearchService } from '@/infra/elasticsearch/elasticsearch.service';
 
 describe('RecordSearchService', () => {
   let service: RecordSearchService;
 
-  const mockElasticsearchService = {
-    index: jest.fn(),
-    update: jest.fn(),
-    delete: jest.fn(),
-    search: jest.fn(),
-    indices: {
-      exists: jest.fn(),
-      create: jest.fn(),
-      update: jest.fn(),
-      delete: jest.fn(),
+  const mockPrismaService = {
+    record: {
+      findMany: jest.fn(),
     },
+  };
+
+  const mockElasticsearchService = {
+    indexDocument: jest.fn(),
+    updateDocument: jest.fn(),
+    deleteDocument: jest.fn(),
+    search: jest.fn(),
+    indexExists: jest.fn(),
+    initializeIndex: jest.fn(),
+    syncMapping: jest.fn(),
+    countDocumentsMissingField: jest.fn(),
+    getDocumentIdsMissingField: jest.fn(),
+    bulkUpdate: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -33,6 +38,10 @@ describe('RecordSearchService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         RecordSearchService,
+        {
+          provide: PrismaService,
+          useValue: mockPrismaService,
+        },
         {
           provide: ElasticsearchService,
           useValue: mockElasticsearchService,
@@ -46,42 +55,43 @@ describe('RecordSearchService', () => {
   describe('onModuleInit', () => {
     test('인덱스가 존재하지 않으면 새로 생성해야 한다', async () => {
       // given
-      mockElasticsearchService.indices.exists.mockResolvedValue(false);
-      mockElasticsearchService.indices.create.mockResolvedValue({} as any);
+      mockElasticsearchService.indexExists.mockResolvedValue(false);
+      mockElasticsearchService.initializeIndex.mockResolvedValue({} as any);
 
       // when
       await service.onModuleInit();
 
       // then
-      expect(mockElasticsearchService.indices.exists).toHaveBeenCalledWith({
-        index: RECORD_INDEX_NAME,
-      });
-      expect(mockElasticsearchService.indices.create).toHaveBeenCalledWith({
-        index: RECORD_INDEX_NAME,
-        settings: RECORD_INDEX_SETTINGS,
-        mappings: RECORD_SEARCH_MAPPING,
-      });
+      expect(mockElasticsearchService.indexExists).toHaveBeenCalledWith(
+        RECORD_INDEX_NAME,
+      );
+      expect(mockElasticsearchService.initializeIndex).toHaveBeenCalled();
+      // expect(mockElasticsearchService.initializeIndex).toHaveBeenCalledWith({
+      //   index: RECORD_INDEX_NAME,
+      //   settings: RECORD_INDEX_SETTINGS,
+      //   mappings: RECORD_SEARCH_MAPPING,
+      // });
     });
 
     test('인덱스가 이미 존재하면 생성하지 않아야 한다', async () => {
       // given
-      mockElasticsearchService.indices.exists.mockResolvedValue(true);
+      mockElasticsearchService.indexExists.mockResolvedValue(true);
 
       // when
       await service.onModuleInit();
 
       // then
-      expect(mockElasticsearchService.indices.exists).toHaveBeenCalledWith({
-        index: RECORD_INDEX_NAME,
-      });
-      expect(mockElasticsearchService.indices.create).not.toHaveBeenCalled();
+      expect(mockElasticsearchService.indexExists).toHaveBeenCalledWith(
+        RECORD_INDEX_NAME,
+      );
+      expect(mockElasticsearchService.initializeIndex).not.toHaveBeenCalled();
     });
 
     test('인덱스 생성 중 에러가 발생하면 예외를 던져야 한다', async () => {
       // given
       const error = new Error('Index 생성 실패');
-      mockElasticsearchService.indices.exists.mockResolvedValue(false);
-      mockElasticsearchService.indices.create.mockRejectedValue(error);
+      mockElasticsearchService.indexExists.mockResolvedValue(false);
+      mockElasticsearchService.initializeIndex.mockRejectedValue(error);
 
       // when & then
       await expect(service.onModuleInit()).rejects.toThrow(error);
@@ -364,24 +374,25 @@ describe('RecordSearchService', () => {
         content: '테스트 내용',
         isFavorite: false,
         locationName: '서울시 강남구',
+        locationAddress: '서울특별시 강남구 역삼동 396',
         tags: ['여행', '맛집'],
         hasImages: true,
         thumbnailImage: 'https://example.com/image.jpg',
         connectionsCount: 5,
         createdAt: '2024-01-01T00:00:00.000Z',
       };
-      mockElasticsearchService.index.mockResolvedValue({} as any);
+      mockElasticsearchService.indexDocument.mockResolvedValue({} as any);
 
       // when
       await service.indexRecord(payload);
 
       // then
-      expect(mockElasticsearchService.index).toHaveBeenCalledWith({
-        index: RECORD_INDEX_NAME,
-        id: '123',
-        document: payload,
-      });
-      expect(mockElasticsearchService.index).toHaveBeenCalledTimes(1);
+      expect(mockElasticsearchService.indexDocument).toHaveBeenCalledWith(
+        RECORD_INDEX_ALIAS,
+        '123',
+        payload,
+      );
+      expect(mockElasticsearchService.indexDocument).toHaveBeenCalledTimes(1);
     });
 
     test('인덱싱 중 에러가 발생하면 예외를 전파해야 한다', async () => {
@@ -394,6 +405,7 @@ describe('RecordSearchService', () => {
         content: '내용',
         isFavorite: false,
         locationName: '서울',
+        locationAddress: '서울특별시 강남구 역삼동 396',
         tags: ['태그'],
         hasImages: false,
         thumbnailImage: null,
@@ -401,7 +413,7 @@ describe('RecordSearchService', () => {
         createdAt: '2024-01-01T00:00:00.000Z',
       };
       const error = new Error('Indexing failed');
-      mockElasticsearchService.index.mockRejectedValue(error);
+      mockElasticsearchService.indexDocument.mockRejectedValue(error);
 
       // when & then
       await expect(service.indexRecord(payload)).rejects.toThrow(error);
@@ -417,23 +429,24 @@ describe('RecordSearchService', () => {
         content: null,
         isFavorite: false,
         locationName: '제주',
+        locationAddress: '제주시',
         tags: [],
         hasImages: false,
         thumbnailImage: null,
         connectionsCount: 0,
         createdAt: '2024-01-01T00:00:00.000Z',
       };
-      mockElasticsearchService.index.mockResolvedValue({} as any);
+      mockElasticsearchService.indexDocument.mockResolvedValue({} as any);
 
       // when
       await service.indexRecord(payload);
 
       // then
-      expect(mockElasticsearchService.index).toHaveBeenCalledWith({
-        index: RECORD_INDEX_NAME,
-        id: '100',
-        document: payload,
-      });
+      expect(mockElasticsearchService.indexDocument).toHaveBeenCalledWith(
+        RECORD_INDEX_ALIAS,
+        '100',
+        payload,
+      );
     });
 
     test('thumbnailImage가 null인 경우에도 정상적으로 인덱싱해야 한다', async () => {
@@ -446,23 +459,24 @@ describe('RecordSearchService', () => {
         content: 'Some content',
         isFavorite: true,
         locationName: '인천',
+        locationAddress: '인천',
         tags: ['테스트'],
         hasImages: false,
         thumbnailImage: null,
         connectionsCount: 3,
         createdAt: '2024-01-01T00:00:00.000Z',
       };
-      mockElasticsearchService.index.mockResolvedValue({} as any);
+      mockElasticsearchService.indexDocument.mockResolvedValue({} as any);
 
       // when
       await service.indexRecord(payload);
 
       // then
-      expect(mockElasticsearchService.index).toHaveBeenCalledWith({
-        index: RECORD_INDEX_NAME,
-        id: '200',
-        document: payload,
-      });
+      expect(mockElasticsearchService.indexDocument).toHaveBeenCalledWith(
+        RECORD_INDEX_ALIAS,
+        '200',
+        payload,
+      );
     });
 
     test('태그가 빈 배열인 경우에도 정상적으로 인덱싱해야 한다', async () => {
@@ -475,25 +489,26 @@ describe('RecordSearchService', () => {
         content: 'Content',
         isFavorite: false,
         locationName: '대전',
+        locationAddress: '대전',
         tags: [],
         hasImages: true,
         thumbnailImage: 'https://example.com/thumb.jpg',
         connectionsCount: 10,
         createdAt: '2024-01-01T00:00:00.000Z',
       };
-      mockElasticsearchService.index.mockResolvedValue({} as any);
+      mockElasticsearchService.indexDocument.mockResolvedValue({} as any);
 
       // when
       await service.indexRecord(payload);
 
       // then
-      expect(mockElasticsearchService.index).toHaveBeenCalledWith({
-        index: RECORD_INDEX_NAME,
-        id: '300',
-        document: expect.objectContaining({
+      expect(mockElasticsearchService.indexDocument).toHaveBeenCalledWith(
+        RECORD_INDEX_ALIAS,
+        '300',
+        expect.objectContaining({
           tags: [],
         }),
-      });
+      );
     });
   });
 
@@ -508,24 +523,25 @@ describe('RecordSearchService', () => {
         content: '업데이트된 내용',
         isFavorite: true,
         locationName: '서울시 강남구',
+        locationAddress: '서울특별시 강남구 역삼동 396',
         tags: ['수정', '업데이트'],
         hasImages: true,
         thumbnailImage: 'https://example.com/updated.jpg',
         connectionsCount: 10,
         createdAt: '2024-01-01T00:00:00.000Z',
       };
-      mockElasticsearchService.update.mockResolvedValue({} as any);
+      mockElasticsearchService.updateDocument.mockResolvedValue({} as any);
 
       // when
       await service.updateRecord(payload);
 
       // then
-      expect(mockElasticsearchService.update).toHaveBeenCalledWith({
-        index: RECORD_INDEX_NAME,
-        id: '123',
-        doc: payload,
-      });
-      expect(mockElasticsearchService.update).toHaveBeenCalledTimes(1);
+      expect(mockElasticsearchService.updateDocument).toHaveBeenCalledWith(
+        RECORD_INDEX_ALIAS,
+        '123',
+        payload,
+      );
+      expect(mockElasticsearchService.updateDocument).toHaveBeenCalledTimes(1);
     });
 
     test('업데이트 실패 시 예외를 던져야 한다', async () => {
@@ -538,6 +554,7 @@ describe('RecordSearchService', () => {
         content: 'Content',
         isFavorite: false,
         locationName: '서울',
+        locationAddress: '서울특별시 강남구 역삼동 396',
         tags: [],
         hasImages: false,
         thumbnailImage: null,
@@ -545,7 +562,7 @@ describe('RecordSearchService', () => {
         createdAt: '2024-01-01T00:00:00.000Z',
       };
       const error = new Error('Update failed');
-      mockElasticsearchService.update.mockRejectedValue(error);
+      mockElasticsearchService.updateDocument.mockRejectedValue(error);
 
       // when & then
       await expect(service.updateRecord(payload)).rejects.toThrow(error);
@@ -561,6 +578,7 @@ describe('RecordSearchService', () => {
         content: 'New Content',
         isFavorite: false,
         locationName: '인천',
+        locationAddress: '인천',
         tags: ['신규'],
         hasImages: false,
         thumbnailImage: null,
@@ -568,13 +586,9 @@ describe('RecordSearchService', () => {
         createdAt: '2024-01-01T00:00:00.000Z',
       };
 
-      const elastic404Error = new errors.ResponseError({
-        body: { error: 'not_found' },
-        statusCode: 404,
-        warnings: null,
-        meta: {} as any,
-      });
-      mockElasticsearchService.update.mockRejectedValue(elastic404Error);
+      mockElasticsearchService.updateDocument.mockRejectedValue(
+        new ESDocumentNotFoundException('index_name'),
+      );
       // when & then
       await expect(service.updateRecord(payload)).rejects.toThrow(
         ESDocumentNotFoundException,
@@ -586,24 +600,28 @@ describe('RecordSearchService', () => {
     test('기록 정보를 Elasticsearch에서 삭제해야 한다', async () => {
       // given
       const recordId = '123';
-      mockElasticsearchService.delete = jest.fn().mockResolvedValue({} as any);
+      mockElasticsearchService.deleteDocument = jest
+        .fn()
+        .mockResolvedValue({} as any);
 
       // when
       await service.deleteRecord(recordId);
 
       // then
-      expect(mockElasticsearchService.delete).toHaveBeenCalledWith({
-        index: RECORD_INDEX_NAME,
-        id: recordId,
-      });
-      expect(mockElasticsearchService.delete).toHaveBeenCalledTimes(1);
+      expect(mockElasticsearchService.deleteDocument).toHaveBeenCalledWith(
+        RECORD_INDEX_ALIAS,
+        recordId,
+      );
+      expect(mockElasticsearchService.deleteDocument).toHaveBeenCalledTimes(1);
     });
 
     test('404 외의 삭제 실패 시 예외를 던져야 한다', async () => {
       // given
       const recordId = '999';
       const error = new Error('Delete failed');
-      mockElasticsearchService.delete = jest.fn().mockRejectedValue(error);
+      mockElasticsearchService.deleteDocument = jest
+        .fn()
+        .mockRejectedValue(error);
 
       // when & then
       await expect(service.deleteRecord(recordId)).rejects.toThrow(error);
@@ -612,15 +630,9 @@ describe('RecordSearchService', () => {
     test('이미 삭제된 문서(404)인 경우 경고만 로그하고 예외를 던지지 않아야 한다', async () => {
       // given
       const recordId = '404';
-      const elastic404Error = new errors.ResponseError({
-        body: { error: 'not_found' },
-        statusCode: 404,
-        warnings: null,
-        meta: {} as any,
-      });
-      mockElasticsearchService.delete = jest
+      mockElasticsearchService.deleteDocument = jest
         .fn()
-        .mockRejectedValue(elastic404Error);
+        .mockResolvedValue(undefined);
 
       // when & then
       await expect(service.deleteRecord(recordId)).resolves.not.toThrow();

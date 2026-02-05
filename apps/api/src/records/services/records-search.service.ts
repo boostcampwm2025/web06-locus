@@ -1,40 +1,46 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { ElasticsearchService } from '@nestjs/elasticsearch';
-import { errors } from '@elastic/elasticsearch';
+import { PrismaService } from '@/prisma/prisma.service';
+import { ElasticsearchService } from '@/infra/elasticsearch/elasticsearch.service';
 import {
   RecordConnectionsCountSyncPayload,
   RecordFavoriteSyncPayload,
   RecordSyncPayload,
 } from '../type/record-sync.types';
 import {
+  RECORD_INDEX_ALIAS,
   RECORD_INDEX_NAME,
   RECORD_INDEX_SETTINGS,
+  RECORD_INDEX_VERSION,
+  RECORD_SEARCH_COMPUTED_FIELDS,
   RECORD_SEARCH_FIELDS,
   RECORD_SEARCH_MAPPING,
   RECORD_SEARCH_SORT_CRITERIA,
 } from '../constants/record-search.constant';
-import { ESDocumentNotFoundException } from '../exceptions/record.exceptions';
 import { SearchRecordsDto } from '../dto/search-records.dto';
 import {
   FieldValue,
   QueryDslQueryContainer,
 } from 'node_modules/@elastic/elasticsearch/lib/api/types';
+import { Record as PrismaRecord } from '@prisma/client';
 
 @Injectable()
 export class RecordSearchService {
   private readonly logger = new Logger(RecordSearchService.name);
-  constructor(private readonly elasticsearchService: ElasticsearchService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly elasticsearchService: ElasticsearchService,
+  ) {}
 
   async onModuleInit() {
     await this.ensureIndexExists();
   }
 
   async indexRecord(payload: RecordSyncPayload) {
-    await this.elasticsearchService.index({
-      index: RECORD_INDEX_NAME,
-      id: String(payload.recordId),
-      document: payload,
-    });
+    await this.elasticsearchService.indexDocument(
+      RECORD_INDEX_ALIAS,
+      String(payload.recordId),
+      payload,
+    );
   }
 
   async search(userId: bigint, dto: SearchRecordsDto) {
@@ -47,7 +53,7 @@ export class RecordSearchService {
       : undefined;
 
     const result = await this.elasticsearchService.search<RecordSyncPayload>({
-      index: RECORD_INDEX_NAME,
+      index: RECORD_INDEX_ALIAS,
       size: size,
       query: this.buildSearchQuery(userId, dto),
       sort: RECORD_SEARCH_SORT_CRITERIA,
@@ -59,29 +65,26 @@ export class RecordSearchService {
 
   async updateRecord(payload: RecordSyncPayload) {
     try {
-      await this.elasticsearchService.update({
-        index: RECORD_INDEX_NAME,
-        id: String(payload.recordId),
-        doc: payload,
-      });
+      await this.elasticsearchService.updateDocument(
+        RECORD_INDEX_ALIAS,
+        String(payload.recordId),
+        payload,
+      );
 
       this.logger.log(`✅ Record ${payload.recordId} 업데이트 완료`);
     } catch (error) {
       this.logger.error(`❌ Record ${payload.recordId} 업데이트 실패`, error);
-      if (error instanceof errors.ResponseError && error.statusCode === 404) {
-        throw new ESDocumentNotFoundException(payload.recordId);
-      }
       throw error;
     }
   }
 
   async updateFavoriteInRecord(payload: RecordFavoriteSyncPayload) {
     try {
-      await this.elasticsearchService.update({
-        index: RECORD_INDEX_NAME,
-        id: String(payload.recordId),
-        doc: payload,
-      });
+      await this.elasticsearchService.updateDocument(
+        RECORD_INDEX_ALIAS,
+        String(payload.recordId),
+        payload,
+      );
 
       this.logger.log(`✅ Record ${payload.recordId} 즐겨찾기 업데이트 완료`);
     } catch (error) {
@@ -89,9 +92,6 @@ export class RecordSearchService {
         `❌ Record ${payload.recordId} 즐겨찾기 업데이트 실패`,
         error,
       );
-      if (error instanceof errors.ResponseError && error.statusCode === 404) {
-        throw new ESDocumentNotFoundException(payload.recordId);
-      }
       throw error;
     }
   }
@@ -100,11 +100,11 @@ export class RecordSearchService {
     payload: RecordConnectionsCountSyncPayload,
   ) {
     try {
-      await this.elasticsearchService.update({
-        index: RECORD_INDEX_NAME,
-        id: String(payload.recordId),
-        doc: payload,
-      });
+      await this.elasticsearchService.updateDocument(
+        RECORD_INDEX_ALIAS,
+        String(payload.recordId),
+        payload,
+      );
 
       this.logger.log(`✅ Record ${payload.recordId} 연결 수 업데이트 완료`);
     } catch (error) {
@@ -112,49 +112,39 @@ export class RecordSearchService {
         `❌ Record ${payload.recordId} 연결 수 업데이트 실패`,
         error,
       );
-      if (error instanceof errors.ResponseError && error.statusCode === 404) {
-        throw new ESDocumentNotFoundException(payload.recordId);
-      }
       throw error;
     }
   }
 
   async deleteRecord(recordId: string) {
     try {
-      await this.elasticsearchService.delete({
-        index: RECORD_INDEX_NAME,
-        id: recordId,
-      });
-
+      await this.elasticsearchService.deleteDocument(
+        RECORD_INDEX_ALIAS,
+        recordId,
+      );
       this.logger.log(`✅ Record ${recordId} 삭제 완료`);
     } catch (error) {
-      if (error instanceof errors.ResponseError && error.statusCode === 404) {
-        this.logger.warn(`⚠️  Record ${recordId} 이미 삭제됨 (ES)`);
-        return;
-      }
       this.logger.error(`❌ Record ${recordId} 삭제 실패`, error);
       throw error;
     }
   }
 
   private async ensureIndexExists() {
-    try {
-      const exists = await this.elasticsearchService.indices.exists({
-        index: RECORD_INDEX_NAME,
-      });
+    const exists =
+      await this.elasticsearchService.indexExists(RECORD_INDEX_NAME);
 
-      if (!exists) {
-        await this.elasticsearchService.indices.create({
-          index: RECORD_INDEX_NAME,
-          settings: RECORD_INDEX_SETTINGS,
-          mappings: RECORD_SEARCH_MAPPING,
-        });
-        this.logger.log('✅ Elasticsearch index 생성');
-      }
-    } catch (error) {
-      this.logger.error('❌ Elasticsearch index 생성 실패', error);
-      throw error;
+    if (!exists) {
+      await this.elasticsearchService.initializeIndex({
+        indexName: RECORD_INDEX_NAME,
+        aliasName: RECORD_INDEX_ALIAS,
+        version: RECORD_INDEX_VERSION,
+        settings: RECORD_INDEX_SETTINGS,
+        mapping: RECORD_SEARCH_MAPPING,
+      });
+      return;
     }
+
+    await this.handleMappingChanges();
   }
 
   /**
@@ -188,5 +178,108 @@ export class RecordSearchService {
         filter: filters,
       },
     };
+  }
+
+  private async handleMappingChanges() {
+    try {
+      const newFields = await this.elasticsearchService.syncMapping(
+        RECORD_INDEX_NAME,
+        RECORD_SEARCH_MAPPING,
+      );
+      if (newFields.length > 0) await this.backfillFromDB(newFields);
+    } catch (error) {
+      this.logger.error('❌ 매핑 변경사항 처리 실패', error);
+    }
+  }
+
+  // TODO: 코드 개선필요.
+  private async backfillFromDB(newFields: string[]): Promise<void> {
+    const BATCH_SIZE = 100;
+
+    // DB 필드만 필터링
+    const dbFields = newFields.filter((field) => !this.isComputedField(field));
+
+    if (dbFields.length === 0) return;
+
+    for (const field of dbFields) {
+      try {
+        // 해당 필드가 없는 문서 수 확인
+        const missingCount =
+          await this.elasticsearchService.countDocumentsMissingField(
+            RECORD_INDEX_ALIAS,
+            field,
+          );
+
+        if (missingCount === 0) continue;
+
+        while (true) {
+          // 필드가 없는 문서 ID 조회
+          const docIds =
+            await this.elasticsearchService.getDocumentIdsMissingField(
+              RECORD_INDEX_ALIAS,
+              field,
+              BATCH_SIZE,
+            );
+
+          if (docIds.length === 0) break;
+
+          // DB에서 데이터 조회
+          const recordIds = docIds.map((id) => BigInt(id));
+          const records = await this.getRecordsForBackfill(recordIds, field);
+
+          // Elasticsearch 업데이트
+          const updates = records.map((record) => ({
+            id: String(record.id),
+            doc: this.extractFieldValue(record, field),
+          }));
+
+          await this.elasticsearchService.bulkUpdate(
+            RECORD_INDEX_ALIAS,
+            updates,
+          );
+        }
+      } catch (error) {
+        this.logger.error(`❌ ${field} 백필 실패`, error);
+      }
+    }
+  }
+
+  private isComputedField(fieldName: string): boolean {
+    return RECORD_SEARCH_COMPUTED_FIELDS.includes(fieldName);
+  }
+
+  private async getRecordsForBackfill(
+    recordIds: bigint[],
+    field: string,
+  ): Promise<Partial<PrismaRecord>[]> {
+    const selectFields = this.getSelectFieldsForBackfill(field);
+
+    return await this.prisma.record.findMany({
+      where: { id: { in: recordIds } },
+      select: selectFields,
+    });
+  }
+
+  private getSelectFieldsForBackfill(field: string): Record<string, boolean> {
+    const fieldSelectMap: Record<string, Record<string, boolean>> = {
+      title: { id: true, title: true },
+      content: { id: true, content: true },
+      isFavorite: { id: true, isFavorite: true },
+      locationName: { id: true, locationName: true },
+      locationAddress: { id: true, locationAddress: true },
+      connectionsCount: { id: true, connectionsCount: true },
+      createdAt: { id: true, createdAt: true },
+      updatedAt: { id: true, updatedAt: true },
+    };
+
+    return fieldSelectMap[field] ?? { id: true, [field]: true };
+  }
+
+  private extractFieldValue(
+    record: Partial<PrismaRecord>,
+    field: string,
+  ): Record<string, any> {
+    const value = record[field as keyof PrismaRecord];
+    return { [field]: value };
   }
 }
