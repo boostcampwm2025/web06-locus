@@ -21,7 +21,9 @@ import { useGetTags } from '@/features/record/hooks/useGetTags';
 import { useSidebarRecords } from '@/features/record/hooks/useSidebarRecords';
 import { useSearchRecords } from '@/features/record/hooks/useSearchRecords';
 import { useGetRecordDetail } from '@/features/record/hooks/useGetRecordDetail';
+import { useUpdateRecordFavorite } from '@/features/record/hooks/useUpdateRecordFavorite';
 import { useConnectionStore } from '@/features/connection/domain/connectionStore';
+import { useToast } from '@/shared/ui/toast';
 import { useConnectionModeData } from '@/features/connection/hooks/useConnectionModeData';
 import { DesktopFilterPanel } from './DesktopFilterPanel';
 import type {
@@ -645,6 +647,8 @@ function RecordSummaryPanel({
     isLoading,
     isError,
   } = useGetRecordDetail(recordId, { enabled: !!recordId });
+  const updateFavoriteMutation = useUpdateRecordFavorite();
+  const { showToast } = useToast();
 
   if (isLoading) {
     return (
@@ -702,14 +706,44 @@ function RecordSummaryPanel({
           <ChevronRightIcon className="w-6 h-6 rotate-180" />
         </button>
         <h2 className="text-lg font-black text-gray-900">기록 요약</h2>
-        <div className="ml-auto">
+        <div className="ml-auto flex items-center gap-2">
           <button
             type="button"
-            onClick={onStartConnection}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-orange-50 text-[#FE8916] text-xs font-black hover:bg-orange-100 transition-colors"
+            onClick={() => {
+              if (!recordId || updateFavoriteMutation.isPending) return;
+              const nextFavorite = !recordDetail?.isFavorite;
+              updateFavoriteMutation
+                .mutateAsync({
+                  publicId: recordId,
+                  isFavorite: nextFavorite,
+                })
+                .then(() => {
+                  showToast({
+                    variant: 'success',
+                    message: nextFavorite
+                      ? '즐겨찾기에 추가되었습니다.'
+                      : '즐겨찾기에서 제거되었습니다.',
+                  });
+                })
+                .catch(() => {
+                  showToast({
+                    variant: 'error',
+                    message: '즐겨찾기 변경에 실패했습니다.',
+                  });
+                });
+            }}
+            className="p-2 rounded-full hover:bg-gray-100 transition-colors"
+            aria-label={
+              recordDetail?.isFavorite ? '즐겨찾기 해제' : '즐겨찾기 추가'
+            }
           >
-            <LinkIcon className="w-3.5 h-3.5" />
-            연결하기
+            <FavoriteIcon
+              className={`w-6 h-6 ${
+                recordDetail?.isFavorite
+                  ? 'text-yellow-500 fill-yellow-500'
+                  : 'text-gray-400'
+              }`}
+            />
           </button>
         </div>
       </div>
@@ -767,22 +801,36 @@ function RecordSummaryPanel({
               {recordDetail.title}
             </h1>
 
-            {/* 위치 및 날짜 */}
-            <div className="space-y-2">
-              <div className="flex items-center gap-2 text-gray-500">
-                <LocationIcon className="w-[14px] h-[14px] text-[#73C92E]" />
-                <span className="text-sm font-bold text-gray-700">
-                  {recordDetail.location.name?.trim() ??
-                    recordDetail.location.address?.trim() ??
-                    '장소 없음'}
-                </span>
+            {/* 위치 및 날짜 + 연결하기 버튼 그룹 */}
+            <div className="flex items-end justify-between gap-4 mb-8">
+              <div className="flex-1 min-w-0 space-y-2">
+                {/* 위치 */}
+                <div className="flex items-center gap-2 text-gray-500">
+                  <LocationIcon className="w-[14px] h-[14px] text-[#73C92E] shrink-0" />
+                  <span className="text-sm font-bold text-gray-700 truncate">
+                    {recordDetail.location.name?.trim() ??
+                      recordDetail.location.address?.trim() ??
+                      '장소 없음'}
+                  </span>
+                </div>
+                {/* 날짜 */}
+                <div className="flex items-center gap-2 text-gray-400">
+                  <CalendarIcon className="w-[14px] h-[14px] shrink-0" />
+                  <span className="text-xs font-medium">
+                    {formatDateShort(new Date(recordDetail.createdAt))}
+                  </span>
+                </div>
               </div>
-              <div className="flex items-center gap-2 text-gray-400">
-                <CalendarIcon className="w-[14px] h-[14px]" />
-                <span className="text-xs font-medium">
-                  {formatDateShort(new Date(recordDetail.createdAt))}
-                </span>
-              </div>
+
+              {/* 연결하기 버튼: 우측 하단 정렬 */}
+              <button
+                type="button"
+                onClick={onStartConnection}
+                className="shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-xl bg-orange-50 text-[#FE8916] text-[11px] font-black hover:bg-orange-100 transition-all border border-orange-100/50 active:scale-95"
+              >
+                <LinkIcon className="w-3.5 h-3.5" />
+                연결하기
+              </button>
             </div>
           </div>
 
