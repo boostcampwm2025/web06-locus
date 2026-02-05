@@ -1,26 +1,19 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 
-const DEFAULT_MESSAGE = '잠을 자도 피로가 안 풀리냐';
-
-function pickRandomComment(comments: string[]): string {
-  if (comments.length === 0) return DEFAULT_MESSAGE;
-  return (
-    comments[Math.floor(Math.random() * comments.length)] ?? DEFAULT_MESSAGE
-  );
-}
+const DEFAULT_MESSAGE = '잠을 자도 피로가 안 풀리냐덕?';
 
 export interface DuckWithSpeechBubbleProps {
   children: React.ReactNode;
-  comments?: string[] /** 오리 API에서 받은 코멘트 풀. 있으면 말풍선 열릴 때 랜덤 1개 표시 */;
-  message?: string /** comments가 없거나 비었을 때 사용할 메시지 */;
-  size?: number /** 클릭 영역 크기(px). 오리 크기와 맞출 것 */;
+  comments?: string[] /** 오리 API에서 받은 코멘트 풀 */;
+  message?: string /** comments가 없거나 비었을 때 사용할 기본 메시지 */;
+  size?: number;
   className?: string;
 }
 
 /**
  * 오리 클릭 시 말풍선을 띄우는 공통 래퍼.
- * DuckMapScene, DuckMapSceneHybrid, DuckMapSceneCrossing 등 모든 오리 시나리오에서 사용.
+ * 한 바퀴 돌 때까지 중복 없이 대사를 보여주는 셔플 로직 적용.
  */
 export function DuckWithSpeechBubble({
   children,
@@ -32,33 +25,58 @@ export function DuckWithSpeechBubble({
   const [isVisible, setIsVisible] = useState(false);
   const [displayedMessage, setDisplayedMessage] = useState(message);
 
+  // 아직 사용하지 않은 대사들의 인덱스 번호
+  const [unusedIndices, setUnusedIndices] = useState<number[]>([]);
+
+  const getNextComment = useCallback(() => {
+    if (!comments || comments.length === 0) return message;
+
+    let currentIndices = [...unusedIndices];
+
+    // 인덱스 풀 비워졌으면(새 바퀴 시작) 새로 인덱스 풀을 채우고 섞음
+    if (currentIndices.length === 0) {
+      currentIndices = Array.from({ length: comments.length }, (_, i) => i);
+      // 피셔-예이츠 셔플 알고리즘(간략화)
+      for (let i = currentIndices.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [currentIndices[i], currentIndices[j]] = [
+          currentIndices[j],
+          currentIndices[i],
+        ];
+      }
+    }
+
+    // 마지막 인덱스 하나를 추출
+    const nextIndex = currentIndices.pop()!;
+    setUnusedIndices(currentIndices);
+
+    return comments[nextIndex] ?? message;
+  }, [comments, message, unusedIndices]);
+
+  const toggleBubble = () => {
+    const nextVisibility = !isVisible;
+    if (nextVisibility) {
+      // 말풍선이 열릴 때만 새로운 대사를 세팅
+      setDisplayedMessage(getNextComment());
+    }
+    setIsVisible(nextVisibility);
+  };
+
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    const next = !isVisible;
-    if (next) {
-      setDisplayedMessage(
-        comments.length > 0 ? pickRandomComment(comments) : message,
-      );
-    }
-    setIsVisible(next);
+    toggleBubble();
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
-      const next = !isVisible;
-      if (next) {
-        setDisplayedMessage(
-          comments.length > 0 ? pickRandomComment(comments) : message,
-        );
-      }
-      setIsVisible(next);
+      toggleBubble();
     }
   };
 
   return (
     <div
-      className={`relative flex items-center justify-center ${className}`}
+      className={`relative flex items-center justify-center cursor-pointer outline-none ${className}`}
       style={{ width: size, height: size }}
       onClick={handleClick}
       onKeyDown={handleKeyDown}
@@ -66,7 +84,7 @@ export function DuckWithSpeechBubble({
       tabIndex={0}
       aria-label="오리 말풍선 보기"
     >
-      <div className="absolute bottom-full mb-6 z-10 left-1/2 -translate-x-1/2 w-max max-w-[420px]">
+      <div className="absolute bottom-full mb-6 z-10 left-1/2 -translate-x-1/2 w-max max-w-[420px] pointer-events-none">
         <AnimatePresence mode="wait">
           {isVisible && (
             <motion.div
