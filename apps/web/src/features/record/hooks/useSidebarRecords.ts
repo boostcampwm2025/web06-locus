@@ -94,5 +94,12 @@ export function useSidebarRecords({
     includeImages,
   ]);
 
-  return { records: filteredAndSortedRecords, isLoading, isError };
+  const totalCount = allRecordsData?.totalCount ?? 0;
+
+  return {
+    records: filteredAndSortedRecords,
+    totalCount,
+    isLoading,
+    isError,
+  };
 }

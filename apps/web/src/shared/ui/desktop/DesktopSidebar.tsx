@@ -130,14 +130,17 @@ export function DesktopSidebar({
   );
 
   // 일반 모드일 때는 useSidebarRecords 사용 (검색어가 없을 때만)
-  const { records: allSidebarRecords, isLoading: isRecordsLoading } =
-    useSidebarRecords({
-      sortOrder,
-      startDate,
-      endDate,
-      selectedCategory,
-      categories,
-    });
+  const {
+    records: allSidebarRecords,
+    totalCount: sidebarTotalCount,
+    isLoading: isRecordsLoading,
+  } = useSidebarRecords({
+    sortOrder,
+    startDate,
+    endDate,
+    selectedCategory,
+    categories,
+  });
 
   // 기록 목록 변환 (연결 모드 vs 검색 모드 vs 일반 모드)
   const allRecords = useMemo(() => {
@@ -212,6 +215,14 @@ export function DesktopSidebar({
   const hasMore =
     !(pinSelectedRecordIds && pinSelectedRecordIds.length > 0) &&
     displayCount < filteredRecords.length;
+
+  // 헤더에 표시할 총 개수 (API totalCount 사용, 핀 선택 시에만 현재 표시 개수)
+  const displayTotalCount =
+    pinSelectedRecordIds && pinSelectedRecordIds.length > 0
+      ? records.length
+      : hasSearchKeyword
+        ? (searchData?.pagination?.totalCount ?? records.length)
+        : (sidebarTotalCount ?? records.length);
 
   // 무한 스크롤: 더 많은 아이템 로드
   const loadMore = useCallback(() => {
@@ -362,8 +373,8 @@ export function DesktopSidebar({
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium text-gray-900">
                     {pinSelectedRecordIds && pinSelectedRecordIds.length > 0
-                      ? `선택한 위치 기록 ${records.length}`
-                      : `검색 결과 ${records.length}`}
+                      ? `기록 목록 ${displayTotalCount}`
+                      : `기록 목록 ${displayTotalCount}`}
                   </span>
                   <div className="relative">
                     <button
