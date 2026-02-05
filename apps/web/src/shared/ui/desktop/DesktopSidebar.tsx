@@ -22,6 +22,7 @@ import { useSearchRecords } from '@/features/record/hooks/useSearchRecords';
 import { useGetRecordDetail } from '@/features/record/hooks/useGetRecordDetail';
 import { useConnectionStore } from '@/features/connection/domain/connectionStore';
 import { useConnectionModeData } from '@/features/connection/hooks/useConnectionModeData';
+import { useBlobPreviewStore } from '@/features/record/domain/blobPreviewStore';
 import { DesktopFilterPanel } from './DesktopFilterPanel';
 import type {
   DesktopSidebarProps,
@@ -626,6 +627,9 @@ function RecordSummaryPanel({
     isError,
   } = useGetRecordDetail(recordId, { enabled: !!recordId });
 
+  // Blob URL 조회 (기록 생성 직후 첫 번째 이미지)
+  const getBlobUrl = useBlobPreviewStore((state) => state.getBlobUrl);
+
   if (isLoading) {
     return (
       <motion.div
@@ -651,10 +655,20 @@ function RecordSummaryPanel({
   }
 
   const tags = recordDetail.tags?.map((tag) => tag.name) ?? [];
-  // 이미지 URL 목록 (medium → thumbnail → original 순으로 fallback)
+
+  // Blob URL 사용
+  const blobUrl = getBlobUrl(recordDetail.publicId);
+
+  // 이미지 URL 목록 (Blob URL → medium → thumbnail → original 순으로 fallback)
   const list = recordDetail.images ?? [];
   const imageUrls = list
-    .map((img) => img.medium?.url ?? img.thumbnail?.url ?? img.original?.url)
+    .map((img, index) => {
+      // 첫 번째 이미지는 Blob URL 우선
+      if (index === 0 && blobUrl) return blobUrl;
+
+      // 나머지는 기존 로직
+      return img.medium?.url ?? img.thumbnail?.url ?? img.original?.url;
+    })
     .filter((url): url is string => Boolean(url));
   const imageUrl =
     imageUrls.length > 0 ? imageUrls[0] : RECORD_PLACEHOLDER_IMAGE;
