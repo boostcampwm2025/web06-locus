@@ -33,6 +33,8 @@ export default function RecordSummaryBottomSheet({
   onDelete,
   onAddRecord,
   recordCoordinates,
+  onShowLinkedRecords,
+  hasConnectedRecords = false,
 }: RecordSummaryBottomSheetProps) {
   const publicId = typeof record === 'string' ? record : record.id;
 
@@ -145,6 +147,8 @@ export default function RecordSummaryBottomSheet({
         onDelete={onDelete}
         onClose={onClose}
         onAddRecord={onAddRecord}
+        onShowLinkedRecords={onShowLinkedRecords}
+        hasConnectedRecords={hasConnectedRecords}
       />
     </BaseBottomSheet>
   );
@@ -189,13 +193,21 @@ function RecordSummaryContent({
   onDelete,
   onClose,
   onAddRecord,
+  onShowLinkedRecords,
+  hasConnectedRecords = false,
 }: RecordSummaryContentProps) {
   return (
     <div className="flex flex-col h-full">
       {/* 1. 고정 헤더 영역 */}
       <div className="shrink-0 px-6 pt-6">
         <RecordSummaryHeader title={title} date={date} onClose={onClose} />
-        <RecordLocationCard location={location} onAddRecord={onAddRecord} />
+        <RecordLocationCard
+          location={location}
+          onAddRecord={onAddRecord}
+          hasConnectedRecords={hasConnectedRecords}
+          onShowLinkedRecords={onShowLinkedRecords}
+          onClose={onClose}
+        />
       </div>
 
       {/* 2. 스크롤 영역 (이미지 갤러리 + 태그 + 본문) */}
@@ -299,6 +311,9 @@ function RecordSummaryHeader({
 function RecordLocationCard({
   location,
   onAddRecord,
+  hasConnectedRecords = false,
+  onShowLinkedRecords,
+  onClose,
 }: RecordLocationCardProps) {
   const hasLocation = Boolean(
     location.name?.trim() || location.address?.trim(),
@@ -346,14 +361,29 @@ function RecordLocationCard({
           <button
             type="button"
             onClick={handleAddRecord}
-            className="w-10 h-10 bg-white rounded-2xl flex items-center justify-center text-blue-600 shadow-sm border border-transparent hover:border-blue-200 active:scale-90 transition-all shrink-0"
+            className="w-10 h-10 bg-white rounded-2xl flex items-center justify-center text-blue-600 shadow-sm border border-transparent hover:border-blue-200 active:scale-90 transition-all"
             title="이 장소에 추가"
-            aria-label="이 장소에 추가"
           >
             <PlusIcon className="w-5 h-5" />
           </button>
         )}
       </div>
+      {hasConnectedRecords && (
+        <button
+          type="button"
+          onClick={() => {
+            if (onShowLinkedRecords) {
+              onShowLinkedRecords();
+            } else {
+              onClose?.();
+            }
+          }}
+          className="w-full mt-3 py-2 bg-white/60 hover:bg-white rounded-xl flex items-center justify-center gap-2 text-blue-600 text-[0.8125rem] font-bold border border-blue-100/50 transition-all active:scale-[0.98]"
+        >
+          <span>🔗</span>
+          <span>이 장소와 연결된 기록 확인</span>
+        </button>
+      )}
     </div>
   );
 }

@@ -94,6 +94,10 @@ export interface RecordSummaryBottomSheetProps {
   onAddRecord?: (location: LocationWithCoordinates) => void;
   /** record가 객체일 때 좌표 전달 (savedRecord.coordinates 등) */
   recordCoordinates?: Coordinates;
+  /** "이 장소와 연결된 기록 확인" 버튼 클릭 시 */
+  onShowLinkedRecords?: () => void;
+  /** 연결된 기록이 있을 때만 해당 버튼 노출 (graph edges > 0) */
+  hasConnectedRecords?: boolean;
 }
 
 /**
@@ -126,6 +130,12 @@ export interface RecordLocationCardProps {
   location: Location & { coordinates?: { lat: number; lng: number } };
   /** 장소에 기록 추가 시 (coordinates 있을 때만 + 버튼 표시) */
   onAddRecord?: (location: LocationWithCoordinates) => void;
+  /** 연결된 기록이 있을 때만 "이 장소와 연결된 기록 확인" 버튼 표시 */
+  hasConnectedRecords?: boolean;
+  /** 해당 버튼 클릭 시 (바텀시트 닫고 연결선 표시 등) */
+  onShowLinkedRecords?: () => void;
+  /** 버튼만 있을 때 닫기용 */
+  onClose?: () => void;
 }
 
 /**
@@ -151,6 +161,10 @@ export interface RecordSummaryContentProps
   onEdit?: () => void;
   onDelete?: () => void;
   onClose: () => void;
+  /** "이 장소와 연결된 기록 확인" 버튼 클릭 시 */
+  onShowLinkedRecords?: () => void;
+  /** 연결된 기록이 있을 때만 해당 버튼 노출 */
+  hasConnectedRecords?: boolean;
 }
 
 /**
