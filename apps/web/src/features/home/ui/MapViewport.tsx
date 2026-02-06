@@ -1016,6 +1016,7 @@ export default function MapViewport({
         ) {
           sharedCoordinates = coordinateList[0];
         }
+        setShowConnectionLinesForRecordId(topRecordId); // 데스크톱: 핀 클릭 시 연결선 자동 표시
         onPinClick(topRecordId, {
           clusterRecordIds,
           clusterRecords: clusterRecordsList,
@@ -1033,6 +1034,7 @@ export default function MapViewport({
     setSelectedRecordPublicId(publicId);
     const onPinClick = onRecordPinClick;
     if (onPinClick) {
+      setShowConnectionLinesForRecordId(publicId); // 데스크톱: 핀 클릭 시 연결선 자동 표시
       const singleRecord = allRecords[publicId];
       const coordinates = recordCoordinatesMap[publicId];
       const meta =
