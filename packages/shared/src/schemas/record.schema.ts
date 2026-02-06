@@ -250,6 +250,7 @@ export const SearchRecordItemResponseSchema = z.object({
   title: z.string(),
   tags: z.array(z.string()),
   locationName: z.string().nullable(),
+  locationAddress: z.string().nullable(),
   isFavorite: z.boolean(),
   thumbnailImage: z.string().nullable(),
   connectionCount: z.number(),

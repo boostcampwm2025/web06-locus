@@ -185,7 +185,7 @@ export function DesktopSidebar({
         title: record.title,
         location: {
           name: record.locationName ?? '',
-          address: '',
+          address: record.locationAddress ?? '',
         },
         date: new Date(record.createdAt),
         tags: record.tags,
