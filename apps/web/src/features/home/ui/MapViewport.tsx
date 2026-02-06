@@ -159,7 +159,8 @@ export default function MapViewport({
     },
   );
 
-  // API에서 받아온 데이터를 allFetchedRecords에 누적 저장
+  // API에서 받아온 데이터를 allFetchedRecords에 반영
+  // fetchBounds 구간 내 기존 기록을 제거 후 새 API 응답으로 교체 (삭제 반영)
   useEffect(() => {
     if (!recordsByBoundsData?.records || !fetchBounds) {
       return;
@@ -169,14 +170,31 @@ export default function MapViewport({
 
     setAllFetchedRecords((prev) => {
       const newMap = new Map(prev);
+
+      // fetchBounds 내 기존 기록 제거 (삭제된 기록 반영)
+      const toRemove: string[] = [];
+      newMap.forEach((entry, publicId) => {
+        if (
+          isWithinBounds(
+            entry.record.location.latitude,
+            entry.record.location.longitude,
+            fetchBounds,
+          )
+        ) {
+          toRemove.push(publicId);
+        }
+      });
+      toRemove.forEach((id) => newMap.delete(id));
+
+      // 새 API 응답으로 추가/갱신
       recordsByBoundsData.records.forEach((record: ApiRecord) => {
-        // 이미 존재하는 경우 타임스탬프는 유지 (오래된 순 정렬을 위해)
         const existing = newMap.get(record.publicId);
         newMap.set(record.publicId, {
           record,
           timestamp: existing?.timestamp ?? now,
         });
       });
+
       return newMap;
     });
 
@@ -723,27 +741,12 @@ export default function MapViewport({
       const boundsInSameGrid =
         currentViewBounds && isSameGridBounds(currentBounds, currentViewBounds);
 
-      // 중심점과 bounds 모두 같은 그리드에 있으면 리사이즈로 인한 변화로 간주 (API 호출 스킵)
+      // 중심점과 bounds 모두 같은 그리드에 있으면 리사이즈로 인한 변화로 간주 (API 호출·state 업데이트 스킵)
       if (centerInSameGrid && boundsInSameGrid) {
-        // 화면 bounds만 업데이트 (API 호출은 하지 않음)
-        setCurrentViewBounds((prev) => {
-          if (
-            prev?.neLat !== currentBounds.neLat ||
-            prev?.neLng !== currentBounds.neLng ||
-            prev?.swLat !== currentBounds.swLat ||
-            prev?.swLng !== currentBounds.swLng
-          ) {
-            return currentBounds;
-          }
-          return prev;
-        });
-
-        // 중심점 업데이트
         if (currentCenter) {
           previousCenterRef.current = currentCenter;
         }
-
-        return; // API 호출 없이 종료
+        return; // currentViewBounds 갱신 없이 종료 → 불필요한 리렌더 방지
       }
 
       // 중심점이 이동했거나 bounds가 달라졌거나 첫 호출인 경우 정상 처리
