@@ -29,6 +29,13 @@ export class SearchRecordItemDto {
   locationName: string | null;
 
   @ApiProperty({
+    description: '장소 주소',
+    example: '서울특별시 강남구 역삼동 396',
+    nullable: true,
+  })
+  locationAddress: string | null;
+
+  @ApiProperty({
     description: '즐겨찾기 여부',
     example: true,
   })
@@ -97,6 +104,7 @@ export class SearchRecordListResponseDto {
           title: source.title,
           tags: source.tags ?? [],
           locationName: source.locationName ?? null,
+          locationAddress: source.locationAddress ?? null,
           isFavorite: source.isFavorite,
           thumbnailImage: source.thumbnailImage ?? null,
           connectionCount: source.connectionsCount ?? 0,

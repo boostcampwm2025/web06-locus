@@ -4,7 +4,9 @@ import {
   Sort,
 } from 'node_modules/@elastic/elasticsearch/lib/api/types';
 
-export const RECORD_INDEX_NAME = 'records';
+export const RECORD_INDEX_VERSION = 1; // 인덱스 내용 변경 시 버전 증가(필드 추가시에는 버전 증가 X)
+export const RECORD_INDEX_NAME = `records_v${RECORD_INDEX_VERSION}`;
+export const RECORD_INDEX_ALIAS = 'records'; // 사용할 alias
 
 export const RECORD_INDEX_SETTINGS = {
   number_of_shards: 1,
@@ -33,6 +35,7 @@ export const RECORD_SEARCH_MAPPING: MappingTypeMapping = {
     content: { type: 'text', analyzer: 'nori_analyzer' },
     isFavorite: { type: 'boolean' },
     locationName: { type: 'text', analyzer: 'nori_analyzer' },
+    locationAddress: { type: 'keyword' },
     tags: { type: 'keyword' },
     hasImages: { type: 'boolean' },
     thumbnailImage: { type: 'keyword' },
@@ -53,3 +56,9 @@ export const RECORD_SEARCH_SORT_CRITERIA: Sort = [
   { _score: { order: 'desc' } },
   { recordId: 'desc' },
 ];
+
+export const RECORD_SEARCH_COMPUTED_FIELDS: string[] = [
+  'hasImages',
+  'thumbnailImage',
+  'tags',
+] as const;

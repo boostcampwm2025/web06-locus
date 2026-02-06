@@ -19,6 +19,7 @@ export interface RecordSyncPayload {
   content: string | null;
   isFavorite: boolean;
   locationName: string | null;
+  locationAddress: string | null;
   tags: string[];
   hasImages: boolean;
   thumbnailImage: string | null;
@@ -40,6 +41,7 @@ export const createRecordSyncPayload = (
     content: record.content,
     isFavorite: record.isFavorite,
     locationName: record.locationName,
+    locationAddress: record.locationAddress,
     tags,
     hasImages: !!thumbnailImageUrl,
     thumbnailImage: thumbnailImageUrl ?? null,

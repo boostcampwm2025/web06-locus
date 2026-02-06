@@ -6,7 +6,7 @@ import { MapsService } from '../maps/maps.service';
 import { PrismaModule } from '@/prisma/prisma.module';
 import { JwtModule } from '@/jwt/jwt.module';
 import { RecordSearchService } from './services/records-search.service';
-import { ElasticsearchConfigModule } from '@/elasticsearch/elasticsearch.module';
+import { ElasticsearchConfigModule } from '@/infra/elasticsearch/elasticsearch.module';
 import { RecordSyncConsumer } from './consumer/record-sync.consumer';
 import { OutboxModule } from '@/outbox/outbox.module';
 import { ImageProcessingService } from './services/image-processing.service';
