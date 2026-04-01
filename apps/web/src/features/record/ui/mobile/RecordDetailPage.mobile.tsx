@@ -9,6 +9,7 @@ import type { RecordDetailPageProps } from '@/features/record/types';
 import { formatDateShort } from '@/shared/utils/dateUtils';
 import { RecordImageSlider } from '@/shared/ui/record';
 import { getDisplayTags } from '@/shared/utils/tagUtils';
+import { useBlobPreviewStore } from '@/features/record/domain/blobPreviewStore';
 
 export function RecordDetailPageMobile({
   title,
@@ -18,6 +19,7 @@ export function RecordDetailPageMobile({
   description,
   imageUrl,
   imageUrls,
+  baseRecordPublicId,
   connectionCount,
   isFavorite = false,
   onBack,
@@ -28,6 +30,10 @@ export function RecordDetailPageMobile({
   className = '',
 }: RecordDetailPageProps) {
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+
+  const getBlobUrls = useBlobPreviewStore((state) => state.getBlobUrls);
+  const blobUrls = baseRecordPublicId ? getBlobUrls(baseRecordPublicId) : [];
+  const displayImageUrls = blobUrls.length > 0 ? blobUrls : (imageUrls ?? []);
 
   return (
     <div className={`flex flex-col h-screen bg-white ${className}`}>
@@ -53,7 +59,7 @@ export function RecordDetailPageMobile({
 
         <RecordContent
           imageUrl={imageUrl}
-          imageUrls={imageUrls}
+          imageUrls={displayImageUrls}
           description={description}
           title={title}
         />

@@ -30,9 +30,10 @@ export function useCreateRecord() {
   return useMutation<RecordWithImages, Error, CreateRecordParams>({
     mutationFn: async ({ request, images = [] }) => {
       // 이미지 없으면 기존 FormData 방식
-      if (images.length === 0) {
-        return createRecord(request, images);
-      }
+      // if (images.length === 0) {
+      //   return createRecord(request, images);
+      // }
+      return createRecord(request, []);
 
       // 이미지 있으면 Presigned URL 방식
       let recordPublicId: string;

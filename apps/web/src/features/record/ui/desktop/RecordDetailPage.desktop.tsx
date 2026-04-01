@@ -17,6 +17,7 @@ import type {
 import { formatDateShort } from '@/shared/utils/dateUtils';
 import ConnectionNetworkView from '@/features/connection/ui/ConnectionNetworkView';
 import { RecordImageSlider } from '@/shared/ui/record';
+import { useBlobPreviewStore } from '@/features/record/domain/blobPreviewStore';
 
 export function RecordDetailPageDesktop({
   title,
@@ -45,6 +46,10 @@ export function RecordDetailPageDesktop({
   const navigate = useNavigate();
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [isGraphPanelOpen, setIsGraphPanelOpen] = useState(false);
+
+  const getBlobUrls = useBlobPreviewStore((state) => state.getBlobUrls);
+  const blobUrls = baseRecordPublicId ? getBlobUrls(baseRecordPublicId) : [];
+  const displayImageUrls = blobUrls.length > 0 ? blobUrls : (imageUrls ?? []);
 
   const handleBack = () => {
     if (onBack) {
@@ -135,10 +140,10 @@ export function RecordDetailPageDesktop({
             </div>
 
             {/* 이미지 (여러 장이면 슬라이더) */}
-            {(imageUrls?.length ?? 0) > 0 ? (
+            {displayImageUrls.length > 0 ? (
               <div className="w-full aspect-video mb-6 rounded-2xl overflow-hidden">
                 <RecordImageSlider
-                  urls={imageUrls!}
+                  urls={displayImageUrls}
                   alt={title}
                   className="rounded-2xl"
                 />
@@ -287,10 +292,10 @@ export function RecordDetailPageDesktop({
         </header>
 
         {/* 메인 이미지 (여러 장이면 슬라이더) */}
-        {(imageUrls?.length ?? 0) > 0 ? (
+        {displayImageUrls.length > 0 ? (
           <div className="w-full aspect-21/9 mb-12 rounded-[40px] overflow-hidden shadow-2xl">
             <RecordImageSlider
-              urls={imageUrls!}
+              urls={displayImageUrls}
               alt={title}
               className="rounded-[40px]"
             />
