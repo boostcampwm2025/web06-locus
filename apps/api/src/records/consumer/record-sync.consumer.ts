@@ -6,19 +6,27 @@ import { RecordSyncEvent, RecordSyncPayload } from '../type/record-sync.types';
 import { RecordSearchService } from '../services/records-search.service';
 import { OUTBOX_EVENT_TYPE } from '@/common/constants/event-types.constants';
 import { VersionedWriteResult } from '@/infra/elasticsearch/types/elasticsearch.types';
+import {
+  NonRetryableMessageError,
+  RmqRetryService,
+} from '@/mq/rmq-retry.service';
 
 @Controller()
 export class RecordSyncConsumer {
   private readonly logger = new Logger(RecordSyncConsumer.name);
 
-  constructor(private readonly recordSearchService: RecordSearchService) {}
+  constructor(
+    private readonly recordSearchService: RecordSearchService,
+    private readonly rmqRetryService: RmqRetryService,
+  ) {}
 
   /**
    * RabbitMQ 메시지 수신 및 처리
    * @EventPattern으로 이벤트 수신
    * - 수동 ACK 모드
    * 성공 시 ACK (메시지 큐에서 제거)
-   * 실패 시 NACK (메시지 다시 큐에 넣어 재시도)
+   * 실패 시 RmqRetryService가 처리: 지수 백오프로 재시도(x-retry-count)하고,
+   *   상한(기본 5회)을 넘으면 DLQ(record.sync.queue.dlq)로 이동. 형식 오류는 바로 DLQ.
    *
    * [멱등성 · 순서]
    * - 최소 한 번 전달이므로 같은 이벤트가 여러 번, 순서가 뒤바뀌어 도착할 수 있다.
@@ -51,10 +59,10 @@ export class RecordSyncConsumer {
     } catch (error) {
       this.logger.error(`❌ Event ${event.eventId} 처리 실패`, error);
 
-      // 실패 시 NACK (requeue: true)
-      // → RabbitMQ가 메시지를 큐에 다시 넣음
-      channel.nack(message, false, true);
-      this.logger.warn(`↩️ Event ${event.eventId} 재시도를 위해 큐에 넣음.`);
+      // 실패 시: 지수 백오프로 재시도하고, 상한을 넘으면 DLQ로 이동
+      // (재시도해도 소용없는 형식 오류는 바로 DLQ)
+      const outcome = await this.rmqRetryService.handleFailure(context, error);
+      this.logger.warn(`Event ${event.eventId} 실패 처리 결과: ${outcome}`);
     }
   }
 
@@ -78,7 +86,9 @@ export class RecordSyncConsumer {
           version,
         );
       default:
-        throw new Error(`알 수 없는 이벤트 타입: ${String(event.eventType)}`);
+        throw new NonRetryableMessageError(
+          `알 수 없는 이벤트 타입: ${String(event.eventType)}`,
+        );
     }
   }
 
@@ -89,7 +99,7 @@ export class RecordSyncConsumer {
   private toVersion(eventId: string): number {
     const version = Number(eventId);
     if (!Number.isSafeInteger(version) || version <= 0) {
-      throw new Error(`유효하지 않은 eventId: ${eventId}`);
+      throw new NonRetryableMessageError(`유효하지 않은 eventId: ${eventId}`);
     }
     return version;
   }

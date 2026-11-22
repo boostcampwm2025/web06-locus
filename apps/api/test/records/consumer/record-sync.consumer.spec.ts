@@ -7,6 +7,10 @@ import { RecordSearchService } from '@/records/services/records-search.service';
 import { ElasticsearchService } from '@/infra/elasticsearch/elasticsearch.service';
 import { PrismaService } from '@/prisma/prisma.service';
 import {
+  NonRetryableMessageError,
+  RmqRetryService,
+} from '@/mq/rmq-retry.service';
+import {
   OUTBOX_EVENT_TYPE,
   OutboxEventType,
 } from '@/common/constants/event-types.constants';
@@ -79,6 +83,9 @@ describe('RecordSyncConsumer (중복·순서·장애 시나리오)', () => {
   let es: FakeEsClient;
   const channel = { ack: jest.fn(), nack: jest.fn() };
   const message = {};
+  const retryService = {
+    handleFailure: jest.fn().mockResolvedValue('RETRY_SCHEDULED'),
+  };
   const context = {
     getChannelRef: () => channel,
     getMessage: () => message,
@@ -127,6 +134,7 @@ describe('RecordSyncConsumer (중복·순서·장애 시나리오)', () => {
         ElasticsearchService,
         { provide: NestElasticsearchService, useValue: es },
         { provide: PrismaService, useValue: {} },
+        { provide: RmqRetryService, useValue: retryService },
       ],
     }).compile();
 
@@ -308,7 +316,7 @@ describe('RecordSyncConsumer (중복·순서·장애 시나리오)', () => {
   });
 
   describe('장애와 재시도', () => {
-    test('ES 장애 시 NACK(requeue)하고, 재전달되면 정상 반영되어야 한다', async () => {
+    test('ES 장애 시 ACK하지 않고 재시도 처리를 위임하며, 재전달되면 정상 반영되어야 한다', async () => {
       // given
       const created = event(
         1,
@@ -320,12 +328,15 @@ describe('RecordSyncConsumer (중복·순서·장애 시나리오)', () => {
       // when
       await deliver(created);
 
-      // then: 첫 시도는 NACK, 문서는 아직 없음
-      expect(channel.nack).toHaveBeenCalledWith(message, false, true);
+      // then: 첫 시도는 재시도 서비스로 위임, 문서는 아직 없음
+      expect(retryService.handleFailure).toHaveBeenCalledWith(
+        context,
+        expect.objectContaining({ statusCode: 503 }),
+      );
       expect(channel.ack).not.toHaveBeenCalled();
       expect(es.source('100')).toBeNull();
 
-      // when: RabbitMQ가 같은 메시지를 다시 전달
+      // when: 재시도 서비스가 같은 메시지를 다시 발행해 재전달됨
       await deliver(created);
 
       // then
@@ -333,7 +344,7 @@ describe('RecordSyncConsumer (중복·순서·장애 시나리오)', () => {
       expect(es.source('100')?.title).toBe('장애 후 복구');
     });
 
-    test('유효하지 않은 eventId는 ES를 호출하지 않고 NACK해야 한다', async () => {
+    test('유효하지 않은 eventId는 ES를 호출하지 않고 재시도 불가 오류로 위임해야 한다', async () => {
       // when
       await deliver(
         event('not-a-number', OUTBOX_EVENT_TYPE.RECORD_CREATED, snapshot()),
@@ -341,18 +352,35 @@ describe('RecordSyncConsumer (중복·순서·장애 시나리오)', () => {
 
       // then
       expect(es.index).not.toHaveBeenCalled();
-      expect(channel.nack).toHaveBeenCalledTimes(1);
+      expect(retryService.handleFailure).toHaveBeenCalledWith(
+        context,
+        expect.any(NonRetryableMessageError),
+      );
       expect(channel.ack).not.toHaveBeenCalled();
     });
 
-    test('알 수 없는 이벤트 타입은 ES를 호출하지 않고 NACK해야 한다', async () => {
+    test('알 수 없는 이벤트 타입은 ES를 호출하지 않고 재시도 불가 오류로 위임해야 한다', async () => {
       // when
       await deliver(event(1, 'RECORD_UNKNOWN', snapshot()));
 
       // then
       expect(es.index).not.toHaveBeenCalled();
       expect(es.delete).not.toHaveBeenCalled();
-      expect(channel.nack).toHaveBeenCalledTimes(1);
+      expect(retryService.handleFailure).toHaveBeenCalledWith(
+        context,
+        expect.any(NonRetryableMessageError),
+      );
+    });
+
+    test('컨슈머는 실패 시 직접 NACK하지 않는다(재시도/DLQ는 RmqRetryService가 담당)', async () => {
+      // given
+      es.index.mockRejectedValueOnce(responseError(503));
+
+      // when
+      await deliver(event(1, OUTBOX_EVENT_TYPE.RECORD_CREATED, snapshot()));
+
+      // then
+      expect(channel.nack).not.toHaveBeenCalled();
     });
   });
 });
