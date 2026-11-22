@@ -19,6 +19,7 @@ import { RecordGraphService } from './services/records-graph.service';
 import { RecordLocationService } from './services/records-location.service';
 import { RecordQueryService } from './services/records-query.service';
 import { RecordImageService } from './services/records-image.service';
+import { RecordSnapshotService } from './services/records-snapshot.service';
 import { ImageUploadConfigProvider } from './config/image-upload.config';
 import { RedisModule } from '@/redis/redis.module';
 
@@ -39,6 +40,7 @@ import { RedisModule } from '@/redis/redis.module';
     RecordSearchService,
     RecordTagsService,
     RecordImageService,
+    RecordSnapshotService,
     RecordGraphService,
     RecordLocationService,
     RecordQueryService,
