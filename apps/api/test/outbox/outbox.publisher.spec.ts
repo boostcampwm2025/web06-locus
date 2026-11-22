@@ -12,6 +12,7 @@ describe('OutboxPublisher', () => {
   const mockOutboxService = {
     getPendingOutboxEvents: jest.fn(),
     updateStatus: jest.fn(),
+    markPublishFailed: jest.fn(),
   };
 
   const mockClientProxy = {
@@ -211,15 +212,76 @@ describe('OutboxPublisher', () => {
       };
       const error = new Error('Publish failed');
       mockClientProxy.emit.mockReturnValue(throwError(() => error));
-      mockOutboxService.updateStatus.mockResolvedValue(undefined);
+      mockOutboxService.markPublishFailed.mockResolvedValue({
+        status: OutboxStatus.RETRY,
+        retryCount: 1,
+      });
 
       // when
       await publisher['processEvent'](mockEvent);
 
       // then
-      expect(mockOutboxService.updateStatus).toHaveBeenCalledWith(
-        1n,
-        OutboxStatus.RETRY,
+      expect(mockOutboxService.markPublishFailed).toHaveBeenCalledWith(
+        mockEvent,
+      );
+      expect(mockOutboxService.updateStatus).not.toHaveBeenCalled();
+    });
+
+    test('발행은 성공했지만 DONE 업데이트가 실패하면 발행 실패로 세지 않아야 한다', async () => {
+      // given
+      const mockEvent: Outbox = {
+        id: 1n,
+        aggregateType: 'RECORD',
+        aggregateId: 123n,
+        eventType: 'RECORD_CREATED',
+        payload: {},
+        status: OutboxStatus.PENDING,
+        retryCount: 0,
+        createdAt: new Date(),
+        processedAt: null,
+      };
+      mockClientProxy.emit.mockReturnValue(of(undefined));
+      mockOutboxService.updateStatus.mockRejectedValue(new Error('DB down'));
+
+      // when & then
+      await expect(publisher['processEvent'](mockEvent)).rejects.toThrow(
+        'DB down',
+      );
+      expect(mockOutboxService.markPublishFailed).not.toHaveBeenCalled();
+    });
+
+    test('DONE 업데이트 실패 후 다음 주기에 같은 이벤트가 재발행되어도 안전하게 처리된다', async () => {
+      // given: 1회차는 발행 성공 + DONE 실패, 2회차는 발행 성공 + DONE 성공
+      const mockEvent: Outbox = {
+        id: 7n,
+        aggregateType: 'RECORD',
+        aggregateId: 123n,
+        eventType: 'RECORD_CREATED',
+        payload: {},
+        status: OutboxStatus.PENDING,
+        retryCount: 0,
+        createdAt: new Date(),
+        processedAt: null,
+      };
+      mockOutboxService.getPendingOutboxEvents.mockResolvedValue([mockEvent]);
+      mockClientProxy.emit.mockReturnValue(of(undefined));
+      mockOutboxService.updateStatus
+        .mockRejectedValueOnce(new Error('DB down'))
+        .mockResolvedValueOnce(undefined);
+
+      // when
+      await publisher.publishPendingEvents();
+      await publisher.publishPendingEvents();
+
+      // then: 같은 eventId가 두 번 발행되고(최소 한 번 전달), 실패로 기록되지 않는다
+      const publishedIds = mockClientProxy.emit.mock.calls.map(
+        (call: [string, { eventId: string }]) => call[1].eventId,
+      );
+      expect(publishedIds).toEqual(['7', '7']);
+      expect(mockOutboxService.markPublishFailed).not.toHaveBeenCalled();
+      expect(mockOutboxService.updateStatus).toHaveBeenLastCalledWith(
+        7n,
+        OutboxStatus.DONE,
       );
     });
 
@@ -238,16 +300,23 @@ describe('OutboxPublisher', () => {
       };
       const error = new Error('Publish failed');
       mockClientProxy.emit.mockReturnValue(throwError(() => error));
-      mockOutboxService.updateStatus.mockResolvedValue(undefined);
+      mockOutboxService.markPublishFailed.mockResolvedValue({
+        status: OutboxStatus.DEAD,
+        retryCount: 5,
+      });
+      const loggerErrorSpy = jest.spyOn(publisher['logger'], 'error');
 
       // when
       await publisher['processEvent'](mockEvent);
 
       // then
-      expect(mockOutboxService.updateStatus).toHaveBeenCalledWith(
-        1n,
-        OutboxStatus.DEAD,
+      expect(mockOutboxService.markPublishFailed).toHaveBeenCalledWith(
+        mockEvent,
       );
+      expect(loggerErrorSpy).toHaveBeenCalledWith(
+        '🚨 DLQ: Event 1가 최종 실패 처리되었습니다.',
+      );
+      expect(mockOutboxService.updateStatus).not.toHaveBeenCalled();
     });
   });
 
@@ -304,70 +373,48 @@ describe('OutboxPublisher', () => {
   });
 
   describe('handlePublishFailure', () => {
-    test('재시도 횟수가 5 미만이면 RETRY 상태로 업데이트해야 한다', async () => {
-      // given
-      const mockOutbox: Outbox = {
-        id: 1n,
-        aggregateType: 'RECORD',
-        aggregateId: 123n,
-        eventType: 'RECORD_CREATED',
-        payload: {},
-        status: OutboxStatus.PENDING,
-        retryCount: 2,
-        createdAt: new Date(),
-        processedAt: null,
-      };
-      mockOutboxService.updateStatus.mockResolvedValue(undefined);
-
-      // when
-      await publisher['handlePublishFailure'](mockOutbox);
-
-      // then
-      expect(mockOutboxService.updateStatus).toHaveBeenCalledWith(
-        1n,
-        OutboxStatus.RETRY,
-      );
+    const buildOutbox = (overrides: Partial<Outbox> = {}): Outbox => ({
+      id: 1n,
+      aggregateType: 'RECORD',
+      aggregateId: 123n,
+      eventType: 'RECORD_CREATED',
+      payload: {},
+      status: OutboxStatus.PENDING,
+      retryCount: 0,
+      createdAt: new Date(),
+      processedAt: null,
+      ...overrides,
     });
 
-    test('재시도 횟수가 5 이상이면 DEAD 상태로 업데이트해야 한다', async () => {
+    test('실패를 기록하도록 OutboxService에 위임해야 한다', async () => {
       // given
-      const mockOutbox: Outbox = {
-        id: 1n,
-        aggregateType: 'RECORD',
-        aggregateId: 123n,
-        eventType: 'RECORD_CREATED',
-        payload: {},
+      const mockOutbox = buildOutbox({ retryCount: 2 });
+      mockOutboxService.markPublishFailed.mockResolvedValue({
         status: OutboxStatus.RETRY,
-        retryCount: 4,
-        createdAt: new Date(),
-        processedAt: null,
-      };
-      mockOutboxService.updateStatus.mockResolvedValue(undefined);
+        retryCount: 3,
+      });
 
       // when
       await publisher['handlePublishFailure'](mockOutbox);
 
       // then
-      expect(mockOutboxService.updateStatus).toHaveBeenCalledWith(
-        1n,
-        OutboxStatus.DEAD,
+      expect(mockOutboxService.markPublishFailed).toHaveBeenCalledWith(
+        mockOutbox,
       );
+      expect(mockOutboxService.updateStatus).not.toHaveBeenCalled();
     });
 
-    test('최종 실패 시 에러 로그를 남겨야 한다', async () => {
+    test('최종 실패(DEAD) 시 에러 로그를 남겨야 한다', async () => {
       // given
-      const mockOutbox: Outbox = {
+      const mockOutbox = buildOutbox({
         id: 999n,
-        aggregateType: 'RECORD',
-        aggregateId: 123n,
-        eventType: 'RECORD_CREATED',
-        payload: {},
         status: OutboxStatus.RETRY,
         retryCount: 4,
-        createdAt: new Date(),
-        processedAt: null,
-      };
-      mockOutboxService.updateStatus.mockResolvedValue(undefined);
+      });
+      mockOutboxService.markPublishFailed.mockResolvedValue({
+        status: OutboxStatus.DEAD,
+        retryCount: 5,
+      });
       const loggerErrorSpy = jest.spyOn(publisher['logger'], 'error');
 
       // when
@@ -381,18 +428,11 @@ describe('OutboxPublisher', () => {
 
     test('재시도 시 경고 로그를 남겨야 한다', async () => {
       // given
-      const mockOutbox: Outbox = {
-        id: 123n,
-        aggregateType: 'RECORD',
-        aggregateId: 456n,
-        eventType: 'RECORD_CREATED',
-        payload: {},
-        status: OutboxStatus.PENDING,
-        retryCount: 1,
-        createdAt: new Date(),
-        processedAt: null,
-      };
-      mockOutboxService.updateStatus.mockResolvedValue(undefined);
+      const mockOutbox = buildOutbox({ id: 123n, retryCount: 1 });
+      mockOutboxService.markPublishFailed.mockResolvedValue({
+        status: OutboxStatus.RETRY,
+        retryCount: 2,
+      });
       const loggerWarnSpy = jest.spyOn(publisher['logger'], 'warn');
 
       // when

@@ -9,13 +9,12 @@ import {
   AggregateType,
   OutboxEvent,
 } from '@/common/constants/event-types.constants';
-import { OutboxService } from './outbox.service';
+import { OUTBOX_MAX_RETRY_COUNT, OutboxService } from './outbox.service';
 
 @Injectable()
 export class OutboxPublisher implements OnModuleDestroy {
   private readonly logger = new Logger(OutboxPublisher.name);
   private isProcessing = false;
-  private readonly MAX_RETRY_COUNT = 5;
 
   constructor(
     private readonly outboxService: OutboxService,
@@ -64,10 +63,15 @@ export class OutboxPublisher implements OnModuleDestroy {
     try {
       const outboxEvent = this.convertToOutboxEvent(event);
       await this.sendToRabbitMQ(outboxEvent);
-      await this.outboxService.updateStatus(event.id, OutboxStatus.DONE);
     } catch (_error) {
       await this.handlePublishFailure(event);
+      return;
     }
+
+    // 발행은 성공했으므로 여기서 실패해도 "발행 실패"로 세지 않는다.
+    // 상태가 PENDING/RETRY로 남아 다음 주기에 재발행되며(최소 한 번 전달),
+    // 중복은 컨슈머의 멱등 처리가 흡수한다.
+    await this.outboxService.updateStatus(event.id, OutboxStatus.DONE);
   }
 
   private convertToOutboxEvent(outbox: Outbox): OutboxEvent {
@@ -91,21 +95,16 @@ export class OutboxPublisher implements OnModuleDestroy {
   }
 
   private async handlePublishFailure(outbox: Outbox): Promise<void> {
-    const retryCount = outbox.retryCount + 1;
-    const isDead = retryCount >= this.MAX_RETRY_COUNT;
+    const { status, retryCount } =
+      await this.outboxService.markPublishFailed(outbox);
 
-    await this.outboxService.updateStatus(
-      outbox.id,
-      isDead ? OutboxStatus.DEAD : OutboxStatus.RETRY,
-    );
-
-    if (isDead) {
+    if (status === OutboxStatus.DEAD) {
       this.logger.error(
         `🚨 DLQ: Event ${outbox.id}가 최종 실패 처리되었습니다.`,
       );
     } else {
       this.logger.warn(
-        `⚠️ Event ${outbox.id} 발행 실패 (재시도 ${retryCount} / 5)`,
+        `⚠️ Event ${outbox.id} 발행 실패 (재시도 ${retryCount} / ${OUTBOX_MAX_RETRY_COUNT})`,
       );
     }
   }

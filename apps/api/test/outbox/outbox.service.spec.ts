@@ -502,4 +502,76 @@ describe('OutboxService', () => {
       );
     });
   });
+
+  describe('markPublishFailed', () => {
+    beforeEach(() => {
+      mockPrismaService.outbox.update.mockResolvedValue({} as Outbox);
+    });
+
+    test('retryCount를 1 증가시키고 RETRY 상태로 기록해야 한다', async () => {
+      // when
+      const result = await service.markPublishFailed({
+        id: 1n,
+        retryCount: 0,
+      });
+
+      // then
+      expect(mockPrismaService.outbox.update).toHaveBeenCalledWith({
+        where: { id: 1n },
+        data: {
+          status: OutboxStatus.RETRY,
+          retryCount: { increment: 1 },
+          processedAt: expect.any(Date),
+        },
+      });
+      expect(result).toEqual({ status: OutboxStatus.RETRY, retryCount: 1 });
+    });
+
+    test('다섯 번째 실패(retryCount 4 → 5)에서 DEAD로 전환해야 한다', async () => {
+      // when
+      const result = await service.markPublishFailed({
+        id: 2n,
+        retryCount: 4,
+      });
+
+      // then
+      expect(mockPrismaService.outbox.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            status: OutboxStatus.DEAD,
+            retryCount: { increment: 1 },
+          }),
+        }),
+      );
+      expect(result).toEqual({ status: OutboxStatus.DEAD, retryCount: 5 });
+    });
+
+    test('실패를 5번 누적하면 DEAD가 되고 마지막 전까지는 RETRY여야 한다', async () => {
+      // given: DB 상태를 흉내 내는 간단한 인메모리 행
+      const row = { id: 3n, retryCount: 0 };
+      const statuses: OutboxStatus[] = [];
+      mockPrismaService.outbox.update.mockImplementation(
+        ({ data }: { data: { retryCount: { increment: number } } }) => {
+          row.retryCount += data.retryCount.increment;
+          return Promise.resolve({} as Outbox);
+        },
+      );
+
+      // when
+      for (let i = 0; i < 5; i += 1) {
+        const { status } = await service.markPublishFailed({ ...row });
+        statuses.push(status);
+      }
+
+      // then
+      expect(row.retryCount).toBe(5);
+      expect(statuses).toEqual([
+        OutboxStatus.RETRY,
+        OutboxStatus.RETRY,
+        OutboxStatus.RETRY,
+        OutboxStatus.RETRY,
+        OutboxStatus.DEAD,
+      ]);
+    });
+  });
 });
