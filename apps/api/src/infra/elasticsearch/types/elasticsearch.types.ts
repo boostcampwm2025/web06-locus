@@ -10,3 +10,10 @@ export interface IndexConfig {
   settings: IndicesIndexSettings;
   mapping: MappingTypeMapping;
 }
+
+/**
+ * external version 쓰기 결과
+ * - APPLIED: 쓰기가 반영됨
+ * - STALE: 이미 같거나 더 높은 버전이 반영돼 있어 무시됨(중복·지연 이벤트)
+ */
+export type VersionedWriteResult = 'APPLIED' | 'STALE';

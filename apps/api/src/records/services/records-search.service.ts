@@ -1,11 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '@/prisma/prisma.service';
 import { ElasticsearchService } from '@/infra/elasticsearch/elasticsearch.service';
-import {
-  RecordConnectionsCountSyncPayload,
-  RecordFavoriteSyncPayload,
-  RecordSyncPayload,
-} from '../type/record-sync.types';
+import { RecordSyncPayload } from '../type/record-sync.types';
+import { VersionedWriteResult } from '@/infra/elasticsearch/types/elasticsearch.types';
 import {
   RECORD_INDEX_ALIAS,
   RECORD_INDEX_NAME,
@@ -35,11 +32,20 @@ export class RecordSearchService {
     await this.ensureIndexExists();
   }
 
-  async indexRecord(payload: RecordSyncPayload) {
-    await this.elasticsearchService.indexDocument(
+  /**
+   * 기록 스냅샷을 ES에 덮어쓴다.
+   * - version(outbox id)이 현재 문서보다 클 때만 반영(external version)
+   * - 중복·지연 이벤트는 STALE로 돌려주며, 호출 측은 정상 처리(ACK)로 다룬다
+   */
+  async upsertRecord(
+    payload: RecordSyncPayload,
+    version: number,
+  ): Promise<VersionedWriteResult> {
+    return this.elasticsearchService.indexDocument(
       RECORD_INDEX_ALIAS,
       String(payload.recordId),
       payload,
+      version,
     );
   }
 
@@ -63,70 +69,19 @@ export class RecordSearchService {
     return result;
   }
 
-  async updateRecord(payload: RecordSyncPayload) {
-    try {
-      await this.elasticsearchService.updateDocument(
-        RECORD_INDEX_ALIAS,
-        String(payload.recordId),
-        payload,
-      );
-
-      this.logger.log(`✅ Record ${payload.recordId} 업데이트 완료`);
-    } catch (error) {
-      this.logger.error(`❌ Record ${payload.recordId} 업데이트 실패`, error);
-      throw error;
-    }
-  }
-
-  async updateFavoriteInRecord(payload: RecordFavoriteSyncPayload) {
-    try {
-      await this.elasticsearchService.updateDocument(
-        RECORD_INDEX_ALIAS,
-        String(payload.recordId),
-        payload,
-      );
-
-      this.logger.log(`✅ Record ${payload.recordId} 즐겨찾기 업데이트 완료`);
-    } catch (error) {
-      this.logger.error(
-        `❌ Record ${payload.recordId} 즐겨찾기 업데이트 실패`,
-        error,
-      );
-      throw error;
-    }
-  }
-
-  async updateConnectionsCountInRecord(
-    payload: RecordConnectionsCountSyncPayload,
-  ) {
-    try {
-      await this.elasticsearchService.updateDocument(
-        RECORD_INDEX_ALIAS,
-        String(payload.recordId),
-        payload,
-      );
-
-      this.logger.log(`✅ Record ${payload.recordId} 연결 수 업데이트 완료`);
-    } catch (error) {
-      this.logger.error(
-        `❌ Record ${payload.recordId} 연결 수 업데이트 실패`,
-        error,
-      );
-      throw error;
-    }
-  }
-
-  async deleteRecord(recordId: string) {
-    try {
-      await this.elasticsearchService.deleteDocument(
-        RECORD_INDEX_ALIAS,
-        recordId,
-      );
-      this.logger.log(`✅ Record ${recordId} 삭제 완료`);
-    } catch (error) {
-      this.logger.error(`❌ Record ${recordId} 삭제 실패`, error);
-      throw error;
-    }
+  /**
+   * 기록 문서를 삭제하고 삭제 버전을 남긴다.
+   * - 이후 도착하는 더 낮은 버전의 이벤트가 문서를 되살리지 못한다.
+   */
+  async deleteRecord(
+    recordId: string,
+    version: number,
+  ): Promise<VersionedWriteResult> {
+    return this.elasticsearchService.deleteDocument(
+      RECORD_INDEX_ALIAS,
+      recordId,
+      version,
+    );
   }
 
   private async ensureIndexExists() {

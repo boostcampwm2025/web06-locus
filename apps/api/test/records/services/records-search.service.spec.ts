@@ -5,7 +5,6 @@ import {
   RECORD_INDEX_ALIAS,
   RECORD_INDEX_NAME,
 } from '../../../src/records/constants/record-search.constant';
-import { ESDocumentNotFoundException } from '@/infra/elasticsearch/exceptions/elasticsearch.exception';
 import { SearchRecordsDto } from '@/records/dto/search-records.dto';
 import { PrismaService } from '@/prisma/prisma.service';
 import { ElasticsearchService } from '@/infra/elasticsearch/elasticsearch.service';
@@ -21,7 +20,6 @@ describe('RecordSearchService', () => {
 
   const mockElasticsearchService = {
     indexDocument: jest.fn(),
-    updateDocument: jest.fn(),
     deleteDocument: jest.fn(),
     search: jest.fn(),
     indexExists: jest.fn(),
@@ -363,279 +361,92 @@ describe('RecordSearchService', () => {
     });
   });
 
-  describe('indexRecord', () => {
-    test('레코드를 Elasticsearch에 인덱싱해야 한다', async () => {
+  describe('upsertRecord', () => {
+    const payload: RecordSyncPayload = {
+      recordId: '123',
+      publicId: 'pub-123',
+      userId: '456',
+      title: '테스트 레코드',
+      content: '테스트 내용',
+      isFavorite: false,
+      locationName: '서울시 강남구',
+      locationAddress: '서울특별시 강남구 역삼동 396',
+      tags: ['여행', '맛집'],
+      hasImages: true,
+      thumbnailImage: 'https://example.com/image.jpg',
+      connectionsCount: 5,
+      createdAt: '2024-01-01T00:00:00.000Z',
+    };
+
+    test('스냅샷 전체를 기록 ID를 문서 ID로, 이벤트 버전과 함께 alias에 써야 한다', async () => {
       // given
-      const payload: RecordSyncPayload = {
-        recordId: '123',
-        publicId: 'pub-123',
-        userId: '456',
-        title: '테스트 레코드',
-        content: '테스트 내용',
-        isFavorite: false,
-        locationName: '서울시 강남구',
-        locationAddress: '서울특별시 강남구 역삼동 396',
-        tags: ['여행', '맛집'],
-        hasImages: true,
-        thumbnailImage: 'https://example.com/image.jpg',
-        connectionsCount: 5,
-        createdAt: '2024-01-01T00:00:00.000Z',
-      };
-      mockElasticsearchService.indexDocument.mockResolvedValue({} as any);
+      mockElasticsearchService.indexDocument.mockResolvedValue('APPLIED');
 
       // when
-      await service.indexRecord(payload);
+      const result = await service.upsertRecord(payload, 42);
 
       // then
+      expect(mockElasticsearchService.indexDocument).toHaveBeenCalledTimes(1);
       expect(mockElasticsearchService.indexDocument).toHaveBeenCalledWith(
         RECORD_INDEX_ALIAS,
         '123',
         payload,
+        42,
       );
-      expect(mockElasticsearchService.indexDocument).toHaveBeenCalledTimes(1);
+      expect(result).toBe('APPLIED');
     });
 
-    test('인덱싱 중 에러가 발생하면 예외를 전파해야 한다', async () => {
+    test('이미 더 최신 버전이 반영돼 있으면 STALE을 예외 없이 돌려줘야 한다', async () => {
       // given
-      const payload: RecordSyncPayload = {
-        recordId: '123',
-        publicId: 'pub-123',
-        userId: '456',
-        title: '테스트',
-        content: '내용',
-        isFavorite: false,
-        locationName: '서울',
-        locationAddress: '서울특별시 강남구 역삼동 396',
-        tags: ['태그'],
-        hasImages: false,
-        thumbnailImage: null,
-        connectionsCount: 0,
-        createdAt: '2024-01-01T00:00:00.000Z',
-      };
-      const error = new Error('Indexing failed');
+      mockElasticsearchService.indexDocument.mockResolvedValue('STALE');
+
+      // when & then
+      await expect(service.upsertRecord(payload, 3)).resolves.toBe('STALE');
+    });
+
+    test('ES 쓰기 중 에러가 발생하면 예외를 전파해야 한다', async () => {
+      // given
+      const error = new Error('Elasticsearch connection failed');
       mockElasticsearchService.indexDocument.mockRejectedValue(error);
 
       // when & then
-      await expect(service.indexRecord(payload)).rejects.toThrow(error);
-    });
-
-    test('content가 null인 경우에도 정상적으로 인덱싱해야 한다', async () => {
-      // given
-      const payload: RecordSyncPayload = {
-        recordId: '100',
-        publicId: 'pub-100',
-        userId: '200',
-        title: 'No Content',
-        content: null,
-        isFavorite: false,
-        locationName: '제주',
-        locationAddress: '제주시',
-        tags: [],
-        hasImages: false,
-        thumbnailImage: null,
-        connectionsCount: 0,
-        createdAt: '2024-01-01T00:00:00.000Z',
-      };
-      mockElasticsearchService.indexDocument.mockResolvedValue({} as any);
-
-      // when
-      await service.indexRecord(payload);
-
-      // then
-      expect(mockElasticsearchService.indexDocument).toHaveBeenCalledWith(
-        RECORD_INDEX_ALIAS,
-        '100',
-        payload,
-      );
-    });
-
-    test('thumbnailImage가 null인 경우에도 정상적으로 인덱싱해야 한다', async () => {
-      // given
-      const payload: RecordSyncPayload = {
-        recordId: '200',
-        publicId: 'pub-200',
-        userId: '300',
-        title: 'No Thumbnail',
-        content: 'Some content',
-        isFavorite: true,
-        locationName: '인천',
-        locationAddress: '인천',
-        tags: ['테스트'],
-        hasImages: false,
-        thumbnailImage: null,
-        connectionsCount: 3,
-        createdAt: '2024-01-01T00:00:00.000Z',
-      };
-      mockElasticsearchService.indexDocument.mockResolvedValue({} as any);
-
-      // when
-      await service.indexRecord(payload);
-
-      // then
-      expect(mockElasticsearchService.indexDocument).toHaveBeenCalledWith(
-        RECORD_INDEX_ALIAS,
-        '200',
-        payload,
-      );
-    });
-
-    test('태그가 빈 배열인 경우에도 정상적으로 인덱싱해야 한다', async () => {
-      // given
-      const payload: RecordSyncPayload = {
-        recordId: '300',
-        publicId: 'pub-300',
-        userId: '400',
-        title: 'No Tags',
-        content: 'Content',
-        isFavorite: false,
-        locationName: '대전',
-        locationAddress: '대전',
-        tags: [],
-        hasImages: true,
-        thumbnailImage: 'https://example.com/thumb.jpg',
-        connectionsCount: 10,
-        createdAt: '2024-01-01T00:00:00.000Z',
-      };
-      mockElasticsearchService.indexDocument.mockResolvedValue({} as any);
-
-      // when
-      await service.indexRecord(payload);
-
-      // then
-      expect(mockElasticsearchService.indexDocument).toHaveBeenCalledWith(
-        RECORD_INDEX_ALIAS,
-        '300',
-        expect.objectContaining({
-          tags: [],
-        }),
-      );
-    });
-  });
-
-  describe('updateRecord', () => {
-    test('기록정보를 Elasticsearch에서 부분 업데이트해야 한다', async () => {
-      // given
-      const payload: RecordSyncPayload = {
-        recordId: '123',
-        publicId: 'pub-123',
-        userId: '456',
-        title: '업데이트된 레코드',
-        content: '업데이트된 내용',
-        isFavorite: true,
-        locationName: '서울시 강남구',
-        locationAddress: '서울특별시 강남구 역삼동 396',
-        tags: ['수정', '업데이트'],
-        hasImages: true,
-        thumbnailImage: 'https://example.com/updated.jpg',
-        connectionsCount: 10,
-        createdAt: '2024-01-01T00:00:00.000Z',
-      };
-      mockElasticsearchService.updateDocument.mockResolvedValue({} as any);
-
-      // when
-      await service.updateRecord(payload);
-
-      // then
-      expect(mockElasticsearchService.updateDocument).toHaveBeenCalledWith(
-        RECORD_INDEX_ALIAS,
-        '123',
-        payload,
-      );
-      expect(mockElasticsearchService.updateDocument).toHaveBeenCalledTimes(1);
-    });
-
-    test('업데이트 실패 시 예외를 던져야 한다', async () => {
-      // given
-      const payload: RecordSyncPayload = {
-        recordId: '999',
-        publicId: 'pub-999',
-        userId: '111',
-        title: '업데이트 실패',
-        content: 'Content',
-        isFavorite: false,
-        locationName: '서울',
-        locationAddress: '서울특별시 강남구 역삼동 396',
-        tags: [],
-        hasImages: false,
-        thumbnailImage: null,
-        connectionsCount: 0,
-        createdAt: '2024-01-01T00:00:00.000Z',
-      };
-      const error = new Error('Update failed');
-      mockElasticsearchService.updateDocument.mockRejectedValue(error);
-
-      // when & then
-      await expect(service.updateRecord(payload)).rejects.toThrow(error);
-    });
-
-    test('docs가 없으면 NotFound 커스텀 예외를 던져야 한다.', async () => {
-      // given
-      const payload: RecordSyncPayload = {
-        recordId: '777',
-        publicId: 'pub-777',
-        userId: '888',
-        title: 'New Record',
-        content: 'New Content',
-        isFavorite: false,
-        locationName: '인천',
-        locationAddress: '인천',
-        tags: ['신규'],
-        hasImages: false,
-        thumbnailImage: null,
-        connectionsCount: 0,
-        createdAt: '2024-01-01T00:00:00.000Z',
-      };
-
-      mockElasticsearchService.updateDocument.mockRejectedValue(
-        new ESDocumentNotFoundException('index_name'),
-      );
-      // when & then
-      await expect(service.updateRecord(payload)).rejects.toThrow(
-        ESDocumentNotFoundException,
-      );
+      await expect(service.upsertRecord(payload, 42)).rejects.toThrow(error);
     });
   });
 
   describe('deleteRecord', () => {
-    test('기록 정보를 Elasticsearch에서 삭제해야 한다', async () => {
+    test('기록 문서를 삭제 버전과 함께 삭제해야 한다', async () => {
       // given
-      const recordId = '123';
-      mockElasticsearchService.deleteDocument = jest
-        .fn()
-        .mockResolvedValue({} as any);
+      mockElasticsearchService.deleteDocument.mockResolvedValue('APPLIED');
 
       // when
-      await service.deleteRecord(recordId);
+      const result = await service.deleteRecord('123', 9);
 
       // then
+      expect(mockElasticsearchService.deleteDocument).toHaveBeenCalledTimes(1);
       expect(mockElasticsearchService.deleteDocument).toHaveBeenCalledWith(
         RECORD_INDEX_ALIAS,
-        recordId,
+        '123',
+        9,
       );
-      expect(mockElasticsearchService.deleteDocument).toHaveBeenCalledTimes(1);
+      expect(result).toBe('APPLIED');
     });
 
-    test('404 외의 삭제 실패 시 예외를 던져야 한다', async () => {
+    test('이미 더 최신 삭제/수정 버전이 반영돼 있으면 STALE을 돌려줘야 한다', async () => {
       // given
-      const recordId = '999';
+      mockElasticsearchService.deleteDocument.mockResolvedValue('STALE');
+
+      // when & then
+      await expect(service.deleteRecord('123', 1)).resolves.toBe('STALE');
+    });
+
+    test('삭제 실패 시 예외를 전파해야 한다', async () => {
+      // given
       const error = new Error('Delete failed');
-      mockElasticsearchService.deleteDocument = jest
-        .fn()
-        .mockRejectedValue(error);
+      mockElasticsearchService.deleteDocument.mockRejectedValue(error);
 
       // when & then
-      await expect(service.deleteRecord(recordId)).rejects.toThrow(error);
-    });
-
-    test('이미 삭제된 문서(404)인 경우 경고만 로그하고 예외를 던지지 않아야 한다', async () => {
-      // given
-      const recordId = '404';
-      mockElasticsearchService.deleteDocument = jest
-        .fn()
-        .mockResolvedValue(undefined);
-
-      // when & then
-      await expect(service.deleteRecord(recordId)).resolves.not.toThrow();
+      await expect(service.deleteRecord('999', 9)).rejects.toThrow(error);
     });
   });
 });

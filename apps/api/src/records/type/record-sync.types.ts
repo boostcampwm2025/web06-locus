@@ -4,10 +4,13 @@ export interface RecordSyncEvent {
   eventId: string;
   eventType: OutboxEventType;
   aggregateId: string;
-  payload:
-    | RecordSyncPayload
-    | RecordFavoriteSyncPayload
-    | RecordConnectionsCountSyncPayload;
+  // 삭제 이벤트는 최소 payload, 그 외에는 항상 완전한 스냅샷
+  payload: RecordSyncPayload | RecordDeletedPayload;
+}
+
+export interface RecordDeletedPayload {
+  publicId: string;
+  userId: string;
 }
 
 export interface RecordSyncPayload {
@@ -24,14 +27,4 @@ export interface RecordSyncPayload {
   thumbnailImage: string | null;
   connectionsCount: number;
   createdAt: string;
-}
-
-export interface RecordFavoriteSyncPayload {
-  recordId: string;
-  isFavorite: boolean;
-}
-
-export interface RecordConnectionsCountSyncPayload {
-  recordId: string;
-  connectionsCount: number;
 }
