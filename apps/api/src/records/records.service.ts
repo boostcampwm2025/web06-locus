@@ -32,13 +32,9 @@ import {
 } from './exceptions/record.exceptions';
 import { Prisma, ImageStatus } from '@prisma/client';
 import {
-  createRecordFavoriteSyncPayload,
-  createRecordConnectionsCountSyncPayload,
-  createRecordSyncPayload,
-} from './type/record-sync.types';
-import {
   AGGREGATE_TYPE,
   OUTBOX_EVENT_TYPE,
+  OutboxEventType,
 } from '@/common/constants/event-types.constants';
 import { nanoid } from 'nanoid';
 import {
@@ -50,6 +46,7 @@ import {
 import { RecordSearchService } from './services/records-search.service';
 import { RecordTagsService } from './services/records-tags.service';
 import { RecordImageService } from './services/records-image.service';
+import { RecordSnapshotService } from './services/records-snapshot.service';
 import { RecordQueryService } from './services/records-query.service';
 import { RecordGraphService } from './services/records-graph.service';
 import { RecordLocationService } from './services/records-location.service';
@@ -68,6 +65,7 @@ export class RecordsService {
     private readonly recordSearchService: RecordSearchService,
     private readonly recordTagsService: RecordTagsService,
     private readonly recordImageService: RecordImageService,
+    private readonly recordSnapshotService: RecordSnapshotService,
     private readonly recordQueryService: RecordQueryService,
     private readonly recordGraphService: RecordGraphService,
     private readonly recordLocationService: RecordLocationService,
@@ -219,19 +217,11 @@ export class RecordsService {
         });
         const images = imagesMap.get(updatedRecord.id) ?? [];
 
-        const tagNames = tags.map((t) => t.name);
-
-        await this.outboxService.publish(tx, {
-          aggregateType: AGGREGATE_TYPE.RECORD,
-          aggregateId: updatedRecord.id.toString(),
-          eventType: OUTBOX_EVENT_TYPE.RECORD_UPDATED,
-          payload: createRecordSyncPayload(
-            userId,
-            updatedRecord,
-            tagNames,
-            images[0]?.thumbnailUrl ?? undefined,
-          ),
-        });
+        await this.publishRecordSnapshot(
+          tx,
+          OUTBOX_EVENT_TYPE.RECORD_UPDATED,
+          updatedRecord.id,
+        );
 
         return { record: updatedRecord, tags, images };
       },
@@ -262,15 +252,11 @@ export class RecordsService {
         select: { id: true, isFavorite: true, publicId: true },
       });
 
-      await this.outboxService.publish(tx, {
-        aggregateType: AGGREGATE_TYPE.RECORD,
-        aggregateId: updatedRecord.id.toString(),
-        eventType: OUTBOX_EVENT_TYPE.RECORD_FAVORITE_UPDATED,
-        payload: createRecordFavoriteSyncPayload(
-          updatedRecord.id,
-          updatedRecord.isFavorite,
-        ),
-      });
+      await this.publishRecordSnapshot(
+        tx,
+        OUTBOX_EVENT_TYPE.RECORD_FAVORITE_UPDATED,
+        updatedRecord.id,
+      );
 
       return updatedRecord;
     });
@@ -289,17 +275,36 @@ export class RecordsService {
       select: { id: true, connectionsCount: true },
     });
 
-    await this.outboxService.publish(tx, {
-      aggregateType: AGGREGATE_TYPE.RECORD,
-      aggregateId: updated.id.toString(),
-      eventType: OUTBOX_EVENT_TYPE.RECORD_CONNECTIONS_COUNT_UPDATED,
-      payload: createRecordConnectionsCountSyncPayload(
-        updated.id,
-        updated.connectionsCount,
-      ),
-    });
+    await this.publishRecordSnapshot(
+      tx,
+      OUTBOX_EVENT_TYPE.RECORD_CONNECTIONS_COUNT_UPDATED,
+      updated.id,
+    );
 
     return updated;
+  }
+
+  /**
+   * 변경이 반영된 같은 트랜잭션 안에서 "이 시점의 기록 전체 상태"를 Outbox에 싣는다.
+   * - 이벤트 종류와 무관하게 payload는 항상 완전한 스냅샷
+   * - 컨슈머는 outbox id를 버전으로 ES를 덮어쓰므로, 중복·지연 이벤트가 와도 안전하다
+   */
+  private async publishRecordSnapshot(
+    tx: Prisma.TransactionClient,
+    eventType: OutboxEventType,
+    recordId: bigint,
+  ): Promise<void> {
+    const payload = await this.recordSnapshotService.buildSnapshot(
+      tx,
+      recordId,
+    );
+
+    await this.outboxService.publish(tx, {
+      aggregateType: AGGREGATE_TYPE.RECORD,
+      aggregateId: recordId.toString(),
+      eventType,
+      payload,
+    });
   }
 
   async deleteRecord(userId: bigint, publicId: string): Promise<void> {
@@ -657,18 +662,11 @@ export class RecordsService {
           );
         }
 
-        const tagNames = tags.map((t) => t.name);
-        await this.outboxService.publish(tx, {
-          aggregateType: AGGREGATE_TYPE.RECORD,
-          aggregateId: updated.id.toString(),
-          eventType: OUTBOX_EVENT_TYPE.RECORD_CREATED,
-          payload: createRecordSyncPayload(
-            userId,
-            updated,
-            tagNames,
-            uploadedImages?.[0]?.urls?.thumbnail,
-          ),
-        });
+        await this.publishRecordSnapshot(
+          tx,
+          OUTBOX_EVENT_TYPE.RECORD_CREATED,
+          updated.id,
+        );
 
         const imagesMap = await this.recordImageService.getImagesByRecordIds({
           recordIds: [updated.id],
@@ -765,18 +763,12 @@ export class RecordsService {
 
         await tx.image.createMany({ data: imageData });
 
-        const tagNames = tags.map((t) => t.name);
-        await this.outboxService.publish(tx, {
-          aggregateType: AGGREGATE_TYPE.RECORD,
-          aggregateId: updated.id.toString(),
-          eventType: OUTBOX_EVENT_TYPE.RECORD_CREATED,
-          payload: createRecordSyncPayload(
-            userId,
-            updated,
-            tagNames,
-            undefined, // thumbnail은 아직 없음
-          ),
-        });
+        // 이미지는 PROCESSING 상태(thumbnail 없음)로 생성되므로 스냅샷의 hasImages는 false
+        await this.publishRecordSnapshot(
+          tx,
+          OUTBOX_EVENT_TYPE.RECORD_CREATED,
+          updated.id,
+        );
 
         const imagesMap = await this.recordImageService.getImagesByRecordIds({
           recordIds: [updated.id],
