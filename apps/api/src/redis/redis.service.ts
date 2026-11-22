@@ -22,6 +22,22 @@ export class RedisService implements OnModuleDestroy {
     }
   }
 
+  /**
+   * 키가 없을 때만 값을 저장한다(SET NX EX). 저장에 성공하면 true.
+   * - 이벤트 중복 처리 방지처럼 "처음 한 번만" 실행해야 하는 작업의 선점(claim)에 쓴다.
+   */
+  async setIfAbsent(
+    key: string,
+    value: string,
+    ttlSeconds: number,
+  ): Promise<boolean> {
+    const result = await this.redisClient.set(key, value, {
+      condition: 'NX',
+      expiration: { type: 'EX', value: ttlSeconds },
+    });
+    return result === 'OK';
+  }
+
   async get(key: string): Promise<string | null> {
     return await this.redisClient.get(key);
   }

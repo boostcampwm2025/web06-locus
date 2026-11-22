@@ -21,8 +21,15 @@ describe('OutboxPublisher', () => {
     emit: jest.fn(),
   };
 
+  const mockDuckClient = {
+    connect: jest.fn(),
+    close: jest.fn(),
+    emit: jest.fn(),
+  };
+
   beforeEach(async () => {
     jest.clearAllMocks();
+    mockDuckClient.emit.mockReturnValue(of(undefined));
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -34,6 +41,10 @@ describe('OutboxPublisher', () => {
         {
           provide: RABBITMQ_CONSTANTS.CLIENTS.RECORD_SYNC_PRODUCER,
           useValue: mockClientProxy,
+        },
+        {
+          provide: RABBITMQ_CONSTANTS.CLIENTS.DUCK_RECORD_CREATED_PRODUCER,
+          useValue: mockDuckClient,
         },
       ],
     }).compile();
@@ -51,6 +62,7 @@ describe('OutboxPublisher', () => {
 
       // then
       expect(mockClientProxy.connect).toHaveBeenCalled();
+      expect(mockDuckClient.connect).toHaveBeenCalled();
     });
   });
 
@@ -64,6 +76,7 @@ describe('OutboxPublisher', () => {
 
       // then
       expect(mockClientProxy.close).toHaveBeenCalled();
+      expect(mockDuckClient.close).toHaveBeenCalled();
     });
   });
 
@@ -317,6 +330,154 @@ describe('OutboxPublisher', () => {
         '🚨 DLQ: Event 1가 최종 실패 처리되었습니다.',
       );
       expect(mockOutboxService.updateStatus).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('오리 큐 분리 발행', () => {
+    const buildEvent = (overrides: Partial<Outbox> = {}): Outbox => ({
+      id: 7n,
+      aggregateType: 'RECORD',
+      aggregateId: 123n,
+      eventType: 'RECORD_CREATED',
+      payload: { recordId: '123', userId: '42', title: 'Test' },
+      status: OutboxStatus.PENDING,
+      retryCount: 0,
+      createdAt: new Date(),
+      processedAt: null,
+      ...overrides,
+    });
+
+    test('RECORD_CREATED는 ES 동기화 큐와 오리 큐 모두에 발행하고 DONE 처리해야 한다', async () => {
+      // given
+      const event = buildEvent();
+      mockClientProxy.emit.mockReturnValue(of(undefined));
+      mockOutboxService.updateStatus.mockResolvedValue(undefined);
+
+      // when
+      await publisher['processEvent'](event);
+
+      // then
+      expect(mockClientProxy.emit).toHaveBeenCalledWith(
+        RABBITMQ_CONSTANTS.PATTERNS.RECORD_SYNC,
+        expect.objectContaining({ eventId: '7' }),
+      );
+      expect(mockDuckClient.emit).toHaveBeenCalledWith(
+        RABBITMQ_CONSTANTS.PATTERNS.DUCK_RECORD_CREATED,
+        { eventId: '7', userId: '42', recordId: '123' },
+      );
+      expect(mockOutboxService.updateStatus).toHaveBeenCalledWith(
+        7n,
+        OutboxStatus.DONE,
+      );
+    });
+
+    test.each(['RECORD_UPDATED', 'RECORD_FAVORITE_UPDATED', 'RECORD_DELETED'])(
+      '%s는 오리 큐로 보내지 않아야 한다',
+      async (eventType) => {
+        // given
+        mockClientProxy.emit.mockReturnValue(of(undefined));
+        mockOutboxService.updateStatus.mockResolvedValue(undefined);
+
+        // when
+        await publisher['processEvent'](
+          buildEvent({ eventType: eventType as Outbox['eventType'] }),
+        );
+
+        // then
+        expect(mockClientProxy.emit).toHaveBeenCalledTimes(1);
+        expect(mockDuckClient.emit).not.toHaveBeenCalled();
+        expect(mockOutboxService.updateStatus).toHaveBeenCalledWith(
+          7n,
+          OutboxStatus.DONE,
+        );
+      },
+    );
+
+    test('userId를 알 수 없으면 오리 큐 발행만 건너뛰고 ES 동기화는 정상 완료해야 한다', async () => {
+      // given
+      mockClientProxy.emit.mockReturnValue(of(undefined));
+      mockOutboxService.updateStatus.mockResolvedValue(undefined);
+
+      // when
+      await publisher['processEvent'](buildEvent({ payload: { title: 'x' } }));
+
+      // then
+      expect(mockClientProxy.emit).toHaveBeenCalledTimes(1);
+      expect(mockDuckClient.emit).not.toHaveBeenCalled();
+      expect(mockOutboxService.updateStatus).toHaveBeenCalledWith(
+        7n,
+        OutboxStatus.DONE,
+      );
+      expect(mockOutboxService.markPublishFailed).not.toHaveBeenCalled();
+    });
+
+    test('오리 큐 발행이 실패하면 DONE 처리하지 않고 발행 실패로 기록해야 한다', async () => {
+      // given
+      const event = buildEvent();
+      mockClientProxy.emit.mockReturnValue(of(undefined));
+      mockDuckClient.emit.mockReturnValue(
+        throwError(() => new Error('duck queue down')),
+      );
+      mockOutboxService.markPublishFailed.mockResolvedValue({
+        status: OutboxStatus.RETRY,
+        retryCount: 1,
+      });
+
+      // when
+      await publisher['processEvent'](event);
+
+      // then
+      expect(mockOutboxService.markPublishFailed).toHaveBeenCalledWith(event);
+      expect(mockOutboxService.updateStatus).not.toHaveBeenCalled();
+    });
+
+    test('ES 동기화 큐 발행이 실패하면 오리 큐로는 보내지 않아야 한다', async () => {
+      // given
+      mockClientProxy.emit.mockReturnValue(
+        throwError(() => new Error('sync queue down')),
+      );
+      mockOutboxService.markPublishFailed.mockResolvedValue({
+        status: OutboxStatus.RETRY,
+        retryCount: 1,
+      });
+
+      // when
+      await publisher['processEvent'](buildEvent());
+
+      // then
+      expect(mockDuckClient.emit).not.toHaveBeenCalled();
+      expect(mockOutboxService.markPublishFailed).toHaveBeenCalledTimes(1);
+    });
+
+    test('오리 큐 발행 실패 후 재시도하면 두 큐 모두에 같은 eventId를 다시 보낸다(컨슈머 멱등으로 흡수)', async () => {
+      // given: 1회차는 오리 큐 실패, 2회차는 성공
+      const event = buildEvent();
+      mockOutboxService.getPendingOutboxEvents.mockResolvedValue([event]);
+      mockClientProxy.emit.mockReturnValue(of(undefined));
+      mockDuckClient.emit
+        .mockReturnValueOnce(throwError(() => new Error('duck queue down')))
+        .mockReturnValueOnce(of(undefined));
+      mockOutboxService.markPublishFailed.mockResolvedValue({
+        status: OutboxStatus.RETRY,
+        retryCount: 1,
+      });
+      mockOutboxService.updateStatus.mockResolvedValue(undefined);
+
+      // when
+      await publisher.publishPendingEvents();
+      await publisher.publishPendingEvents();
+
+      // then
+      const syncIds = mockClientProxy.emit.mock.calls.map(
+        (call: [string, { eventId: string }]) => call[1].eventId,
+      );
+      expect(syncIds).toEqual(['7', '7']);
+      expect(mockDuckClient.emit).toHaveBeenCalledTimes(2);
+      expect(mockOutboxService.updateStatus).toHaveBeenCalledTimes(1);
+      expect(mockOutboxService.updateStatus).toHaveBeenCalledWith(
+        7n,
+        OutboxStatus.DONE,
+      );
     });
   });
 
