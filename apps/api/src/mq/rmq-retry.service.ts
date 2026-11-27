@@ -39,8 +39,7 @@ export class NonRetryableMessageError extends Error {
 /**
  * 큐와 무관한 메시지 실패 처리(재시도 상한 + DLQ)
  *
- * 기존에는 실패 시 nack(requeue: true)만 해서 상한이 없고, 처리 불가능한 메시지(poison)가
- * 큐 맨 앞에서 무한히 재처리됐다. 이 서비스는 실패한 메시지를
+ * 처리 불가능한 메시지(poison)가 무한히 재처리되지 않도록, 실패한 메시지를
  * 1) `x-retry-count` 헤더를 올려 같은 큐에 다시 발행(지수 백오프)하고 원본을 ACK,
  * 2) 상한을 넘으면 `<큐 이름>.dlq`로 보내고 원본을 ACK 한다.
  *

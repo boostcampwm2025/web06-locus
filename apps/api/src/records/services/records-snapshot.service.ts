@@ -32,7 +32,6 @@ export type RecordSnapshotRow = Prisma.RecordGetPayload<{
 /**
  * DB 행 → ES 동기화 payload(완전한 스냅샷) 변환
  * - connectionsCount, isFavorite 등 모든 필드를 DB 값 그대로 채운다.
- *   (과거 createRecordSyncPayload는 connectionsCount를 0으로 고정해 ES 값을 초기화했다)
  */
 export const toRecordSyncPayload = (
   row: RecordSnapshotRow,
