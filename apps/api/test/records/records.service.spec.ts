@@ -1355,6 +1355,40 @@ describe('RecordsService', () => {
       );
     });
 
+    test('수정: 태그만 바꿔도 records 행을 갱신해 잠근 뒤 스냅샷을 만들어야 한다', async () => {
+      // given
+      const update = jest.fn().mockResolvedValue(baseRecord);
+      mockPrismaService.$transaction.mockImplementation((callback) =>
+        callback({
+          record: {
+            findFirst: jest.fn().mockResolvedValue(baseRecord),
+            update,
+          },
+        }),
+      );
+      mockRecordLocationService.getRecordWithLocation.mockResolvedValue({
+        ...baseRecord,
+        longitude: 126.978,
+        latitude: 37.5665,
+      });
+      mockRecordTagsService.updateRecordTags.mockResolvedValue([
+        { publicId: 'tag_1', name: '여행' },
+      ]);
+      mockRecordImageService.getImagesByRecordIds.mockResolvedValue(new Map());
+
+      // when
+      await service.updateRecord(1n, 'rec_123', { tags: ['tag_1'] });
+
+      // then
+      expect(update).toHaveBeenCalledWith({
+        where: { id: 100n },
+        data: { updatedAt: expect.any(Date) },
+      });
+      expect(update.mock.invocationCallOrder[0]).toBeLessThan(
+        mockRecordSnapshotService.buildSnapshot.mock.invocationCallOrder[0],
+      );
+    });
+
     test('즐겨찾기: 부분 payload가 아니라 전체 스냅샷을 RECORD_FAVORITE_UPDATED로 발행해야 한다', async () => {
       // given
       let capturedTx: unknown;

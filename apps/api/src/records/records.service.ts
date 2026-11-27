@@ -182,6 +182,9 @@ export class RecordsService {
         const updated = await tx.record.update({
           where: { id: existing.id },
           data: {
+            // 태그만 바꿔도 records 행을 UPDATE해 커밋까지 잠근다.
+            // 같은 기록의 동시 변경이 대기해야 스냅샷 내용과 outbox id의 순서가 어긋나지 않는다.
+            updatedAt: new Date(),
             ...(dto.title !== undefined && { title: dto.title }),
             ...(dto.content !== undefined && { content: dto.content }),
             ...(dto.location && { locationName, locationAddress }),
