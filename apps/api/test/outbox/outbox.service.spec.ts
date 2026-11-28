@@ -256,10 +256,9 @@ describe('OutboxService', () => {
       expect(mockPrismaService.outbox.findMany).toHaveBeenCalledWith({
         where: {
           status: { in: [OutboxStatus.PENDING, OutboxStatus.RETRY] },
-          retryCount: { lt: 5 },
         },
         take: 100,
-        orderBy: { createdAt: 'asc' },
+        orderBy: [{ retryCount: 'asc' }, { createdAt: 'asc' }],
       });
       expect(result).toEqual(mockOutboxEvents);
     });
@@ -289,35 +288,18 @@ describe('OutboxService', () => {
       expect(result[0].status).toBe(OutboxStatus.RETRY);
     });
 
-    test('재시도 횟수가 5 미만인 이벤트만 조회해야 한다', async () => {
+    test('실패 횟수로 제외하지 않아야 한다', async () => {
       // given
-      const mockOutboxEvents: Outbox[] = [
-        {
-          id: 3n,
-          aggregateType: 'RECORD',
-          aggregateId: 789n,
-          eventType: 'RECORD_DELETED',
-          payload: {},
-          status: OutboxStatus.RETRY,
-          retryCount: 4,
-          createdAt: new Date('2026-01-03'),
-          processedAt: null,
-        },
-      ];
-      mockPrismaService.outbox.findMany.mockResolvedValue(mockOutboxEvents);
+      mockPrismaService.outbox.findMany.mockResolvedValue([]);
 
       // when
-      const result = await service.getPendingOutboxEvents();
+      await service.getPendingOutboxEvents();
 
-      // then
-      expect(mockPrismaService.outbox.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: expect.objectContaining({
-            retryCount: { lt: 5 },
-          }),
-        }),
-      );
-      expect(result[0].retryCount).toBeLessThan(5);
+      // then: 오래 실패한 이벤트도 계속 발행 대상이다
+      const [{ where }] = mockPrismaService.outbox.findMany.mock.calls[0];
+      expect(where).toEqual({
+        status: { in: [OutboxStatus.PENDING, OutboxStatus.RETRY] },
+      });
     });
 
     test('최대 100개의 이벤트만 조회해야 한다', async () => {
@@ -335,40 +317,18 @@ describe('OutboxService', () => {
       );
     });
 
-    test('생성일 기준 오름차순으로 정렬되어야 한다', async () => {
+    test('적게 실패한 것부터, 횟수가 같으면 오래된 것부터 조회해야 한다', async () => {
       // given
-      const mockOutboxEvents: Outbox[] = [
-        {
-          id: 1n,
-          aggregateType: 'RECORD',
-          aggregateId: 111n,
-          eventType: 'RECORD_CREATED',
-          payload: {},
-          status: OutboxStatus.PENDING,
-          retryCount: 0,
-          createdAt: new Date('2026-01-01'),
-          processedAt: null,
-        },
-        {
-          id: 2n,
-          aggregateType: 'RECORD',
-          aggregateId: 222n,
-          eventType: 'RECORD_CREATED',
-          payload: {},
-          status: OutboxStatus.PENDING,
-          retryCount: 0,
-          createdAt: new Date('2026-01-02'),
-          processedAt: null,
-        },
-      ];
-      mockPrismaService.outbox.findMany.mockResolvedValue(mockOutboxEvents);
+      mockPrismaService.outbox.findMany.mockResolvedValue([]);
 
       // when
       await service.getPendingOutboxEvents();
 
-      // then
+      // then: 계속 실패하는 이벤트가 새 이벤트를 막지 않는다
       expect(mockPrismaService.outbox.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({ orderBy: { createdAt: 'asc' } }),
+        expect.objectContaining({
+          orderBy: [{ retryCount: 'asc' }, { createdAt: 'asc' }],
+        }),
       );
     });
 
@@ -524,54 +484,33 @@ describe('OutboxService', () => {
           processedAt: expect.any(Date),
         },
       });
-      expect(result).toEqual({ status: OutboxStatus.RETRY, retryCount: 1 });
+      expect(result).toBe(1);
     });
 
-    test('다섯 번째 실패(retryCount 4 → 5)에서 DEAD로 전환해야 한다', async () => {
-      // when
-      const result = await service.markPublishFailed({
-        id: 2n,
-        retryCount: 4,
-      });
-
-      // then
-      expect(mockPrismaService.outbox.update).toHaveBeenCalledWith(
-        expect.objectContaining({
-          data: expect.objectContaining({
-            status: OutboxStatus.DEAD,
-            retryCount: { increment: 1 },
-          }),
-        }),
-      );
-      expect(result).toEqual({ status: OutboxStatus.DEAD, retryCount: 5 });
-    });
-
-    test('실패를 5번 누적하면 DEAD가 되고 마지막 전까지는 RETRY여야 한다', async () => {
+    test('여러 번 실패해도 포기하지 않고 RETRY로 남겨야 한다', async () => {
       // given: DB 상태를 흉내 내는 간단한 인메모리 행
       const row = { id: 3n, retryCount: 0 };
       const statuses: OutboxStatus[] = [];
       mockPrismaService.outbox.update.mockImplementation(
-        ({ data }: { data: { retryCount: { increment: number } } }) => {
+        ({
+          data,
+        }: {
+          data: { status: OutboxStatus; retryCount: { increment: number } };
+        }) => {
+          statuses.push(data.status);
           row.retryCount += data.retryCount.increment;
           return Promise.resolve({} as Outbox);
         },
       );
 
       // when
-      for (let i = 0; i < 5; i += 1) {
-        const { status } = await service.markPublishFailed({ ...row });
-        statuses.push(status);
+      for (let i = 0; i < 100; i += 1) {
+        await service.markPublishFailed({ ...row });
       }
 
       // then
-      expect(row.retryCount).toBe(5);
-      expect(statuses).toEqual([
-        OutboxStatus.RETRY,
-        OutboxStatus.RETRY,
-        OutboxStatus.RETRY,
-        OutboxStatus.RETRY,
-        OutboxStatus.DEAD,
-      ]);
+      expect(row.retryCount).toBe(100);
+      expect(new Set(statuses)).toEqual(new Set([OutboxStatus.RETRY]));
     });
   });
 });

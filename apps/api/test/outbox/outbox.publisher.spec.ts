@@ -2,6 +2,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { OutboxPublisher } from '../../src/outbox/outbox.publisher';
 import { OutboxService } from '../../src/outbox/outbox.service';
+import { PrismaService } from '../../src/prisma/prisma.service';
+import { ClientProxy } from '@nestjs/microservices';
 import { Outbox, OutboxStatus } from '@prisma/client';
 import { RABBITMQ_CONSTANTS } from '@/common/constants/rabbitmq.constants';
 import { of, throwError } from 'rxjs';
@@ -225,10 +227,7 @@ describe('OutboxPublisher', () => {
       };
       const error = new Error('Publish failed');
       mockClientProxy.emit.mockReturnValue(throwError(() => error));
-      mockOutboxService.markPublishFailed.mockResolvedValue({
-        status: OutboxStatus.RETRY,
-        retryCount: 1,
-      });
+      mockOutboxService.markPublishFailed.mockResolvedValue(1);
 
       // when
       await publisher['processEvent'](mockEvent);
@@ -296,40 +295,6 @@ describe('OutboxPublisher', () => {
         7n,
         OutboxStatus.DONE,
       );
-    });
-
-    test('최대 재시도 횟수 초과 시 상태를 DEAD로 업데이트해야 한다', async () => {
-      // given
-      const mockEvent: Outbox = {
-        id: 1n,
-        aggregateType: 'RECORD',
-        aggregateId: 123n,
-        eventType: 'RECORD_CREATED',
-        payload: {},
-        status: OutboxStatus.RETRY,
-        retryCount: 4,
-        createdAt: new Date(),
-        processedAt: null,
-      };
-      const error = new Error('Publish failed');
-      mockClientProxy.emit.mockReturnValue(throwError(() => error));
-      mockOutboxService.markPublishFailed.mockResolvedValue({
-        status: OutboxStatus.DEAD,
-        retryCount: 5,
-      });
-      const loggerErrorSpy = jest.spyOn(publisher['logger'], 'error');
-
-      // when
-      await publisher['processEvent'](mockEvent);
-
-      // then
-      expect(mockOutboxService.markPublishFailed).toHaveBeenCalledWith(
-        mockEvent,
-      );
-      expect(loggerErrorSpy).toHaveBeenCalledWith(
-        '🚨 DLQ: Event 1가 최종 실패 처리되었습니다.',
-      );
-      expect(mockOutboxService.updateStatus).not.toHaveBeenCalled();
     });
   });
 
@@ -418,10 +383,7 @@ describe('OutboxPublisher', () => {
       mockDuckClient.emit.mockReturnValue(
         throwError(() => new Error('duck queue down')),
       );
-      mockOutboxService.markPublishFailed.mockResolvedValue({
-        status: OutboxStatus.RETRY,
-        retryCount: 1,
-      });
+      mockOutboxService.markPublishFailed.mockResolvedValue(1);
 
       // when
       await publisher['processEvent'](event);
@@ -436,10 +398,7 @@ describe('OutboxPublisher', () => {
       mockClientProxy.emit.mockReturnValue(
         throwError(() => new Error('sync queue down')),
       );
-      mockOutboxService.markPublishFailed.mockResolvedValue({
-        status: OutboxStatus.RETRY,
-        retryCount: 1,
-      });
+      mockOutboxService.markPublishFailed.mockResolvedValue(1);
 
       // when
       await publisher['processEvent'](buildEvent());
@@ -457,10 +416,7 @@ describe('OutboxPublisher', () => {
       mockDuckClient.emit
         .mockReturnValueOnce(throwError(() => new Error('duck queue down')))
         .mockReturnValueOnce(of(undefined));
-      mockOutboxService.markPublishFailed.mockResolvedValue({
-        status: OutboxStatus.RETRY,
-        retryCount: 1,
-      });
+      mockOutboxService.markPublishFailed.mockResolvedValue(1);
       mockOutboxService.updateStatus.mockResolvedValue(undefined);
 
       // when
@@ -550,10 +506,7 @@ describe('OutboxPublisher', () => {
     test('실패를 기록하도록 OutboxService에 위임해야 한다', async () => {
       // given
       const mockOutbox = buildOutbox({ retryCount: 2 });
-      mockOutboxService.markPublishFailed.mockResolvedValue({
-        status: OutboxStatus.RETRY,
-        retryCount: 3,
-      });
+      mockOutboxService.markPublishFailed.mockResolvedValue(3);
 
       // when
       await publisher['handlePublishFailure'](mockOutbox);
@@ -565,17 +518,14 @@ describe('OutboxPublisher', () => {
       expect(mockOutboxService.updateStatus).not.toHaveBeenCalled();
     });
 
-    test('최종 실패(DEAD) 시 에러 로그를 남겨야 한다', async () => {
+    test('알림 기준 횟수(5번째)에는 에러 로그를 남겨야 한다', async () => {
       // given
       const mockOutbox = buildOutbox({
         id: 999n,
         status: OutboxStatus.RETRY,
         retryCount: 4,
       });
-      mockOutboxService.markPublishFailed.mockResolvedValue({
-        status: OutboxStatus.DEAD,
-        retryCount: 5,
-      });
+      mockOutboxService.markPublishFailed.mockResolvedValue(5);
       const loggerErrorSpy = jest.spyOn(publisher['logger'], 'error');
 
       // when
@@ -583,26 +533,99 @@ describe('OutboxPublisher', () => {
 
       // then
       expect(loggerErrorSpy).toHaveBeenCalledWith(
-        '🚨 DLQ: Event 999가 최종 실패 처리되었습니다.',
+        '🚨 Event 999 발행이 5번 실패했습니다. 성공할 때까지 계속 재시도합니다.',
       );
     });
 
-    test('재시도 시 경고 로그를 남겨야 한다', async () => {
-      // given
-      const mockOutbox = buildOutbox({ id: 123n, retryCount: 1 });
-      mockOutboxService.markPublishFailed.mockResolvedValue({
-        status: OutboxStatus.RETRY,
-        retryCount: 2,
-      });
-      const loggerWarnSpy = jest.spyOn(publisher['logger'], 'warn');
+    test.each([2, 6, 100])(
+      '%i번째 실패에는 경고 로그만 남겨야 한다',
+      async (retryCount) => {
+        // given
+        const mockOutbox = buildOutbox({
+          id: 123n,
+          retryCount: retryCount - 1,
+        });
+        mockOutboxService.markPublishFailed.mockResolvedValue(retryCount);
+        const loggerWarnSpy = jest.spyOn(publisher['logger'], 'warn');
+        const loggerErrorSpy = jest.spyOn(publisher['logger'], 'error');
 
-      // when
-      await publisher['handlePublishFailure'](mockOutbox);
+        // when
+        await publisher['handlePublishFailure'](mockOutbox);
+
+        // then
+        expect(loggerWarnSpy).toHaveBeenCalledWith(
+          `⚠️ Event 123 발행 실패 (누적 ${retryCount}회), 다시 시도합니다.`,
+        );
+        expect(loggerErrorSpy).not.toHaveBeenCalled();
+      },
+    );
+  });
+
+  describe('브로커 장애가 길어질 때', () => {
+    test('수십 번 실패해도 포기하지 않고, 복구되면 발행해 DONE 처리해야 한다', async () => {
+      // given: 실제 OutboxService와, Outbox 행 하나를 흉내 내는 인메모리 DB
+      const row = {
+        id: 1n,
+        aggregateType: 'RECORD',
+        aggregateId: 123n,
+        eventType: 'RECORD_UPDATED',
+        payload: {},
+        status: OutboxStatus.PENDING as OutboxStatus,
+        retryCount: 0,
+      };
+      const prisma = {
+        outbox: {
+          findMany: ({
+            where,
+          }: {
+            where: {
+              status: { in: OutboxStatus[] };
+              retryCount?: { lt: number };
+            };
+          }) => {
+            const matched =
+              where.status.in.includes(row.status) &&
+              row.retryCount < (where.retryCount?.lt ?? Infinity);
+            return Promise.resolve(matched ? [{ ...row }] : []);
+          },
+          update: ({
+            data,
+          }: {
+            data: {
+              status: OutboxStatus;
+              retryCount?: { increment: number };
+            };
+          }) => {
+            row.status = data.status;
+            row.retryCount += data.retryCount?.increment ?? 0;
+            return Promise.resolve(row);
+          },
+        },
+      };
+      const outagePublisher = new OutboxPublisher(
+        new OutboxService(prisma as unknown as PrismaService),
+        mockClientProxy as unknown as ClientProxy,
+        mockDuckClient as unknown as ClientProxy,
+      );
+      mockClientProxy.emit.mockReturnValue(
+        throwError(() => new Error('broker down')),
+      );
+
+      // when: 장애 중 30번의 발행 주기
+      for (let i = 0; i < 30; i += 1) {
+        await outagePublisher.publishPendingEvents();
+      }
 
       // then
-      expect(loggerWarnSpy).toHaveBeenCalledWith(
-        '⚠️ Event 123 발행 실패 (재시도 2 / 5)',
-      );
+      expect(row.status).toBe(OutboxStatus.RETRY);
+      expect(row.retryCount).toBe(30);
+
+      // when: 복구
+      mockClientProxy.emit.mockReturnValue(of(undefined));
+      await outagePublisher.publishPendingEvents();
+
+      // then
+      expect(row.status).toBe(OutboxStatus.DONE);
     });
   });
 });

@@ -11,7 +11,7 @@ import {
   OutboxEvent,
 } from '@/common/constants/event-types.constants';
 import { DuckRecordCreatedEvent } from '@/duck/types/duck-record-created.event';
-import { OUTBOX_MAX_RETRY_COUNT, OutboxService } from './outbox.service';
+import { OUTBOX_ALERT_RETRY_COUNT, OutboxService } from './outbox.service';
 
 @Injectable()
 export class OutboxPublisher implements OnModuleDestroy {
@@ -132,17 +132,17 @@ export class OutboxPublisher implements OnModuleDestroy {
   }
 
   private async handlePublishFailure(outbox: Outbox): Promise<void> {
-    const { status, retryCount } =
-      await this.outboxService.markPublishFailed(outbox);
+    const retryCount = await this.outboxService.markPublishFailed(outbox);
 
-    if (status === OutboxStatus.DEAD) {
+    if (retryCount === OUTBOX_ALERT_RETRY_COUNT) {
       this.logger.error(
-        `🚨 DLQ: Event ${outbox.id}가 최종 실패 처리되었습니다.`,
+        `🚨 Event ${outbox.id} 발행이 ${retryCount}번 실패했습니다. 성공할 때까지 계속 재시도합니다.`,
       );
-    } else {
-      this.logger.warn(
-        `⚠️ Event ${outbox.id} 발행 실패 (재시도 ${retryCount} / ${OUTBOX_MAX_RETRY_COUNT})`,
-      );
+      return;
     }
+
+    this.logger.warn(
+      `⚠️ Event ${outbox.id} 발행 실패 (누적 ${retryCount}회), 다시 시도합니다.`,
+    );
   }
 }

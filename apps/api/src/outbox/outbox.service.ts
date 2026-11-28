@@ -3,7 +3,8 @@ import { PrismaService } from '../prisma/prisma.service';
 import { Outbox, OutboxStatus, Prisma } from '@prisma/client';
 import { OutboxEvent } from '@/common/constants/event-types.constants';
 
-export const OUTBOX_MAX_RETRY_COUNT = 5;
+/** 발행이 이 횟수만큼 실패하면 에러 로그로 알린다. 재시도는 계속한다. */
+export const OUTBOX_ALERT_RETRY_COUNT = 5;
 
 @Injectable()
 export class OutboxService {
@@ -26,10 +27,10 @@ export class OutboxService {
     return this.prisma.outbox.findMany({
       where: {
         status: { in: [OutboxStatus.PENDING, OutboxStatus.RETRY] },
-        retryCount: { lt: OUTBOX_MAX_RETRY_COUNT },
       },
       take: 100,
-      orderBy: { createdAt: 'asc' },
+      // 계속 실패하는 이벤트가 새 이벤트를 막지 않도록 적게 실패한 것부터 가져온다.
+      orderBy: [{ retryCount: 'asc' }, { createdAt: 'asc' }],
     });
   }
 
@@ -41,25 +42,23 @@ export class OutboxService {
   }
 
   /**
-   * 발행 실패를 기록한다.
-   * - retryCount를 1 증가시키고, 최대 횟수에 도달하면 DEAD, 아니면 RETRY로 전환
-   * - retryCount를 실제로 올려야 getPendingOutboxEvents의 상한 조건과 DEAD 전환이 동작한다
-   * - 단일 인스턴스 전제: 현재 retryCount로 다음 상태를 계산해 한 번의 UPDATE로 반영
+   * 발행 실패를 기록하고 누적 실패 횟수를 돌려준다.
+   * - 브로커 장애가 길어져도 이벤트를 잃지 않도록 포기하지 않고 항상 RETRY로 남긴다.
+   * - retryCount는 조회 순서와 실패 알림에 쓴다.
+   * - 단일 인스턴스 전제: 조회 시점의 retryCount로 누적 횟수를 계산한다.
    */
   async markPublishFailed(
     outbox: Pick<Outbox, 'id' | 'retryCount'>,
-  ): Promise<{ status: OutboxStatus; retryCount: number }> {
-    const retryCount = outbox.retryCount + 1;
-    const status =
-      retryCount >= OUTBOX_MAX_RETRY_COUNT
-        ? OutboxStatus.DEAD
-        : OutboxStatus.RETRY;
-
+  ): Promise<number> {
     await this.prisma.outbox.update({
       where: { id: outbox.id },
-      data: { status, retryCount: { increment: 1 }, processedAt: new Date() },
+      data: {
+        status: OutboxStatus.RETRY,
+        retryCount: { increment: 1 },
+        processedAt: new Date(),
+      },
     });
 
-    return { status, retryCount };
+    return outbox.retryCount + 1;
   }
 }
