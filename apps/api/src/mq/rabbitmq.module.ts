@@ -2,6 +2,7 @@ import { Module, Global } from '@nestjs/common';
 import { ClientsModule, Transport } from '@nestjs/microservices';
 import { ConfigService } from '@nestjs/config';
 import { RMQ_CLIENT_MAP } from '@/common/constants/rabbitmq.constants';
+import { RmqRetryService } from './rmq-retry.service';
 
 const rmqClients = Object.keys(RMQ_CLIENT_MAP).map((clientName) => ({
   name: clientName,
@@ -29,6 +30,7 @@ const createRmqClientOptions = (
 @Global()
 @Module({
   imports: [ClientsModule.registerAsync(rmqClients)],
-  exports: [ClientsModule],
+  providers: [RmqRetryService],
+  exports: [ClientsModule, RmqRetryService],
 })
 export class RabbitMqModule {}

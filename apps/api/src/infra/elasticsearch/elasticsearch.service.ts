@@ -1,8 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ElasticsearchService as NestElasticsearchService } from '@nestjs/elasticsearch';
 import { errors } from '@elastic/elasticsearch';
-import { IndexConfig } from './types/elasticsearch.types';
-import { ESDocumentNotFoundException } from './exceptions/elasticsearch.exception';
+import { IndexConfig, VersionedWriteResult } from './types/elasticsearch.types';
 import {
   MappingTypeMapping,
   ReindexRequest,
@@ -153,39 +152,64 @@ export class ElasticsearchService {
     }
   }
 
+  /**
+   * 문서 전체를 덮어쓴다(external version).
+   * - ES는 `version`이 현재 문서 버전보다 클 때만 쓰기를 허용한다.
+   * - 이미 같거나 더 높은 버전이 반영돼 있으면 409(version conflict)를 돌려주고,
+   *   이를 예외가 아닌 STALE로 반환한다. 중복·지연 이벤트는 이렇게 무해하게 무시된다.
+   */
   async indexDocument<T>(
     index: string,
     id: string,
     document: T,
-  ): Promise<void> {
-    await this.elasticsearchService.index({ index, id, document });
+    version: number,
+  ): Promise<VersionedWriteResult> {
+    try {
+      await this.elasticsearchService.index({
+        index,
+        id,
+        document,
+        version,
+        version_type: 'external',
+      });
+      return 'APPLIED';
+    } catch (error) {
+      if (this.isVersionConflict(error)) return 'STALE';
+      throw error;
+    }
   }
 
-  async updateDocument<T>(
+  /**
+   * 문서를 삭제하고 삭제 버전을 남긴다(external version).
+   * - 문서가 아직 없어도(404) 삭제 버전(tombstone)은 기록되므로, 이후 도착하는
+   *   더 낮은 버전의 생성/수정 이벤트가 삭제된 문서를 되살리지 못한다.
+   *   (tombstone은 index.gc_deletes, 기본 60초 동안만 유지된다)
+   */
+  async deleteDocument(
     index: string,
     id: string,
-    doc: Partial<T>,
-  ): Promise<void> {
+    version: number,
+  ): Promise<VersionedWriteResult> {
     try {
-      await this.elasticsearchService.update({ index, id, doc });
+      await this.elasticsearchService.delete({
+        index,
+        id,
+        version,
+        version_type: 'external',
+      });
+      return 'APPLIED';
     } catch (error) {
+      if (this.isVersionConflict(error)) return 'STALE';
       if (error instanceof errors.ResponseError && error.statusCode === 404) {
-        throw new ESDocumentNotFoundException(index);
+        this.logger.warn(`⚠️  문서 이미 없음(삭제 버전만 기록): ${id}`);
+        return 'APPLIED';
       }
       throw error;
     }
   }
 
-  async deleteDocument(index: string, id: string): Promise<void> {
-    try {
-      await this.elasticsearchService.delete({ index, id });
-    } catch (error) {
-      if (error instanceof errors.ResponseError && error.statusCode === 404) {
-        this.logger.warn(`⚠️  문서 이미 삭제됨: ${id}`);
-        return;
-      }
-      throw error;
-    }
+  private isVersionConflict(error: unknown): boolean {
+    return error instanceof errors.ResponseError && error.statusCode === 409;
   }
 
   async search<T>(params: SearchRequest): Promise<SearchResponse<T>> {

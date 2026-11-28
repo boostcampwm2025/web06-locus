@@ -8,6 +8,9 @@ export const DUCK_POLICY = {
   // 오리 코멘트(Redis) 유효 시간 (24시간)
   POOL_TTL: 86400,
 
+  // 처리한 이벤트 ID를 기억하는 시간(초): 이 안에 재전달된 중복 이벤트는 무시한다
+  EVENT_DEDUP_TTL: 86400,
+
   // 기본 닉네임 (닉네임이 없을 경우 대비)
   DEFAULT_NICKNAME: '사용자',
 } as const;

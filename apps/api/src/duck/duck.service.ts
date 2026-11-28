@@ -2,7 +2,7 @@ import { REDIS_KEY_PREFIX } from '@/redis/redis.constants';
 import { RedisService } from '@/redis/redis.service';
 import { Injectable, Logger } from '@nestjs/common';
 import { DuckCommentResponseDto } from './dto/duck-comment-response.dto';
-import { RecordSyncPayload } from '@/records/type/record-sync.types';
+import { DuckRecordCreatedEvent } from './types/duck-record-created.event';
 import { RecordsService } from '@/records/records.service';
 import { NcpAiService } from './ncp-ai.service';
 import { UsersService } from '@/users/users.service';
@@ -40,25 +40,65 @@ export class DuckService {
     return DuckCommentResponseDto.of(DUCK_DEFAULT_COMMENTS);
   }
 
-  async handleRecordCreated(payload: RecordSyncPayload) {
-    const userId = BigInt(payload.userId);
+  /**
+   * 기록 생성 이벤트 처리(최소 한 번 전달 → 멱등)
+   * - 이벤트 ID를 먼저 선점(SET NX)해, 같은 이벤트가 중복 전달돼도 카운트가 한 번만 오른다.
+   * - 카운트 단계가 실패하면 선점을 풀고 예외를 던져 재시도되게 한다.
+   *   (선점을 남기면 재시도가 중복으로 오인돼 카운트가 영영 반영되지 않는다)
+   * - 멘트 갱신은 이미 카운트가 반영된 뒤의 부가 작업이라, 실패해도 재시도하지 않는다.
+   *   카운트/풀 조건이 유지되므로 다음 기록 생성 때 다시 갱신된다.
+   * @returns 처리했으면 'PROCESSED', 이미 처리한 이벤트면 'DUPLICATE'
+   */
+  async handleRecordCreated(
+    event: DuckRecordCreatedEvent,
+  ): Promise<'PROCESSED' | 'DUPLICATE'> {
+    const userId = BigInt(event.userId);
 
+    const eventKey = `${REDIS_KEY_PREFIX.DUCK_EVENT}${event.eventId}`;
     const countKey = `${REDIS_KEY_PREFIX.DUCK_COUNT}${userId}`;
     const poolKey = `${REDIS_KEY_PREFIX.DUCK_POOL}${userId}`;
 
-    const currentCount = await this.redisService.incr(countKey);
-    const poolExists = await this.redisService.isExists(poolKey);
-
-    this.logger.log(
-      `🐥 유저 ${userId} 기록 생성 감지! 현재 카운트: ${currentCount}`,
+    const claimed = await this.redisService.setIfAbsent(
+      eventKey,
+      '1',
+      DUCK_POLICY.EVENT_DEDUP_TTL,
     );
-
-    if (currentCount >= DUCK_POLICY.UPDATE_THRESHOLD || !poolExists) {
-      this.logger.log(`🚀 유저 ${userId}의 오리 멘트 갱신을 트리거합니다.`);
-
-      await this.refreshComments(userId);
-      await this.redisService.del(countKey);
+    if (!claimed) {
+      this.logger.log(
+        `⏭️ 이미 처리한 오리 이벤트(${event.eventId})라 건너뜁니다.`,
+      );
+      return 'DUPLICATE';
     }
+
+    let shouldRefresh: boolean;
+    try {
+      const currentCount = await this.redisService.incr(countKey);
+      const poolExists = await this.redisService.isExists(poolKey);
+
+      this.logger.log(
+        `🐥 유저 ${userId} 기록 생성 감지! 현재 카운트: ${currentCount}`,
+      );
+      shouldRefresh =
+        currentCount >= DUCK_POLICY.UPDATE_THRESHOLD || !poolExists;
+    } catch (error) {
+      await this.redisService.del(eventKey).catch(() => undefined);
+      throw error;
+    }
+
+    if (shouldRefresh) {
+      this.logger.log(`🚀 유저 ${userId}의 오리 멘트 갱신을 트리거합니다.`);
+      try {
+        await this.refreshComments(userId);
+        await this.redisService.del(countKey);
+      } catch (error) {
+        this.logger.error(
+          `유저 ${userId} 오리 멘트 갱신 실패(다음 기록 생성 때 재시도)`,
+          error,
+        );
+      }
+    }
+
+    return 'PROCESSED';
   }
 
   private async refreshComments(userId: bigint): Promise<string[]> {

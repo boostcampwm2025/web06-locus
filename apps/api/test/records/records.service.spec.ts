@@ -7,6 +7,12 @@ import { ObjectStorageService } from '@/records/services/object-storage.service'
 import { RecordSearchService } from '@/records/services/records-search.service';
 import { RecordTagsService } from '@/records/services/records-tags.service';
 import { RecordImageService } from '@/records/services/records-image.service';
+import { RecordSnapshotService } from '@/records/services/records-snapshot.service';
+import { RecordSyncPayload } from '@/records/type/record-sync.types';
+import {
+  AGGREGATE_TYPE,
+  OUTBOX_EVENT_TYPE,
+} from '@/common/constants/event-types.constants';
 import { RecordQueryService } from '@/records/services/records-query.service';
 import { RecordGraphService } from '@/records/services/records-graph.service';
 import { RecordLocationService } from '@/records/services/records-location.service';
@@ -37,6 +43,27 @@ describe('RecordsService', () => {
 
   const mockOutboxService = {
     publish: jest.fn(),
+  };
+
+  const mockRecordSnapshotService = {
+    buildSnapshot: jest.fn(),
+  };
+
+  // 어떤 이벤트든 Outbox에는 DB 기준의 "완전한 스냅샷"이 실려야 한다.
+  const snapshot: RecordSyncPayload = {
+    recordId: '100',
+    publicId: 'rec_123',
+    userId: '1',
+    title: '스냅샷 제목',
+    content: '스냅샷 내용',
+    isFavorite: true,
+    locationName: '서울',
+    locationAddress: '서울시',
+    tags: ['여행'],
+    hasImages: true,
+    thumbnailImage: 'https://cdn.example.com/thumb.webp',
+    connectionsCount: 5,
+    createdAt: '2024-01-15T10:00:00.000Z',
   };
 
   const mockUsersService = {
@@ -92,12 +119,17 @@ describe('RecordsService', () => {
 
   beforeEach(async () => {
     jest.clearAllMocks();
+    mockRecordSnapshotService.buildSnapshot.mockResolvedValue(snapshot);
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         RecordsService,
         { provide: PrismaService, useValue: mockPrismaService },
         { provide: OutboxService, useValue: mockOutboxService },
+        {
+          provide: RecordSnapshotService,
+          useValue: mockRecordSnapshotService,
+        },
         { provide: UsersService, useValue: mockUsersService },
         { provide: ObjectStorageService, useValue: mockObjectStorageService },
         { provide: RecordSearchService, useValue: mockRecordSearchService },
@@ -1205,6 +1237,273 @@ describe('RecordsService', () => {
       });
       expect(mockOutboxService.publish).toHaveBeenCalled();
       expect(result.connectionsCount).toBe(6);
+    });
+  });
+
+  describe('Outbox 이벤트는 항상 완전한 스냅샷을 싣는다', () => {
+    const baseRecord = {
+      id: 100n,
+      publicId: 'rec_123',
+      userId: 1n,
+      title: '제목',
+      content: '내용',
+      locationName: '서울',
+      locationAddress: '서울시',
+      isFavorite: false,
+      connectionsCount: 5,
+      createdAt: new Date('2024-01-15T10:00:00Z'),
+      updatedAt: new Date('2024-01-15T10:00:00Z'),
+    };
+
+    const expectSnapshotEvent = (
+      tx: unknown,
+      eventType: string,
+      payload: RecordSyncPayload = snapshot,
+    ) => {
+      expect(mockOutboxService.publish).toHaveBeenCalledTimes(1);
+      expect(mockOutboxService.publish).toHaveBeenCalledWith(tx, {
+        aggregateType: AGGREGATE_TYPE.RECORD,
+        aggregateId: '100',
+        eventType,
+        payload,
+      });
+    };
+
+    test('생성: 태그가 저장된 뒤 같은 트랜잭션에서 만든 스냅샷을 RECORD_CREATED로 발행해야 한다', async () => {
+      // given
+      let capturedTx: unknown;
+      mockRecordLocationService.getLocationInfo.mockResolvedValue({
+        name: '서울시청',
+        address: '서울시 중구',
+      });
+      mockPrismaService.$transaction.mockImplementation((callback) => {
+        capturedTx = {
+          record: { create: jest.fn().mockResolvedValue(baseRecord) },
+        };
+        return callback(capturedTx);
+      });
+      mockRecordLocationService.updateRecordLocation.mockResolvedValue(
+        baseRecord,
+      );
+      mockRecordTagsService.createRecordTags.mockResolvedValue([
+        { publicId: 'tag_1', name: '여행' },
+      ]);
+      mockRecordImageService.getImagesByRecordIds.mockResolvedValue(new Map());
+
+      // when
+      await service.createRecord(1n, {
+        title: '제목',
+        content: '내용',
+        location: { latitude: 37.5665, longitude: 126.978 },
+        tags: ['tag_1'],
+      });
+
+      // then
+      expect(mockRecordSnapshotService.buildSnapshot).toHaveBeenCalledWith(
+        capturedTx,
+        100n,
+      );
+      expectSnapshotEvent(capturedTx, OUTBOX_EVENT_TYPE.RECORD_CREATED);
+      expect(
+        mockRecordTagsService.createRecordTags.mock.invocationCallOrder[0],
+      ).toBeLessThan(
+        mockRecordSnapshotService.buildSnapshot.mock.invocationCallOrder[0],
+      );
+    });
+
+    test('수정: 태그 변경이 반영된 뒤 스냅샷을 RECORD_UPDATED로 발행하고 연결 수를 유지해야 한다', async () => {
+      // given
+      let capturedTx: unknown;
+      mockPrismaService.$transaction.mockImplementation((callback) => {
+        capturedTx = {
+          record: {
+            findFirst: jest.fn().mockResolvedValue(baseRecord),
+            update: jest.fn().mockResolvedValue(baseRecord),
+          },
+        };
+        return callback(capturedTx);
+      });
+      mockRecordLocationService.getRecordWithLocation.mockResolvedValue({
+        ...baseRecord,
+        longitude: 126.978,
+        latitude: 37.5665,
+      });
+      mockRecordTagsService.updateRecordTags.mockResolvedValue([
+        { publicId: 'tag_1', name: '여행' },
+      ]);
+      mockRecordImageService.getImagesByRecordIds.mockResolvedValue(new Map());
+
+      // when
+      await service.updateRecord(1n, 'rec_123', {
+        title: '수정',
+        tags: ['tag_1'],
+      });
+
+      // then
+      expect(mockRecordSnapshotService.buildSnapshot).toHaveBeenCalledWith(
+        capturedTx,
+        100n,
+      );
+      expectSnapshotEvent(capturedTx, OUTBOX_EVENT_TYPE.RECORD_UPDATED);
+      expect(
+        mockOutboxService.publish.mock.calls[0][1].payload.connectionsCount,
+      ).toBe(5);
+      expect(
+        mockRecordTagsService.updateRecordTags.mock.invocationCallOrder[0],
+      ).toBeLessThan(
+        mockRecordSnapshotService.buildSnapshot.mock.invocationCallOrder[0],
+      );
+    });
+
+    test('수정: 태그만 바꿔도 records 행을 갱신해 잠근 뒤 스냅샷을 만들어야 한다', async () => {
+      // given
+      const update = jest.fn().mockResolvedValue(baseRecord);
+      mockPrismaService.$transaction.mockImplementation((callback) =>
+        callback({
+          record: {
+            findFirst: jest.fn().mockResolvedValue(baseRecord),
+            update,
+          },
+        }),
+      );
+      mockRecordLocationService.getRecordWithLocation.mockResolvedValue({
+        ...baseRecord,
+        longitude: 126.978,
+        latitude: 37.5665,
+      });
+      mockRecordTagsService.updateRecordTags.mockResolvedValue([
+        { publicId: 'tag_1', name: '여행' },
+      ]);
+      mockRecordImageService.getImagesByRecordIds.mockResolvedValue(new Map());
+
+      // when
+      await service.updateRecord(1n, 'rec_123', { tags: ['tag_1'] });
+
+      // then
+      expect(update).toHaveBeenCalledWith({
+        where: { id: 100n },
+        data: { updatedAt: expect.any(Date) },
+      });
+      expect(update.mock.invocationCallOrder[0]).toBeLessThan(
+        mockRecordSnapshotService.buildSnapshot.mock.invocationCallOrder[0],
+      );
+    });
+
+    test('즐겨찾기: 부분 payload가 아니라 전체 스냅샷을 RECORD_FAVORITE_UPDATED로 발행해야 한다', async () => {
+      // given
+      let capturedTx: unknown;
+      mockPrismaService.record.findUnique.mockResolvedValue(baseRecord);
+      mockPrismaService.$transaction.mockImplementation((callback) => {
+        capturedTx = {
+          record: {
+            update: jest.fn().mockResolvedValue({
+              id: 100n,
+              publicId: 'rec_123',
+              isFavorite: true,
+            }),
+          },
+        };
+        return callback(capturedTx);
+      });
+
+      // when
+      await service.updateFavoriteInRecord(1n, 'rec_123', true);
+
+      // then
+      expect(mockRecordSnapshotService.buildSnapshot).toHaveBeenCalledWith(
+        capturedTx,
+        100n,
+      );
+      expectSnapshotEvent(
+        capturedTx,
+        OUTBOX_EVENT_TYPE.RECORD_FAVORITE_UPDATED,
+      );
+      const { payload } = mockOutboxService.publish.mock.calls[0][1];
+      expect(Object.keys(payload).length).toBeGreaterThan(2);
+    });
+
+    test('연결 수: DB 증가 이후 같은 트랜잭션의 스냅샷을 RECORD_CONNECTIONS_COUNT_UPDATED로 발행해야 한다', async () => {
+      // given
+      const mockTx = {
+        record: {
+          update: jest
+            .fn()
+            .mockResolvedValue({ id: 100n, connectionsCount: 6 }),
+        },
+      } as any;
+
+      // when
+      await service.incrementConnectionsCount(mockTx, 100n, 1);
+
+      // then
+      expect(mockRecordSnapshotService.buildSnapshot).toHaveBeenCalledWith(
+        mockTx,
+        100n,
+      );
+      expectSnapshotEvent(
+        mockTx,
+        OUTBOX_EVENT_TYPE.RECORD_CONNECTIONS_COUNT_UPDATED,
+      );
+      expect(mockTx.record.update.mock.invocationCallOrder[0]).toBeLessThan(
+        mockRecordSnapshotService.buildSnapshot.mock.invocationCallOrder[0],
+      );
+    });
+
+    test('삭제: 스냅샷을 만들지 않고 최소 payload만 RECORD_DELETED로 발행해야 한다', async () => {
+      // given
+      let capturedTx: unknown;
+      mockPrismaService.record.findUnique.mockResolvedValue({
+        id: 100n,
+        userId: 1n,
+        publicId: 'rec_123',
+        images: [],
+      });
+      mockPrismaService.$transaction.mockImplementation((callback) => {
+        capturedTx = {
+          record: { delete: jest.fn().mockResolvedValue({}) },
+        };
+        return callback(capturedTx);
+      });
+      mockRecordImageService.deleteImagesFromStorage.mockResolvedValue(
+        undefined,
+      );
+
+      // when
+      await service.deleteRecord(1n, 'rec_123');
+
+      // then
+      expect(mockRecordSnapshotService.buildSnapshot).not.toHaveBeenCalled();
+      expect(mockOutboxService.publish).toHaveBeenCalledWith(capturedTx, {
+        aggregateType: AGGREGATE_TYPE.RECORD,
+        aggregateId: '100',
+        eventType: OUTBOX_EVENT_TYPE.RECORD_DELETED,
+        payload: { publicId: 'rec_123', userId: '1' },
+      });
+    });
+
+    test('스냅샷 생성에 실패하면 이벤트를 발행하지 않고 에러를 전파해 트랜잭션이 롤백되게 해야 한다', async () => {
+      // given
+      mockPrismaService.record.findUnique.mockResolvedValue(baseRecord);
+      mockPrismaService.$transaction.mockImplementation((callback) =>
+        callback({
+          record: {
+            update: jest.fn().mockResolvedValue({
+              id: 100n,
+              publicId: 'rec_123',
+              isFavorite: true,
+            }),
+          },
+        }),
+      );
+      mockRecordSnapshotService.buildSnapshot.mockRejectedValue(
+        new Error('snapshot failed'),
+      );
+
+      // when & then
+      await expect(
+        service.updateFavoriteInRecord(1n, 'rec_123', true),
+      ).rejects.toThrow('snapshot failed');
+      expect(mockOutboxService.publish).not.toHaveBeenCalled();
     });
   });
 });
